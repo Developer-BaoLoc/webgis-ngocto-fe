@@ -1,3 +1,4 @@
+import { AuthGuard } from "@/components/auth/auth-guard";
 import { getLayerCatalog } from "@/lib/api/layers";
 import { LayerCatalogProvider } from "@/providers/layer-catalog-provider";
 import { AppShell } from "@/components/layout/app-shell";
@@ -20,8 +21,10 @@ export default async function AppLayout({
   }
 
   return (
-    <LayerCatalogProvider catalog={catalog} error={error}>
-      <AppShell>{children}</AppShell>
-    </LayerCatalogProvider>
+    <AuthGuard>
+      <LayerCatalogProvider catalog={catalog} error={error}>
+        <AppShell>{children}</AppShell>
+      </LayerCatalogProvider>
+    </AuthGuard>
   );
 }

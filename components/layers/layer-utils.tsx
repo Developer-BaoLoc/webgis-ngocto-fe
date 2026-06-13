@@ -43,7 +43,9 @@ export function LayerRow({ layer }: { layer: Layer }) {
       />
       <div className="min-w-0">
         <p className="font-medium text-foreground">{layer.name}</p>
-        <p className="truncate text-sm text-muted">{layer.description}</p>
+        {layer.description && (
+          <p className="truncate text-sm text-muted">{layer.description}</p>
+        )}
       </div>
     </div>
   );

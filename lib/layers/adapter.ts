@@ -1,33 +1,24 @@
-import type { LayerCatalogItem } from "@/types/api/layer-catalog";
+import type { LayerCatalogItem, LayerDetail } from "@/types/api/layer-catalog";
 import type { Layer } from "@/types/layer.types";
+import { geometryKindToType } from "@/types/layer.types";
 import { getLayerColor } from "./colors";
 
-const NO_GEOMETRY_TYPES = new Set(["none", ""]);
-
-export function hasMapGeometry(geometryType: string): boolean {
-  return !NO_GEOMETRY_TYPES.has(geometryType.toLowerCase());
+export function hasMapGeometry(geometryKind: string): boolean {
+  return geometryKind !== "none";
 }
 
-/** Prototype slug → Phase 1 code (khi API Phase 1 chưa sẵn) */
-const PROTOTYPE_CODE_MAP: Record<string, string> = {
-  cooperatives: "economic_collective",
-  "cooperative-groups": "economic_collective",
-  irrigation: "pump_station",
-  "administrative-boundary": "administrative_zone",
-};
-
-export function toLayer(item: LayerCatalogItem): Layer {
-  const code = PROTOTYPE_CODE_MAP[item.id] ?? item.id;
-
+export function toLayer(item: LayerCatalogItem | LayerDetail): Layer {
   return {
     id: item.id,
-    code,
+    code: item.code,
     name: item.name,
     description: item.description,
-    geometryType: item.geometryType,
-    status: item.status,
+    geometryKind: item.geometryKind,
+    geometryType: geometryKindToType(item.geometryKind),
+    geometryRequired: item.geometryRequired,
     endpoint: item.endpoint,
-    hasGeometry: hasMapGeometry(item.geometryType),
-    color: getLayerColor(item.id),
+    hasGeometry: hasMapGeometry(item.geometryKind),
+    color: getLayerColor(item.code),
+    sortOrder: item.sortOrder,
   };
 }

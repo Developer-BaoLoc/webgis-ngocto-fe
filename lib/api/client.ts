@@ -1,3 +1,6 @@
+import { getStoredToken } from "@/lib/auth/token";
+import type { ApiErrorBody } from "@/types/api/common";
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -14,23 +17,43 @@ export function getApiBaseUrl(): string {
   );
 }
 
+export interface ApiFetchOptions extends RequestInit {
+  token?: string | null;
+}
+
 export async function apiFetch<T>(
   path: string,
-  init?: RequestInit,
+  init?: ApiFetchOptions,
 ): Promise<T> {
+  const { token: tokenOverride, ...fetchInit } = init ?? {};
+  const token =
+    tokenOverride !== undefined ? tokenOverride : getStoredToken();
+
   const url = `${getApiBaseUrl()}${path.startsWith("/") ? path : `/${path}`}`;
 
   const res = await fetch(url, {
     cache: "no-store",
-    ...init,
+    ...fetchInit,
     headers: {
       Accept: "application/json",
-      ...init?.headers,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...fetchInit.headers,
     },
   });
 
   if (!res.ok) {
-    throw new ApiError(`API ${res.status}: ${path}`, res.status);
+    let message = `API ${res.status}: ${path}`;
+    try {
+      const body = (await res.json()) as ApiErrorBody;
+      if (body.error?.message) message = body.error.message;
+    } catch {
+      // ignore parse error
+    }
+    throw new ApiError(message, res.status);
+  }
+
+  if (res.status === 204) {
+    return undefined as T;
   }
 
   return res.json() as Promise<T>;

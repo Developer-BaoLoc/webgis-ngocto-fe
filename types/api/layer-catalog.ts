@@ -1,4 +1,4 @@
-export type LayerCatalogStatus = "planned" | "in_progress" | "ready";
+export type GeometryKind = "point" | "polygon" | "line" | "none" | string;
 
 export interface LayerCatalogProject {
   name: string;
@@ -12,20 +12,21 @@ export interface LayerCatalogProject {
 
 export interface LayerCatalogItem {
   id: string;
+  code: string;
   name: string;
-  description: string;
-  geometryType: string;
-  status: LayerCatalogStatus;
+  description: string | null;
+  geometryKind: GeometryKind;
+  geometryRequired: boolean;
+  sortOrder: number;
   endpoint: string;
-}
-
-export interface PlannedLayerItem {
-  id: string;
-  name: string;
 }
 
 export interface LayerCatalogResponse {
   project: LayerCatalogProject;
   layers: LayerCatalogItem[];
-  plannedLayers: PlannedLayerItem[];
+}
+
+export interface LayerDetail extends LayerCatalogItem {
+  renderMode?: string;
+  currentSchemaVersionId?: string;
 }

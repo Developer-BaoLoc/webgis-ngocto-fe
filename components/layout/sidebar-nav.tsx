@@ -7,6 +7,7 @@ import { wardConfig } from "@/config/ward.config";
 import { mainNavigation } from "@/constants/navigation";
 import { GeometryTypeIcon } from "@/components/layers/layer-utils";
 import { useLayerCatalog } from "@/providers/layer-catalog-provider";
+import { useAuth } from "@/providers/auth-provider";
 import { cn } from "@/lib/utils";
 
 function NavIcon({ icon }: { icon: (typeof mainNavigation)[number]["icon"] }) {
@@ -43,13 +44,19 @@ function NavIcon({ icon }: { icon: (typeof mainNavigation)[number]["icon"] }) {
 export function SidebarNav() {
   const pathname = usePathname();
   const { catalog, layers, error } = useLayerCatalog();
+  const { user, tenant, logout } = useAuth();
 
   const project = catalog?.project;
-  const district = project?.district ?? wardConfig.district;
-  const city = project?.province ?? wardConfig.city;
-  const wardName = project?.ward
-    ? `Phường ${project.ward}`
-    : wardConfig.name;
+  const district =
+    tenant?.settings.district ?? project?.district ?? wardConfig.district;
+  const city =
+    tenant?.settings.province ?? project?.province ?? wardConfig.city;
+  const wardName = tenant?.settings.ward
+    ? `Phường ${tenant.settings.ward}`
+    : project?.ward
+      ? `Phường ${project.ward}`
+      : wardConfig.name;
+  const displayName = tenant?.name ?? project?.name ?? siteConfig.shortName;
 
   return (
     <aside className="flex w-64 shrink-0 flex-col border-r border-border bg-surface">
@@ -60,7 +67,7 @@ export function SidebarNav() {
           </div>
           <div>
             <p className="text-sm font-semibold text-foreground">
-              {project?.name ?? siteConfig.shortName}
+              {displayName}
             </p>
             <p className="text-xs text-muted">{wardName}</p>
           </div>
@@ -131,8 +138,26 @@ export function SidebarNav() {
       </nav>
 
       <div className="border-t border-border px-5 py-4">
+        {user && (
+          <div className="mb-3">
+            <p className="truncate text-sm font-medium text-foreground">
+              {user.fullName}
+            </p>
+            <p className="truncate text-xs text-muted">{user.email}</p>
+            {user.roles.length > 0 && (
+              <p className="mt-1 text-xs text-muted">{user.roles.join(", ")}</p>
+            )}
+          </div>
+        )}
         <p className="text-xs text-muted">{district}</p>
         <p className="text-xs text-muted">{city}</p>
+        <button
+          type="button"
+          onClick={logout}
+          className="mt-3 text-xs font-medium text-primary hover:underline"
+        >
+          Đăng xuất
+        </button>
       </div>
     </aside>
   );

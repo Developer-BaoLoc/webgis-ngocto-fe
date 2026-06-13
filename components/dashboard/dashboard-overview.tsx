@@ -6,15 +6,15 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { GeometryTypeIcon, LayerRow } from "@/components/layers/layer-utils";
 import { useLayerCatalog } from "@/providers/layer-catalog-provider";
 import { wardConfig } from "@/config/ward.config";
-import { layerStatusLabels } from "@/types/layer.types";
+import { geometryKindLabels } from "@/types/layer.types";
 import { StatCard } from "./stat-card";
 
 export function DashboardOverview() {
   const { catalog, layers, error } = useLayerCatalog();
   const project = catalog?.project;
 
-  const readyCount = layers.filter((l) => l.status === "ready").length;
-  const inProgressCount = layers.filter((l) => l.status === "in_progress").length;
+  const withGeometry = layers.filter((l) => l.hasGeometry).length;
+  const withoutGeometry = layers.filter((l) => !l.hasGeometry).length;
 
   return (
     <div className="space-y-8">
@@ -28,23 +28,19 @@ export function DashboardOverview() {
         <StatCard
           label="Tổng lớp dữ liệu"
           value={layers.length || "—"}
-          hint={
-            catalog?.plannedLayers.length
-              ? `+${catalog.plannedLayers.length} lớp dự kiến`
-              : "Từ GET /api/layers"
-          }
+          hint="Phase 1 metadata từ DB"
           accent="blue"
         />
         <StatCard
-          label="Sẵn sàng"
-          value={readyCount}
-          hint="Có dữ liệu GeoJSON"
+          label="Có bản đồ"
+          value={withGeometry}
+          hint="geometryKind ≠ none"
           accent="green"
         />
         <StatCard
-          label="Đang triển khai"
-          value={inProgressCount}
-          hint="Đang populate dữ liệu"
+          label="Chỉ bảng"
+          value={withoutGeometry}
+          hint="vd. ocop_product"
           accent="amber"
         />
         <StatCard
@@ -62,7 +58,7 @@ export function DashboardOverview() {
               Danh sách lớp dữ liệu
             </h2>
             <p className="mt-1 text-sm text-muted">
-              Nguồn: API catalog — metadata-driven Phase 1
+              GET /api/layers — metadata-driven Phase 1
             </p>
           </CardHeader>
           <CardContent>
@@ -81,13 +77,15 @@ export function DashboardOverview() {
                     <LayerRow layer={layer} />
                     <div className="flex shrink-0 flex-col items-end gap-1.5">
                       <LayerBadge
-                        label={layerStatusLabels[layer.status]}
-                        status={layer.status}
+                        label={
+                          geometryKindLabels[layer.geometryKind] ??
+                          layer.geometryKind
+                        }
+                        color={layer.color}
                       />
                       <span className="flex items-center gap-1 text-xs text-muted">
                         <GeometryTypeIcon type={layer.geometryType} />
-                        {layer.geometryType}
-                        {!layer.hasGeometry && " · không có bản đồ"}
+                        {layer.code}
                       </span>
                     </div>
                   </Link>
@@ -97,31 +95,6 @@ export function DashboardOverview() {
           </CardContent>
         </Card>
       </section>
-
-      {catalog?.plannedLayers && catalog.plannedLayers.length > 0 && (
-        <section>
-          <Card>
-            <CardHeader>
-              <h2 className="text-lg font-semibold text-foreground">
-                Lớp dự kiến (roadmap)
-              </h2>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-2">
-                {catalog.plannedLayers.map((item) => (
-                  <li
-                    key={item.id}
-                    className="flex items-center gap-2 text-sm text-muted"
-                  >
-                    <span className="h-1.5 w-1.5 rounded-full bg-slate-300" />
-                    {item.name}
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
-        </section>
-      )}
     </div>
   );
 }

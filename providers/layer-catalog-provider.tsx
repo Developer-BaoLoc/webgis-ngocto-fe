@@ -28,7 +28,7 @@ export function LayerCatalogProvider({
   error = null,
   children,
 }: LayerCatalogProviderProps) {
-  const layers = catalog?.layers.map(toLayer) ?? [];
+  const layers = catalog?.layers.map(toLayer).sort((a, b) => a.sortOrder - b.sortOrder) ?? [];
 
   return (
     <LayerCatalogContext.Provider value={{ catalog, layers, error }}>

@@ -5,7 +5,7 @@ import { LayerBadge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { GeometryTypeIcon } from "@/components/layers/layer-utils";
 import { useLayerCatalog } from "@/providers/layer-catalog-provider";
-import { layerStatusLabels } from "@/types/layer.types";
+import { geometryKindLabels } from "@/types/layer.types";
 
 export function LayerList() {
   const { layers, error } = useLayerCatalog();
@@ -38,21 +38,18 @@ export function LayerList() {
                   style={{ backgroundColor: layer.color }}
                 />
                 <LayerBadge
-                  label={layerStatusLabels[layer.status]}
-                  status={layer.status}
+                  label={
+                    geometryKindLabels[layer.geometryKind] ?? layer.geometryKind
+                  }
                 />
               </div>
               <h3 className="font-semibold text-foreground">{layer.name}</h3>
-              <p className="mt-1 text-sm text-muted">{layer.description}</p>
+              {layer.description && (
+                <p className="mt-1 text-sm text-muted">{layer.description}</p>
+              )}
               <div className="mt-4 flex items-center gap-2 text-xs text-muted">
                 <GeometryTypeIcon type={layer.geometryType} />
-                <span>{layer.geometryType}</span>
-                {layer.code !== layer.id && (
-                  <>
-                    <span>·</span>
-                    <span>code: {layer.code}</span>
-                  </>
-                )}
+                <span>{layer.code}</span>
               </div>
             </CardContent>
           </Card>
