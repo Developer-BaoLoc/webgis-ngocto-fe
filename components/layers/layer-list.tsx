@@ -48,8 +48,10 @@ export function LayerList() {
                 <p className="mt-1 text-sm text-muted">{layer.description}</p>
               )}
               <div className="mt-4 flex items-center gap-2 text-xs text-muted">
-                <GeometryTypeIcon type={layer.geometryType} />
-                <span>{layer.code}</span>
+                <GeometryTypeIcon type={layer.geometryTypeDisplay} />
+                <span>
+                  {geometryKindLabels[layer.geometryKind] ?? layer.geometryKind}
+                </span>
               </div>
             </CardContent>
           </Card>

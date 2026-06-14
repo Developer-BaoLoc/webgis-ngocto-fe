@@ -1,122 +1,218 @@
 "use client";
 
+import { useEffect, useState, type ReactNode } from "react";
 import type { RecordItem } from "@/types/api/records";
 import type { SchemaField } from "@/types/api/schema";
 import { formatCellValue, getDisplayFields } from "@/lib/schema/display";
+import { AttachmentImageGallery } from "@/components/ui/attachment-image-gallery";
+import {
+  buildDictionaryLabelMap,
+  type DictionaryLabelMap,
+} from "@/lib/dictionaries/labels";
+import {
+  DataTable,
+  DataTableBody,
+  DataTableCell,
+  DataTableEmpty,
+  DataTableHead,
+  DataTableHeaderCell,
+  DataTablePagination,
+  DataTableRow,
+  TableActionButton,
+  TableActions,
+} from "@/components/ui/data-table";
 
 interface RecordsTableProps {
   fields: SchemaField[];
   records: RecordItem[];
   total: number;
+  totalPages?: number;
   page: number;
   pageSize: number;
   onPageChange?: (page: number) => void;
+  onPageSizeChange?: (pageSize: number) => void;
+  onEdit?: (record: RecordItem) => void;
+  onDelete?: (record: RecordItem) => void;
   isLoading?: boolean;
+  isRefreshing?: boolean;
+  emptyAction?: ReactNode;
 }
 
-const locationStatusLabels: Record<string, string> = {
-  unlocated: "Chưa ghim",
-  point_placed: "Đã ghim điểm",
-  polygon_drawn: "Đã vẽ vùng",
-  imported: "Import",
-};
+function TableCellContent({
+  field,
+  value,
+  dictionaryLabels,
+}: {
+  field: SchemaField;
+  value: unknown;
+  dictionaryLabels: DictionaryLabelMap;
+}) {
+  if (field.fieldType === "image") {
+    return <AttachmentImageGallery value={value} compact />;
+  }
+
+  const text = formatCellValue(value, field, dictionaryLabels);
+  if (text === "—") {
+    return <span className="text-muted">—</span>;
+  }
+
+  return <span className="whitespace-nowrap text-sm">{text}</span>;
+}
 
 export function RecordsTable({
   fields,
   records,
   total,
+  totalPages: totalPagesProp,
   page,
   pageSize,
   onPageChange,
+  onPageSizeChange,
+  onEdit,
+  onDelete,
   isLoading,
+  isRefreshing,
+  emptyAction,
 }: RecordsTableProps) {
   const displayFields = getDisplayFields(fields);
-  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const totalPages =
+    totalPagesProp ?? Math.max(1, Math.ceil(total / pageSize));
+  const [dictionaryLabels, setDictionaryLabels] = useState<DictionaryLabelMap>(
+    new Map(),
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    buildDictionaryLabelMap(fields)
+      .then((map) => {
+        if (!cancelled) setDictionaryLabels(map);
+      })
+      .catch(() => {
+        if (!cancelled) setDictionaryLabels(new Map());
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [fields]);
 
   if (isLoading) {
     return (
-      <div className="flex h-48 items-center justify-center text-sm text-muted">
-        Đang tải dữ liệu...
+      <div className="flex h-40 items-center justify-center text-sm text-muted">
+        <span className="flex items-center gap-2">
+          <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          Đang tải...
+        </span>
       </div>
     );
   }
 
   if (records.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-border bg-surface/50 px-6 py-12 text-center">
-        <p className="font-medium text-foreground">Chưa có bản ghi</p>
-        <p className="mt-1 text-sm text-muted">
-          Import Excel hoặc tạo bản ghi mới để bắt đầu.
-        </p>
-      </div>
+      <DataTableEmpty
+        title="Chưa có bản ghi"
+        description="Tải mẫu Excel, import hoặc thêm bản ghi mới."
+        action={emptyAction}
+      />
     );
   }
 
   return (
-    <div className="space-y-4">
-      <div className="overflow-x-auto rounded-xl border border-border">
-        <table className="w-full min-w-[640px] text-left text-sm">
-          <thead className="border-b border-border bg-slate-50">
-            <tr>
-              {displayFields.map((field) => (
-                <th
-                  key={field.fieldId}
-                  className="px-4 py-3 font-medium text-foreground"
-                >
-                  {field.label}
-                </th>
-              ))}
-              <th className="px-4 py-3 font-medium text-foreground">Vị trí</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {records.map((record) => (
-              <tr key={record.id} className="hover:bg-slate-50/80">
-                {displayFields.map((field) => (
-                  <td key={field.fieldId} className="px-4 py-3 text-muted">
-                    {formatCellValue(record.properties[field.code])}
-                  </td>
-                ))}
-                <td className="px-4 py-3">
-                  <span className="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
-                    {record.locationStatus
-                      ? (locationStatusLabels[record.locationStatus] ??
-                        record.locationStatus)
-                      : record.geometry
-                        ? "Có tọa độ"
-                        : "Chưa ghim"}
-                  </span>
-                </td>
-              </tr>
+    <div className="space-y-3">
+      <div className="relative">
+        {isRefreshing && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-white/60">
+            <span className="flex items-center gap-2 text-sm text-muted">
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              Đang tải...
+            </span>
+          </div>
+        )}
+
+        <DataTable
+        scrollable
+        stickyHeader
+        stickyActions
+        maxHeight="min(68vh, 720px)"
+        className="border-0 shadow-none"
+      >
+        <DataTableHead>
+          <tr>
+            <DataTableHeaderCell className="w-12 px-3" align="center">
+              STT
+            </DataTableHeaderCell>
+            {displayFields.map((field) => (
+              <DataTableHeaderCell
+                key={field.fieldId}
+                className="whitespace-nowrap px-3"
+              >
+                {field.label}
+              </DataTableHeaderCell>
             ))}
-          </tbody>
-        </table>
+            {(onEdit || onDelete) && (
+              <DataTableHeaderCell align="right" className="w-28 px-3">
+                Thao tác
+              </DataTableHeaderCell>
+            )}
+          </tr>
+        </DataTableHead>
+        <DataTableBody>
+          {records.map((record, index) => (
+            <DataTableRow key={record.id}>
+              <DataTableCell variant="index" className="px-3 py-2.5">
+                {(page - 1) * pageSize + index + 1}
+              </DataTableCell>
+              {displayFields.map((field) => (
+                <DataTableCell key={field.fieldId} className="px-3 py-2.5">
+                  <TableCellContent
+                    field={field}
+                    value={record.properties[field.code]}
+                    dictionaryLabels={dictionaryLabels}
+                  />
+                </DataTableCell>
+              ))}
+              {(onEdit || onDelete) && (
+                <DataTableCell
+                  variant="actions"
+                  align="right"
+                  className="px-3 py-2.5"
+                >
+                  <TableActions>
+                    {onEdit && (
+                      <TableActionButton
+                        variant="primary"
+                        size="sm"
+                        onClick={() => onEdit(record)}
+                      >
+                        Sửa
+                      </TableActionButton>
+                    )}
+                    {onDelete && (
+                      <TableActionButton
+                        variant="danger"
+                        size="sm"
+                        onClick={() => onDelete(record)}
+                      >
+                        Xóa
+                      </TableActionButton>
+                    )}
+                  </TableActions>
+                </DataTableCell>
+              )}
+            </DataTableRow>
+          ))}
+        </DataTableBody>
+      </DataTable>
       </div>
 
-      {total > pageSize && onPageChange && (
-        <div className="flex items-center justify-between text-sm text-muted">
-          <span>
-            {total} bản ghi · Trang {page}/{totalPages}
-          </span>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              disabled={page <= 1}
-              onClick={() => onPageChange(page - 1)}
-              className="rounded-lg border border-border px-3 py-1.5 disabled:opacity-40"
-            >
-              Trước
-            </button>
-            <button
-              type="button"
-              disabled={page >= totalPages}
-              onClick={() => onPageChange(page + 1)}
-              className="rounded-lg border border-border px-3 py-1.5 disabled:opacity-40"
-            >
-              Sau
-            </button>
-          </div>
-        </div>
+      {onPageChange && (
+        <DataTablePagination
+          page={page}
+          totalPages={totalPages}
+          total={total}
+          pageSize={pageSize}
+          onPageChange={onPageChange}
+          onPageSizeChange={onPageSizeChange}
+        />
       )}
     </div>
   );

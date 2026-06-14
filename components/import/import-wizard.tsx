@@ -259,8 +259,7 @@ export function ImportWizard() {
                 >
                   <p className="font-medium text-foreground">{t.name}</p>
                   <p className="mt-1 text-xs text-muted">
-                    {TEMPLATE_HINTS[t.code] ??
-                      `${t.code}${t.layerCode ? ` → ${t.layerCode}` : ""}`}
+                    {TEMPLATE_HINTS[t.code] ?? t.description ?? t.sheetName ?? ""}
                   </p>
                   {t.sheetName && (
                     <p className="mt-1 text-xs text-muted">

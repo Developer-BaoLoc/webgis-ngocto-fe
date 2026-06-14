@@ -6,5 +6,5 @@ interface LayerDetailPageProps {
 
 export default async function LayerDetailPage({ params }: LayerDetailPageProps) {
   const { code } = await params;
-  return <LayerDetailView code={code} />;
+  return <LayerDetailView key={code} code={code} />;
 }

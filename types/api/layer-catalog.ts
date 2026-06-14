@@ -1,4 +1,6 @@
-export type GeometryKind = "point" | "polygon" | "line" | "none" | string;
+import type { MapViewConfig, MapViewConfigInput } from "@/types/api/map-view";
+
+export type GeometryKind = "point" | "polygon" | "line" | "linestring" | "none" | string;
 
 export interface LayerCatalogProject {
   name: string;
@@ -8,6 +10,7 @@ export interface LayerCatalogProject {
   province: string;
   center: { lat: number; lng: number };
   defaultZoom: number;
+  mapView?: MapViewConfigInput;
 }
 
 export interface LayerCatalogItem {
@@ -15,10 +18,12 @@ export interface LayerCatalogItem {
   code: string;
   name: string;
   description: string | null;
+  geometryType?: string;
   geometryKind: GeometryKind;
-  geometryRequired: boolean;
+  geometryRequired?: boolean;
   sortOrder: number;
   endpoint: string;
+  style?: Record<string, unknown>;
 }
 
 export interface LayerCatalogResponse {

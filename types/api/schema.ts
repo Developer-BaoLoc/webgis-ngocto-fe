@@ -7,6 +7,7 @@ export interface SchemaField {
   uiSchema: Record<string, unknown>;
   displaySchema: Record<string, unknown>;
   sortOrder: number;
+  isActive?: boolean;
 }
 
 export interface LayerSchema {

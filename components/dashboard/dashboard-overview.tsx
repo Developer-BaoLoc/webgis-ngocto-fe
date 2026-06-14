@@ -84,8 +84,9 @@ export function DashboardOverview() {
                         color={layer.color}
                       />
                       <span className="flex items-center gap-1 text-xs text-muted">
-                        <GeometryTypeIcon type={layer.geometryType} />
-                        {layer.code}
+                        <GeometryTypeIcon type={layer.geometryTypeDisplay} />
+                        {geometryKindLabels[layer.geometryKind] ??
+                          layer.geometryKind}
                       </span>
                     </div>
                   </Link>

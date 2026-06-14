@@ -5,6 +5,6 @@ export const wardConfig = {
   city: "Thành phố Cần Thơ",
   country: "Việt Nam",
   /** Fallback — ưu tiên lấy từ GET /api/layers → project.center */
-  center: { lat: 10.0125, lng: 105.785 },
-  defaultZoom: 14,
+  center: { lat: 10.3489, lng: 105.8342 },
+  defaultZoom: 15,
 } as const;

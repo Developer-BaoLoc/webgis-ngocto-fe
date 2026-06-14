@@ -3,22 +3,32 @@ import type { Layer } from "@/types/layer.types";
 import { geometryKindToType } from "@/types/layer.types";
 import { getLayerColor } from "./colors";
 
-export function hasMapGeometry(geometryKind: string): boolean {
-  return geometryKind !== "none";
+export function resolveGeometryKind(
+  item: LayerCatalogItem | LayerDetail,
+): string {
+  return item.geometryType ?? item.geometryKind ?? "none";
+}
+
+export function hasMapGeometry(kind: string): boolean {
+  return kind !== "none";
 }
 
 export function toLayer(item: LayerCatalogItem | LayerDetail): Layer {
+  const geometryKind = resolveGeometryKind(item);
+
   return {
     id: item.id,
     code: item.code,
     name: item.name,
     description: item.description,
-    geometryKind: item.geometryKind,
-    geometryType: geometryKindToType(item.geometryKind),
-    geometryRequired: item.geometryRequired,
+    geometryType: item.geometryType ?? geometryKind,
+    geometryKind,
+    geometryTypeDisplay: geometryKindToType(geometryKind),
+    geometryRequired: item.geometryRequired ?? false,
     endpoint: item.endpoint,
-    hasGeometry: hasMapGeometry(item.geometryKind),
+    hasGeometry: hasMapGeometry(geometryKind),
     color: getLayerColor(item.code),
     sortOrder: item.sortOrder,
+    style: item.style,
   };
 }

@@ -50,6 +50,7 @@ export interface GeoJsonQuery {
 export async function getLayerGeoJson(
   layerId: string,
   query?: GeoJsonQuery,
+  options?: { token?: string | null },
 ): Promise<GeoJsonFeatureCollection> {
   const params = new URLSearchParams();
   if (query?.bbox) {
@@ -61,8 +62,9 @@ export async function getLayerGeoJson(
   const qs = params.toString();
   const path = `/layers/${layerId}/geojson${qs ? `?${qs}` : ""}`;
 
-  const res = await apiFetch<GeoJsonFeatureCollection | ApiResponse<GeoJsonFeatureCollection>>(
-    path,
-  );
+  const res = await apiFetch<
+    GeoJsonFeatureCollection | ApiResponse<GeoJsonFeatureCollection>
+  >(path, { token: options?.token });
+
   return unwrapData(res);
 }

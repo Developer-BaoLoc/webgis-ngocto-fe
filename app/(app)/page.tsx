@@ -4,7 +4,7 @@ import { useLayerCatalog } from "@/providers/layer-catalog-provider";
 import { siteConfig } from "@/config/site.config";
 import { wardConfig } from "@/config/ward.config";
 import { PageHeader } from "@/components/layout/page-header";
-import { DashboardOverview } from "@/components/dashboard/dashboard-overview";
+import { DynamicDashboardPage } from "@/components/dashboard/dynamic-dashboard-page";
 
 export default function DashboardPage() {
   const { catalog } = useLayerCatalog();
@@ -17,7 +17,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-8">
       <PageHeader title="Tổng quan" description={description} />
-      <DashboardOverview />
+      <DynamicDashboardPage />
     </div>
   );
 }

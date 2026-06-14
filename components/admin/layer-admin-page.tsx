@@ -1,0 +1,397 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+import { PageHeader } from "@/components/layout/page-header";
+import { LayerStyleFields } from "@/components/admin/layer-style-fields";
+import { AdminSubNav } from "@/components/admin/admin-sub-nav";
+import { Modal } from "@/components/ui/modal";
+import { Card, CardContent } from "@/components/ui/card";
+import { inputClass } from "@/components/form/field-wrapper";
+import {
+  createLayer,
+  deleteLayer,
+  getAdminLayers,
+  updateLayer,
+} from "@/lib/api/layers-admin";
+import { getLayerGeometryTypes } from "@/lib/api/metadata";
+import {
+  buildStylePayload,
+  extractStyleFromLayer,
+  findGeometryMeta,
+  getDefaultStyle,
+  hasPointIcon,
+} from "@/lib/layers/style";
+import type { AdminLayer, LayerStyle } from "@/types/api/admin";
+import type { LayerGeometryTypeMeta } from "@/types/api/metadata";
+import { SCHEMA_STATUS_LABELS } from "@/lib/i18n/vi";
+import { geometryKindLabels } from "@/types/layer.types";
+import {
+  DataTable,
+  DataTableBody,
+  DataTableCell,
+  DataTableHead,
+  DataTableHeaderCell,
+  DataTableRow,
+  TableActionButton,
+  TableActionLink,
+  TableActions,
+  TableBadge,
+} from "@/components/ui/data-table";
+
+interface LayerFormState {
+  name: string;
+  description: string;
+  geometryType: string;
+  sortOrder: number;
+  style: LayerStyle;
+}
+
+function emptyForm(sortOrder: number, geometryType = "point"): LayerFormState {
+  return {
+    name: "",
+    description: "",
+    geometryType,
+    sortOrder,
+    style: getDefaultStyle(geometryType),
+  };
+}
+
+export function LayerAdminPage() {
+  const [layers, setLayers] = useState<AdminLayer[]>([]);
+  const [geometryTypes, setGeometryTypes] = useState<LayerGeometryTypeMeta[]>(
+    [],
+  );
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState<AdminLayer | null>(null);
+  const [form, setForm] = useState<LayerFormState>(emptyForm(1));
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const load = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const [adminLayers, types] = await Promise.all([
+        getAdminLayers(),
+        getLayerGeometryTypes().catch(() => []),
+      ]);
+      setLayers(adminLayers);
+      setGeometryTypes(types);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Không tải được danh sách");
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const typeOptions =
+    geometryTypes.length > 0
+      ? geometryTypes
+      : [
+          {
+            type: "point",
+            label: "Điểm",
+            geometryKind: "point",
+            styleFields: [{ key: "icon", label: "Icon", type: "icon" }],
+          },
+          {
+            type: "line",
+            label: "Đường",
+            geometryKind: "linestring",
+            styleFields: [
+              { key: "lineColor", label: "Màu đường", type: "color" },
+              { key: "lineWidth", label: "Độ dày", type: "number" },
+            ],
+          },
+          {
+            type: "polygon",
+            label: "Vùng",
+            geometryKind: "polygon",
+            styleFields: [
+              { key: "fillColor", label: "Màu vùng", type: "color" },
+              { key: "strokeColor", label: "Màu viền", type: "color" },
+            ],
+          },
+        ];
+
+  const selectedMeta = findGeometryMeta(typeOptions, form.geometryType);
+
+  function openCreate() {
+    setEditing(null);
+    setForm(emptyForm(layers.length + 1));
+    setShowForm(true);
+  }
+
+  function openEdit(layer: AdminLayer) {
+    setEditing(layer);
+    setForm({
+      name: layer.name,
+      description: layer.description ?? "",
+      geometryType: layer.geometryType,
+      sortOrder: layer.sortOrder,
+      style: extractStyleFromLayer(layer),
+    });
+    setShowForm(true);
+  }
+
+  function handleGeometryTypeChange(geometryType: string) {
+    setForm((f) => ({
+      ...f,
+      geometryType,
+      style: getDefaultStyle(geometryType),
+    }));
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (form.geometryType === "point" && !hasPointIcon(form.style)) {
+      setError("Vui lòng upload icon cho lớp dữ liệu dạng điểm");
+      return;
+    }
+    setIsSubmitting(true);
+    setError(null);
+    try {
+      if (editing) {
+        await updateLayer(editing.id, {
+          name: form.name,
+          description: form.description || null,
+          sortOrder: form.sortOrder,
+          style: buildStylePayload(form.geometryType, form.style),
+        });
+      } else {
+        await createLayer({
+          name: form.name,
+          description: form.description || null,
+          geometryType: form.geometryType,
+          sortOrder: form.sortOrder,
+          style: buildStylePayload(form.geometryType, form.style),
+        });
+      }
+      setShowForm(false);
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Lưu thất bại");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  async function handleDelete(layer: AdminLayer) {
+    if (!confirm(`Xóa lớp "${layer.name}"?`)) return;
+    try {
+      await deleteLayer(layer.id);
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Xóa thất bại");
+    }
+  }
+
+  function layerTypeLabel(layer: AdminLayer) {
+    const meta = findGeometryMeta(typeOptions, layer.geometryType);
+    return (
+      meta?.label ??
+      geometryKindLabels[layer.geometryType] ??
+      layer.geometryType
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <AdminSubNav />
+
+      <PageHeader
+        title="Quản lý lớp dữ liệu"
+        action={
+          <button
+            type="button"
+            onClick={openCreate}
+            className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-dark"
+          >
+            + Tạo lớp mới
+          </button>
+        }
+      />
+
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </div>
+      )}
+
+      <Card>
+        <CardContent className="pt-5">
+          {isLoading ? (
+            <p className="text-sm text-muted">Đang tải...</p>
+          ) : layers.length === 0 ? (
+            <p className="text-sm text-muted">
+              Chưa có lớp nào. Nhấn &quot;Tạo lớp mới&quot; để bắt đầu.
+            </p>
+          ) : (
+            <DataTable scrollable stickyHeader stickyActions>
+              <DataTableHead>
+                <tr>
+                  <DataTableHeaderCell>Tên</DataTableHeaderCell>
+                  <DataTableHeaderCell>Loại</DataTableHeaderCell>
+                  <DataTableHeaderCell>Cấu trúc</DataTableHeaderCell>
+                  <DataTableHeaderCell align="right">
+                    Thao tác
+                  </DataTableHeaderCell>
+                </tr>
+              </DataTableHead>
+              <DataTableBody>
+                {layers.map((layer) => (
+                  <DataTableRow key={layer.id}>
+                    <DataTableCell variant="primary">
+                      {layer.name}
+                    </DataTableCell>
+                    <DataTableCell variant="muted">
+                      {layerTypeLabel(layer)}
+                    </DataTableCell>
+                    <DataTableCell>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <TableBadge
+                          variant={
+                            layer.currentSchemaVersionId ? "success" : "warning"
+                          }
+                        >
+                          {layer.currentSchemaVersionId
+                            ? SCHEMA_STATUS_LABELS.published
+                            : layer.draftSchemaId
+                              ? SCHEMA_STATUS_LABELS.draft
+                              : SCHEMA_STATUS_LABELS.none}
+                        </TableBadge>
+                        {!layer.isActive && layer.isActive === false && (
+                          <TableBadge variant="danger">
+                            Không hoạt động
+                          </TableBadge>
+                        )}
+                      </div>
+                    </DataTableCell>
+                    <DataTableCell variant="actions" align="right">
+                      <TableActions>
+                        <TableActionLink
+                          href={`/quan-tri/lop-du-lieu/${layer.id}/schema`}
+                        >
+                          Cấu trúc
+                        </TableActionLink>
+                        <TableActionLink href={`/lop-du-lieu/${layer.code}`}>
+                          Dữ liệu
+                        </TableActionLink>
+                        <TableActionButton onClick={() => openEdit(layer)}>
+                          Sửa
+                        </TableActionButton>
+                        <TableActionButton
+                          variant="danger"
+                          onClick={() => handleDelete(layer)}
+                        >
+                          Xóa
+                        </TableActionButton>
+                      </TableActions>
+                    </DataTableCell>
+                  </DataTableRow>
+                ))}
+              </DataTableBody>
+            </DataTable>
+          )}
+        </CardContent>
+      </Card>
+
+      {showForm && (
+        <Modal
+          title={editing ? "Sửa lớp" : "Tạo lớp mới"}
+          onClose={() => setShowForm(false)}
+        >
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium">Tên lớp</label>
+              <input
+                className={inputClass}
+                required
+                value={form.name}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, name: e.target.value }))
+                }
+                placeholder="Chủ thể kinh tế tập thể"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium">Mô tả</label>
+              <input
+                className={inputClass}
+                value={form.description}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, description: e.target.value }))
+                }
+              />
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label className="block text-sm font-medium">Loại lớp</label>
+                <select
+                  className={inputClass}
+                  value={form.geometryType}
+                  disabled={!!editing}
+                  onChange={(e) => handleGeometryTypeChange(e.target.value)}
+                >
+                  {typeOptions.map((t) => (
+                    <option key={t.type} value={t.type}>
+                      {t.label}
+                    </option>
+                  ))}
+                </select>
+                {editing && (
+                  <p className="mt-1 text-xs text-muted">
+                    Không đổi loại sau khi tạo
+                  </p>
+                )}
+              </div>
+              <div>
+                <label className="block text-sm font-medium">Thứ tự</label>
+                <input
+                  type="number"
+                  className={inputClass}
+                  value={form.sortOrder}
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      sortOrder: Number(e.target.value),
+                    }))
+                  }
+                />
+              </div>
+            </div>
+
+            {selectedMeta && (
+              <LayerStyleFields
+                fields={selectedMeta.styleFields}
+                style={form.style}
+                onChange={(style) => setForm((f) => ({ ...f, style }))}
+              />
+            )}
+
+            <div className="flex gap-3 pt-2">
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+              >
+                {isSubmitting
+                  ? "Đang lưu..."
+                  : editing
+                    ? "Cập nhật"
+                    : "Tạo lớp"}
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
+    </div>
+  );
+}

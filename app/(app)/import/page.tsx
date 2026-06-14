@@ -1,5 +1,5 @@
-import { ImportWizard } from "@/components/import/import-wizard";
+import { redirect } from "next/navigation";
 
 export default function ImportPage() {
-  return <ImportWizard />;
+  redirect("/lop-du-lieu");
 }

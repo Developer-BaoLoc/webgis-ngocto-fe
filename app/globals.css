@@ -27,3 +27,241 @@ body {
   color: var(--foreground);
   font-family: var(--font-geist-sans), system-ui, sans-serif;
 }
+
+.gis-map-popup.maplibregl-popup {
+  z-index: 20;
+}
+
+.gis-map-popup .maplibregl-popup-content {
+  padding: 0;
+  border-radius: 1rem;
+  overflow: hidden;
+  border: none;
+  box-shadow:
+    0 2px 4px rgb(15 23 42 / 0.06),
+    0 12px 32px rgb(15 23 42 / 0.14);
+}
+
+.gis-map-popup .maplibregl-popup-tip {
+  border-top-color: #fff;
+}
+
+.gis-map-popup .maplibregl-popup-close-button {
+  top: 0.625rem;
+  right: 0.625rem;
+  width: 1.75rem;
+  height: 1.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background: rgb(255 255 255 / 0.92);
+  color: #334155;
+  font-size: 1.125rem;
+  line-height: 1;
+  box-shadow: 0 1px 4px rgb(15 23 42 / 0.18);
+  transition: background 0.15s ease, transform 0.1s ease;
+  z-index: 3;
+}
+
+.gis-map-popup .maplibregl-popup-close-button:hover {
+  background: #fff;
+  color: #0f172a;
+}
+
+.gis-map-popup.map-popup-no-tip .maplibregl-popup-close-button,
+.gis-map-popup:has(.map-popup--no-image) .maplibregl-popup-close-button {
+  top: 0.5rem;
+  right: 0.5rem;
+}
+
+.map-popup {
+  width: 300px;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  background: #fff;
+}
+
+.map-popup-gallery {
+  position: relative;
+  height: 11.5rem;
+  overflow: hidden;
+  background: #f1f5f9;
+}
+
+.map-popup-track {
+  display: flex;
+  height: 100%;
+  transition: transform 0.28s ease;
+}
+
+.map-popup-slide {
+  min-width: 100%;
+  height: 100%;
+}
+
+.map-popup-slide img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.map-popup-carousel-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border: none;
+  border-radius: 9999px;
+  background: rgb(255 255 255 / 0.92);
+  color: #334155;
+  box-shadow: 0 1px 4px rgb(15 23 42 / 0.15);
+  cursor: pointer;
+  z-index: 2;
+  transition: background 0.15s ease;
+}
+
+.map-popup-carousel-btn:hover {
+  background: #fff;
+}
+
+.map-popup-carousel-btn svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.map-popup-carousel-btn--prev {
+  left: 0.5rem;
+}
+
+.map-popup-carousel-btn--next {
+  right: 0.5rem;
+}
+
+.map-popup-dots {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0.625rem;
+  display: flex;
+  justify-content: center;
+  gap: 0.3rem;
+  z-index: 2;
+}
+
+.map-popup-dot {
+  width: 0.375rem;
+  height: 0.375rem;
+  border: none;
+  border-radius: 9999px;
+  background: rgb(255 255 255 / 0.55);
+  padding: 0;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.map-popup-dot.is-active {
+  background: #fff;
+  transform: scale(1.15);
+}
+
+.map-popup-content {
+  padding: 0.75rem 0.875rem 0.875rem;
+}
+
+.map-popup-headline {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.625rem;
+}
+
+.map-popup-title {
+  margin: 0;
+  flex: 1;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  line-height: 1.35;
+  color: #0f172a;
+  word-break: break-word;
+}
+
+.map-popup-layer {
+  flex-shrink: 0;
+  max-width: 42%;
+  padding: 0.15rem 0.5rem;
+  border-radius: 9999px;
+  background: #f1f5f9;
+  color: #64748b;
+  font-size: 0.625rem;
+  font-weight: 600;
+  text-align: right;
+  line-height: 1.3;
+}
+
+.map-popup-meta {
+  margin-top: 0.5rem;
+}
+
+.map-popup-meta-line {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.map-popup-meta-line + .map-popup-meta-line {
+  margin-top: 0.2rem;
+}
+
+.map-popup-detail-btn {
+  display: inline-flex;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  margin-top: 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.625rem;
+  background: #fff;
+  color: #0f172a;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.map-popup-detail-btn:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.map-popup--no-image .map-popup-content {
+  padding-top: 0.875rem;
+  padding-right: 2.5rem;
+}
+
+.map-popup--no-image .map-popup-headline {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.375rem;
+}
+
+.map-popup--no-image .map-popup-layer {
+  order: -1;
+  max-width: 100%;
+  text-align: left;
+}
+
+.map-popup--no-image .map-popup-title {
+  padding-right: 0;
+  width: 100%;
+}
