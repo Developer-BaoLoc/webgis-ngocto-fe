@@ -132,7 +132,9 @@ export function LayerIconUploadField({
       )}
 
       {required && !style.iconAttachmentId && !isUploading && (
-        <p className="text-xs text-muted">Bắt buộc upload icon cho lớp điểm</p>
+        <p className="text-xs text-muted">
+          Bắt buộc upload icon cho lớp dữ liệu (điểm, đường hoặc vùng)
+        </p>
       )}
 
       {uploadError && (

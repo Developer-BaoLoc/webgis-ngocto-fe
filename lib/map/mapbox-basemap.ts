@@ -27,7 +27,7 @@ export function isMapboxBasemapEnabled(): boolean {
 
 export function createMapboxBasemapStyle(
   token: string,
-  active: BasemapId = "satellite",
+  active: BasemapId = "terrain",
 ): StyleSpecification {
   return {
     version: 8,

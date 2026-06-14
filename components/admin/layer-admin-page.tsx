@@ -19,9 +19,13 @@ import {
   extractStyleFromLayer,
   findGeometryMeta,
   getDefaultStyle,
-  hasPointIcon,
+  hasLayerIcon,
 } from "@/lib/layers/style";
 import { getLayerSchemaStatusBadge } from "@/lib/layers/schema-admin";
+import {
+  enrichGeometryTypes,
+  FALLBACK_GEOMETRY_TYPES,
+} from "@/lib/layers/geometry-types";
 import type { AdminLayer, LayerStyle } from "@/types/api/admin";
 import type { LayerGeometryTypeMeta } from "@/types/api/metadata";
 import { geometryKindLabels } from "@/types/layer.types";
@@ -79,7 +83,7 @@ export function LayerAdminPage() {
         getLayerGeometryTypes().catch(() => []),
       ]);
       setLayers(adminLayers.filter((layer) => layer.isActive !== false));
-      setGeometryTypes(types);
+      setGeometryTypes(enrichGeometryTypes(types));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Không tải được danh sách");
     } finally {
@@ -92,34 +96,7 @@ export function LayerAdminPage() {
   }, [load]);
 
   const typeOptions =
-    geometryTypes.length > 0
-      ? geometryTypes
-      : [
-          {
-            type: "point",
-            label: "Điểm",
-            geometryKind: "point",
-            styleFields: [{ key: "icon", label: "Icon", type: "icon" }],
-          },
-          {
-            type: "line",
-            label: "Đường",
-            geometryKind: "linestring",
-            styleFields: [
-              { key: "lineColor", label: "Màu đường", type: "color" },
-              { key: "lineWidth", label: "Độ dày", type: "number" },
-            ],
-          },
-          {
-            type: "polygon",
-            label: "Vùng",
-            geometryKind: "polygon",
-            styleFields: [
-              { key: "fillColor", label: "Màu vùng", type: "color" },
-              { key: "strokeColor", label: "Màu viền", type: "color" },
-            ],
-          },
-        ];
+    geometryTypes.length > 0 ? geometryTypes : FALLBACK_GEOMETRY_TYPES;
 
   const selectedMeta = findGeometryMeta(typeOptions, form.geometryType);
 
@@ -151,8 +128,8 @@ export function LayerAdminPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (form.geometryType === "point" && !hasPointIcon(form.style)) {
-      setError("Vui lòng upload icon cho lớp dữ liệu dạng điểm");
+    if (!hasLayerIcon(form.style)) {
+      setError("Vui lòng upload icon cho lớp dữ liệu");
       return;
     }
     setIsSubmitting(true);

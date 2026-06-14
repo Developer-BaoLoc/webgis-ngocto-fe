@@ -11,7 +11,7 @@ export function getDefaultStyle(geometryType: string): LayerStyle {
   return { ...(DEFAULT_LAYER_STYLES[geometryType] ?? {}) };
 }
 
-function normalizePointIcon(style: LayerStyle): LayerStyle {
+function normalizeLayerIcon(style: LayerStyle): LayerStyle {
   const icon = style.icon;
   if (icon && typeof icon === "object") {
     const uploaded = icon as LayerIconStyle;
@@ -24,9 +24,14 @@ function normalizePointIcon(style: LayerStyle): LayerStyle {
   return style;
 }
 
-export function hasPointIcon(style: LayerStyle): boolean {
-  const normalized = normalizePointIcon(style);
+export function hasLayerIcon(style: LayerStyle): boolean {
+  const normalized = normalizeLayerIcon(style);
   return Boolean(normalized.iconAttachmentId);
+}
+
+/** @deprecated use hasLayerIcon */
+export function hasPointIcon(style: LayerStyle): boolean {
+  return hasLayerIcon(style);
 }
 
 export function buildStylePayload(
@@ -34,32 +39,34 @@ export function buildStylePayload(
   style: LayerStyle,
 ): LayerStyle {
   const meta = { geometryType };
-  switch (geometryType) {
-    case "point": {
-      const normalized = normalizePointIcon(style);
-      const payload: LayerStyle = { ...meta };
-      if (normalized.iconAttachmentId) {
-        payload.iconAttachmentId = normalized.iconAttachmentId;
-        if (normalized.iconUrl) {
-          payload.iconUrl = normalized.iconUrl;
-        }
-      }
-      return payload;
+  const normalized = normalizeLayerIcon(style);
+  const iconPayload: LayerStyle = {};
+  if (normalized.iconAttachmentId) {
+    iconPayload.iconAttachmentId = normalized.iconAttachmentId;
+    if (normalized.iconUrl) {
+      iconPayload.iconUrl = normalized.iconUrl;
     }
+  }
+
+  switch (geometryType) {
+    case "point":
+      return { ...meta, ...iconPayload };
     case "line":
       return {
         ...meta,
+        ...iconPayload,
         lineColor: style.lineColor ?? "#2563eb",
         lineWidth: Number(style.lineWidth ?? 3),
       };
     case "polygon":
       return {
         ...meta,
+        ...iconPayload,
         fillColor: style.fillColor ?? "#22c55e80",
         strokeColor: style.strokeColor ?? "#15803d",
       };
     default:
-      return { ...meta, ...style };
+      return { ...meta, ...iconPayload, ...style };
   }
 }
 
@@ -70,10 +77,7 @@ export function extractStyleFromLayer(layer: {
   if (!layer.style) {
     return getDefaultStyle(layer.geometryType ?? "point");
   }
-  if (layer.geometryType === "point") {
-    return normalizePointIcon({ ...layer.style });
-  }
-  return { ...layer.style };
+  return normalizeLayerIcon({ ...layer.style });
 }
 
 export function findGeometryMeta(

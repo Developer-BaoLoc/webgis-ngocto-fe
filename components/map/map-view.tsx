@@ -208,7 +208,7 @@ export function MapView({
       attributionControl: false,
     });
 
-    map.addControl(new maplibregl.NavigationControl(), "top-right");
+    map.addControl(new maplibregl.NavigationControl(), "bottom-right");
     map.addControl(
       new maplibregl.AttributionControl({ compact: true }),
       "bottom-right",

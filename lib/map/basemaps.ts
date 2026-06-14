@@ -29,7 +29,7 @@ export const BASEMAPS: Record<BasemapId, BasemapConfig> = {
   },
 };
 
-export const DEFAULT_BASEMAP: BasemapId = "satellite";
+export const DEFAULT_BASEMAP: BasemapId = "terrain";
 
 export function createBasemapStyle(id: BasemapId): StyleSpecification {
   const basemap = BASEMAPS[id];
