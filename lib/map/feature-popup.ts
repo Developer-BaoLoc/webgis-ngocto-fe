@@ -1,5 +1,6 @@
 import { resolvePublicAssetUrl } from "@/lib/api/assets";
 import { normalizeAttachmentList } from "@/lib/fields/attachments";
+import { normalizeMultiCategoryDisplayText } from "@/lib/fields/multi-category";
 import type { AttachmentRef } from "@/types/api/assets";
 import type { PopupSummaryField } from "@/types/api/records";
 
@@ -176,7 +177,19 @@ function popupStyleToCss(style?: PopupSummaryField["popupStyle"]): string {
 }
 
 function formatPopupValueHtml(field: PopupSummaryField): string {
-  const value = escapeHtml(truncate(field.displayValue));
+  let display = field.displayValue;
+  if (field.fieldType === "multi_category") {
+    display = normalizeMultiCategoryDisplayText(display);
+  }
+
+  const value =
+    field.fieldType === "multi_category" && display.includes("\n")
+      ? display
+          .split("\n")
+          .map((line) => escapeHtml(truncate(line.trim())))
+          .join("<br>")
+      : escapeHtml(truncate(display));
+
   const css = popupStyleToCss(field.popupStyle);
   if (!css) return value;
   return `<span style="${css}">${value}</span>`;

@@ -17,6 +17,7 @@ export const FIELD_TYPE_LABELS: Record<string, string> = {
   multi_category: "Chọn nhiều",
   reference: "Tham chiếu",
   lat_lng: "Toạ độ",
+  area_polygon: "Vùng",
   image: "Hình ảnh",
   file: "Tệp tin",
 };

@@ -6,7 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 import { DictionaryValuesInput } from "@/components/admin/dictionary-values-input";
 import { PageHeader } from "@/components/layout/page-header";
 import { Modal } from "@/components/ui/modal";
-import { Card, CardContent } from "@/components/ui/card";
+import { AdminListPanel } from "@/components/ui/admin-list-panel";
 import { inputClass } from "@/components/form/field-wrapper";
 import { uniqueLabels } from "@/lib/dictionaries/utils";
 import {
@@ -150,17 +150,24 @@ export function DictionaryAdminPage() {
         </div>
       )}
 
-      <Card>
-        <CardContent className="pt-5">
-          {isLoading ? (
-            <p className="text-sm text-muted">Đang tải...</p>
-          ) : dictionaries.length === 0 ? (
-            <p className="text-sm text-muted">
-              Chưa có danh mục nào. Tạo danh mục (vd. &quot;Ngành nghề sản
-              xuất&quot;) và thêm các giá trị (vd. Trồng trọt, Chăn nuôi).
-            </p>
-          ) : (
-            <DataTable minWidth="480px">
+      <AdminListPanel
+        title="Danh sách danh mục"
+        description="Dùng cho trường Chọn một / Chọn nhiều trong biểu mẫu lớp dữ liệu."
+        isLoading={isLoading}
+        isEmpty={!isLoading && dictionaries.length === 0}
+        emptyTitle="Chưa có danh mục"
+        emptyDescription='Tạo danh mục (vd. "Ngành nghề sản xuất") và thêm các giá trị lựa chọn.'
+        emptyAction={
+          <button
+            type="button"
+            onClick={openCreate}
+            className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-dark"
+          >
+            + Thêm danh mục
+          </button>
+        }
+      >
+        <DataTable minWidth="480px">
               <DataTableHead>
                 <tr>
                   <DataTableHeaderCell>Tên danh mục</DataTableHeaderCell>
@@ -200,10 +207,8 @@ export function DictionaryAdminPage() {
                   </DataTableRow>
                 ))}
               </DataTableBody>
-            </DataTable>
-          )}
-        </CardContent>
-      </Card>
+        </DataTable>
+      </AdminListPanel>
 
       {showForm && (
         <Modal

@@ -5,6 +5,7 @@ import { DynamicField } from "@/components/form/dynamic-field";
 import { createRecord, updateRecord } from "@/lib/api/records";
 import { getDisplayFields } from "@/lib/schema/display";
 import { normalizeAttachmentList } from "@/lib/fields/attachments";
+import { normalizeAreaPolygonProperty, validateAreaPolygonProperty } from "@/lib/fields/area-polygon";
 import { normalizeLatLngProperty } from "@/lib/fields/lat-lng";
 import type { RecordItem } from "@/types/api/records";
 import type { LayerSchema } from "@/types/api/schema";
@@ -69,6 +70,16 @@ export function RecordForm({
         continue;
       }
 
+      if (field.fieldType === "area_polygon") {
+        const normalized = normalizeAreaPolygonProperty(result[field.code]);
+        if (normalized === null) {
+          delete result[field.code];
+        } else {
+          result[field.code] = normalized;
+        }
+        continue;
+      }
+
       if (
         field.fieldType === "money" ||
         field.fieldType === "measurement" ||
@@ -112,6 +123,22 @@ export function RecordForm({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+
+    const nextFieldErrors: Record<string, string> = {};
+    for (const field of fields) {
+      const required = Boolean(field.dataSchema?.required);
+      if (field.fieldType === "area_polygon") {
+        const message = validateAreaPolygonProperty(values[field.code], required);
+        if (message) nextFieldErrors[field.code] = message;
+      }
+    }
+
+    if (Object.keys(nextFieldErrors).length > 0) {
+      setFieldErrors(nextFieldErrors);
+      setError("Vui lòng kiểm tra lại các trường bắt buộc.");
+      return;
+    }
+
     setIsSubmitting(true);
 
     const properties = normalizeProperties(values, fields);
@@ -142,7 +169,9 @@ export function RecordForm({
           <div
             key={field.fieldId}
             className={
-              field.fieldType === "textarea" || field.fieldType === "lat_lng"
+              field.fieldType === "textarea" ||
+              field.fieldType === "lat_lng" ||
+              field.fieldType === "area_polygon"
                 ? "sm:col-span-2"
                 : undefined
             }

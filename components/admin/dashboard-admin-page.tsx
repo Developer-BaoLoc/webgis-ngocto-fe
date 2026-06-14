@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/layout/page-header";
 import { Modal } from "@/components/ui/modal";
-import { Card, CardContent } from "@/components/ui/card";
+import { AdminListPanel } from "@/components/ui/admin-list-panel";
 import { inputClass } from "@/components/form/field-wrapper";
 import { createDashboard, getDashboards } from "@/lib/api/dashboards";
 import {
@@ -98,17 +98,24 @@ export function DashboardAdminPage() {
         </div>
       )}
 
-      <Card>
-        <CardContent className="pt-5">
-          {isLoading ? (
-            <p className="text-sm text-muted">Đang tải...</p>
-          ) : dashboards.length === 0 ? (
-            <p className="text-sm text-muted">
-              Chưa có dashboard nào. Tạo dashboard đầu tiên để hiển thị trên
-              trang Tổng quan.
-            </p>
-          ) : (
-            <DataTable>
+      <AdminListPanel
+        title="Danh sách dashboard"
+        description="Thiết kế widget và xuất bản để hiển thị trên trang Tổng quan."
+        isLoading={isLoading}
+        isEmpty={!isLoading && dashboards.length === 0}
+        emptyTitle="Chưa có dashboard"
+        emptyDescription="Tạo dashboard đầu tiên để tổng hợp số liệu từ các lớp dữ liệu."
+        emptyAction={
+          <button
+            type="button"
+            onClick={() => setShowCreate(true)}
+            className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white"
+          >
+            + Tạo dashboard
+          </button>
+        }
+      >
+        <DataTable>
               <DataTableHead>
                 <tr>
                   <DataTableHeaderCell>Tên</DataTableHeaderCell>
@@ -155,10 +162,8 @@ export function DashboardAdminPage() {
                   </DataTableRow>
                 ))}
               </DataTableBody>
-            </DataTable>
-          )}
-        </CardContent>
-      </Card>
+        </DataTable>
+      </AdminListPanel>
 
       {showCreate && (
         <Modal title="Tạo dashboard" onClose={() => setShowCreate(false)}>

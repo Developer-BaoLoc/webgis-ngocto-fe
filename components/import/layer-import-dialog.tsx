@@ -15,7 +15,10 @@ import {
   type LayerPreviewState,
 } from "@/lib/import/preview";
 import { cn } from "@/lib/utils";
-import type { LayerImportExecuteResult, LayerImportStep } from "@/types/api/import";
+import type {
+  LayerImportExecuteResult,
+  LayerImportStep,
+} from "@/types/api/import";
 import type { SchemaField } from "@/types/api/schema";
 
 const EXCEL_ACCEPT =
@@ -48,7 +51,9 @@ export function LayerImportDialog({
   const [step, setStep] = useState<LayerImportStep>("upload");
   const [file, setFile] = useState<File | null>(null);
   const [importId, setImportId] = useState<string | null>(null);
-  const [previewState, setPreviewState] = useState<LayerPreviewState | null>(null);
+  const [previewState, setPreviewState] = useState<LayerPreviewState | null>(
+    null,
+  );
   const [result, setResult] = useState<LayerImportExecuteResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -123,18 +128,8 @@ export function LayerImportDialog({
   const hasValidationErrors = validationErrors.length > 0;
 
   return (
-    <Modal
-      title={`Import Excel — ${layerName}`}
-      size="xl"
-      onClose={onClose}
-    >
+    <Modal title={`Import Excel — ${layerName}`} size="xl" onClose={onClose}>
       <div className="space-y-5">
-        <p className="text-sm text-muted">
-          Tải file mẫu từ schema lớp, điền sheet{" "}
-          <strong className="text-foreground">Du_lieu</strong> từ dòng 4, rồi
-          upload để kiểm tra toàn bộ file trước khi import.
-        </p>
-
         {error && (
           <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             {error}
@@ -200,7 +195,9 @@ export function LayerImportDialog({
                 onClick={handleUploadAndPreview}
                 className="rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-white hover:bg-primary-dark disabled:opacity-60"
               >
-                {isLoading ? "Đang upload & preview..." : "Upload và xem preview"}
+                {isLoading
+                  ? "Đang upload & preview..."
+                  : "Upload và xem preview"}
               </button>
               <button
                 type="button"
@@ -218,7 +215,11 @@ export function LayerImportDialog({
             <div className="flex flex-wrap items-center gap-2 text-sm text-muted">
               {previewState.normalized.totalRows !== undefined && (
                 <span>
-                  Tổng <strong className="text-foreground">{previewState.normalized.totalRows}</strong> dòng
+                  Tổng{" "}
+                  <strong className="text-foreground">
+                    {previewState.normalized.totalRows}
+                  </strong>{" "}
+                  dòng
                 </span>
               )}
               {previewState.validRows !== undefined && (
@@ -229,14 +230,15 @@ export function LayerImportDialog({
                   </span>
                 </>
               )}
-              {previewState.errorRows !== undefined && previewState.errorRows > 0 && (
-                <>
-                  <span>·</span>
-                  <span className="text-red-600">
-                    {previewState.errorRows} lỗi
-                  </span>
-                </>
-              )}
+              {previewState.errorRows !== undefined &&
+                previewState.errorRows > 0 && (
+                  <>
+                    <span>·</span>
+                    <span className="text-red-600">
+                      {previewState.errorRows} lỗi
+                    </span>
+                  </>
+                )}
             </div>
 
             {hasValidationErrors && (
@@ -246,9 +248,7 @@ export function LayerImportDialog({
                     {previewState.message ??
                       "File có lỗi — sửa các dòng bên dưới rồi upload lại."}
                   </p>
-                  <p className="mt-1">
-                    Sửa file Excel và tải lên lại.
-                  </p>
+                  <p className="mt-1">Sửa file Excel và tải lên lại.</p>
                 </div>
                 <LayerImportErrorsTable errors={validationErrors} />
               </div>
@@ -266,6 +266,7 @@ export function LayerImportDialog({
               </h3>
               <LayerImportPreviewTable
                 preview={previewState.normalized}
+                fields={fields}
                 fieldLabels={fieldLabels}
               />
             </div>
@@ -309,7 +310,9 @@ export function LayerImportDialog({
             <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-4">
               <p className="font-semibold text-emerald-900">Import hoàn tất</p>
               {result.message && (
-                <p className="mt-1 text-sm text-emerald-800">{result.message}</p>
+                <p className="mt-1 text-sm text-emerald-800">
+                  {result.message}
+                </p>
               )}
               <ul className="mt-2 space-y-1 text-sm text-emerald-800">
                 <li>
@@ -319,8 +322,7 @@ export function LayerImportDialog({
                   Trùng lặp (bỏ qua): <strong>{result.duplicates}</strong>
                 </li>
                 <li>
-                  Tổng xử lý: <strong>{result.processed}</strong>/
-                  {result.total}
+                  Tổng xử lý: <strong>{result.processed}</strong>/{result.total}
                 </li>
               </ul>
             </div>

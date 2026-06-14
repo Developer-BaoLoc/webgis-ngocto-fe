@@ -1,5 +1,12 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
 import type { NormalizedPreview } from "@/lib/import/preview";
 import { formatPreviewValue } from "@/lib/import/preview";
+import {
+  buildDictionaryLabelMap,
+  type DictionaryLabelMap,
+} from "@/lib/dictionaries/labels";
 import {
   DataTable,
   DataTableBody,
@@ -9,18 +16,50 @@ import {
   DataTableRow,
   TableBadge,
 } from "@/components/ui/data-table";
+import type { SchemaField } from "@/types/api/schema";
 
 interface LayerImportPreviewTableProps {
   preview: NormalizedPreview;
+  fields?: SchemaField[];
   fieldLabels?: Record<string, string>;
   maxColumns?: number;
 }
 
 export function LayerImportPreviewTable({
   preview,
+  fields = [],
   fieldLabels = {},
   maxColumns = 6,
 }: LayerImportPreviewTableProps) {
+  const [dictionaryLabels, setDictionaryLabels] = useState<DictionaryLabelMap>(
+    new Map(),
+  );
+
+  const fieldByCode = useMemo(
+    () => new Map(fields.map((field) => [field.code, field])),
+    [fields],
+  );
+
+  useEffect(() => {
+    if (!fields.length) {
+      setDictionaryLabels(new Map());
+      return;
+    }
+
+    let cancelled = false;
+    buildDictionaryLabelMap(fields)
+      .then((map) => {
+        if (!cancelled) setDictionaryLabels(map);
+      })
+      .catch(() => {
+        if (!cancelled) setDictionaryLabels(new Map());
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [fields]);
+
   const dataHeaders = preview.headers
     .filter((key) => key !== "_row" && key !== "_errors" && key !== "_valid")
     .slice(0, maxColumns);
@@ -106,9 +145,24 @@ export function LayerImportPreviewTable({
                     );
                   }
 
+                  const field = fieldByCode.get(key);
+                  const text = formatPreviewValue(
+                    row[key],
+                    field,
+                    dictionaryLabels,
+                  );
+
                   return (
                     <DataTableCell key={key} variant="muted">
-                      {formatPreviewValue(row[key])}
+                      <span
+                        className={
+                          field?.fieldType === "multi_category"
+                            ? "whitespace-pre-line text-sm"
+                            : undefined
+                        }
+                      >
+                        {text}
+                      </span>
                     </DataTableCell>
                   );
                 })}

@@ -6,15 +6,12 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import { BasemapSwitcher } from "@/components/map/basemap-switcher";
 import { RecordDetailModal } from "@/components/map/record-detail-modal";
 import { getRecordDisplay } from "@/lib/api/records";
+import { DEFAULT_BASEMAP, type BasemapId } from "@/lib/map/basemaps";
 import {
-  createBasemapStyle,
-  DEFAULT_BASEMAP,
-  type BasemapId,
-} from "@/lib/map/basemaps";
-import {
-  createMapboxBasemapStyle,
+  createMapboxTransformRequest,
   getMapboxAccessToken,
-  setMapboxBasemapVisibility,
+  resolveMapBasemapStyle,
+  setGoogleBasemapVisibility,
 } from "@/lib/map/mapbox-basemap";
 import { getGeoJsonBounds, padBounds } from "@/lib/map/bounds";
 import {
@@ -37,7 +34,7 @@ interface MapViewProps {
   fullscreen?: boolean;
 }
 
-type MapProvider = "mapbox" | "fallback";
+type MapProvider = "google" | "fallback";
 
 const FIT_BOUNDS_GEO_PADDING_RATIO = 1;
 const FIT_BOUNDS_PADDING = 150;
@@ -118,7 +115,7 @@ export function MapView({
 }: MapViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
-  const providerRef = useRef<MapProvider>("fallback");
+  const providerRef = useRef<MapProvider>("google");
   const mapViewRef = useRef(mapView);
   const boundaryRef = useRef(boundary);
   const [basemap, setBasemap] = useState<BasemapId>(DEFAULT_BASEMAP);
@@ -175,28 +172,22 @@ export function MapView({
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
 
-    const token = getMapboxAccessToken();
-    const provider: MapProvider = token ? "mapbox" : "fallback";
+    const { style, provider } = resolveMapBasemapStyle(DEFAULT_BASEMAP);
     const initialMapView = mapViewRef.current;
     const initialBoundary = boundaryRef.current;
 
-    if (token) {
+    if (getMapboxAccessToken()) {
       setUsingMapbox(true);
       setMapError(null);
     } else {
       setUsingMapbox(false);
       setMapError(
-        "Chưa có NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN — đang dùng nền OpenStreetMap.",
+        "Chưa có NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN — nền Google vẫn hiển thị, nhưng font/glyph Mapbox có thể không dùng được.",
       );
     }
 
     providerRef.current = provider;
     basemapRef.current = DEFAULT_BASEMAP;
-
-    const style =
-      provider === "mapbox" && token
-        ? createMapboxBasemapStyle(token, DEFAULT_BASEMAP)
-        : createBasemapStyle(DEFAULT_BASEMAP);
 
     const map = new maplibregl.Map({
       container: containerRef.current,
@@ -206,6 +197,9 @@ export function MapView({
       minZoom: initialMapView.minZoom ?? DEFAULT_MIN_ZOOM,
       maxZoom: initialMapView.maxZoom,
       attributionControl: false,
+      transformRequest: getMapboxAccessToken()
+        ? createMapboxTransformRequest()
+        : undefined,
     });
 
     map.addControl(new maplibregl.NavigationControl(), "bottom-right");
@@ -283,10 +277,8 @@ export function MapView({
       }
     };
 
-    if (providerRef.current === "mapbox") {
-      setMapboxBasemapVisibility(map, basemap);
-      restoreBoundary();
-      void restoreOnMap(map);
+    if (providerRef.current === "google") {
+      setGoogleBasemapVisibility(map, basemap);
       return;
     }
 
@@ -297,10 +289,11 @@ export function MapView({
       pitch: map.getPitch(),
     };
 
-    map.setStyle(createBasemapStyle(basemap));
-    map.once("style.load", () => {
+    const { style } = resolveMapBasemapStyle(basemap);
+    map.setStyle(style);
+    map.once("style.load", async () => {
       restoreBoundary();
-      void restoreOnMap(map);
+      await restoreOnMap(map);
       map.jumpTo(view);
       map.setMaxBounds(resolvePanBounds(mapViewRef.current, currentBoundary));
     });
@@ -332,8 +325,8 @@ export function MapView({
           {mapError}
           {!usingMapbox && (
             <span className="mt-0.5 block text-amber-800">
-              Thêm token Mapbox vào{" "}
-              <code className="font-mono">.env.local</code>
+              Thêm <code className="font-mono">NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN</code>{" "}
+              vào <code className="font-mono">.env.local</code> để dùng glyph Mapbox.
             </span>
           )}
         </div>

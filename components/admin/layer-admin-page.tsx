@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/layout/page-header";
 import { LayerStyleFields } from "@/components/admin/layer-style-fields";
 import { Modal } from "@/components/ui/modal";
-import { Card, CardContent } from "@/components/ui/card";
+import { AdminListPanel } from "@/components/ui/admin-list-panel";
 import { inputClass } from "@/components/form/field-wrapper";
 import {
   createLayer,
@@ -223,16 +223,24 @@ export function LayerAdminPage() {
         </div>
       )}
 
-      <Card>
-        <CardContent className="pt-5">
-          {isLoading ? (
-            <p className="text-sm text-muted">Đang tải...</p>
-          ) : layers.length === 0 ? (
-            <p className="text-sm text-muted">
-              Chưa có lớp nào. Nhấn &quot;Tạo lớp mới&quot; để bắt đầu.
-            </p>
-          ) : (
-            <DataTable scrollable stickyHeader stickyActions>
+      <AdminListPanel
+        title="Danh sách lớp"
+        description="Quản lý loại hình học, icon hiển thị và liên kết tới thiết kế cấu trúc trường."
+        isLoading={isLoading}
+        isEmpty={!isLoading && layers.length === 0}
+        emptyTitle="Chưa có lớp nào"
+        emptyDescription='Nhấn "Tạo lớp mới" để bắt đầu thiết lập dữ liệu GIS.'
+        emptyAction={
+          <button
+            type="button"
+            onClick={openCreate}
+            className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-dark"
+          >
+            + Tạo lớp mới
+          </button>
+        }
+      >
+        <DataTable scrollable stickyHeader stickyActions>
               <DataTableHead>
                 <tr>
                   <DataTableHeaderCell>Tên</DataTableHeaderCell>
@@ -286,9 +294,7 @@ export function LayerAdminPage() {
                 })}
               </DataTableBody>
             </DataTable>
-          )}
-        </CardContent>
-      </Card>
+      </AdminListPanel>
 
       {showForm && (
         <Modal

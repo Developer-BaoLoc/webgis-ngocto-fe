@@ -2,6 +2,8 @@ import type {
   ImportPreviewResult,
   LayerImportValidationError,
 } from "@/types/api/import";
+import type { SchemaField } from "@/types/api/schema";
+import type { DictionaryLabelMap } from "@/lib/dictionaries/labels";
 import { formatCellValue } from "@/lib/schema/display";
 
 export interface NormalizedPreview {
@@ -141,6 +143,10 @@ function inferHeaders(rows: Record<string, unknown>[]): string[] {
   return Array.from(keys);
 }
 
-export function formatPreviewValue(value: unknown): string {
-  return formatCellValue(value);
+export function formatPreviewValue(
+  value: unknown,
+  field?: Pick<SchemaField, "fieldType" | "dataSchema">,
+  dictionaryLabels?: DictionaryLabelMap,
+): string {
+  return formatCellValue(value, field, dictionaryLabels);
 }

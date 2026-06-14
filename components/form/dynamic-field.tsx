@@ -6,6 +6,7 @@ import { getFieldUnitLabel } from "@/lib/fields/units";
 import type { DictionaryItem } from "@/types/api/dictionary";
 import type { SchemaField } from "@/types/api/schema";
 import { LatLngField } from "./lat-lng-field";
+import { AreaPolygonField } from "./area-polygon-field";
 import { AttachmentUploadField } from "./attachment-upload-field";
 import { FieldWrapper, inputClass } from "./field-wrapper";
 
@@ -132,6 +133,15 @@ function DynamicFieldInput({
     case "lat_lng":
       return (
         <LatLngField
+          value={value}
+          onChange={onChange}
+          required={Boolean(field.dataSchema?.required)}
+        />
+      );
+
+    case "area_polygon":
+      return (
+        <AreaPolygonField
           value={value}
           onChange={onChange}
           required={Boolean(field.dataSchema?.required)}

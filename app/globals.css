@@ -213,9 +213,7 @@ body {
   color: #64748b;
   font-size: 0.8125rem;
   line-height: 1.4;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: pre-line;
 }
 
 .map-popup-meta-line + .map-popup-meta-line {

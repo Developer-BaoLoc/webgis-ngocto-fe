@@ -56,7 +56,17 @@ function TableCellContent({
     return <span className="text-muted">—</span>;
   }
 
-  return <span className="whitespace-nowrap text-sm">{text}</span>;
+  const isMultiLine = field.fieldType === "multi_category";
+
+  return (
+    <span
+      className={
+        isMultiLine ? "whitespace-pre-line text-sm" : "whitespace-nowrap text-sm"
+      }
+    >
+      {text}
+    </span>
+  );
 }
 
 export function RecordsTable({

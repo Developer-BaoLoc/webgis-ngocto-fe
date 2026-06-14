@@ -1,4 +1,6 @@
 import { formatLatLng, isLatLngValue } from "@/lib/fields/lat-lng";
+import { formatAreaPolygon, isAreaPolygonValue } from "@/lib/fields/area-polygon";
+import { formatMultiCategoryValue } from "@/lib/fields/multi-category";
 import { formatAttachmentList } from "@/lib/fields/attachments";
 import { formatSchemaFieldValue } from "@/lib/fields/units";
 import {
@@ -20,6 +22,7 @@ const TABLE_SKIP_TYPES = new Set([
   "image",
   "file",
   "lat_lng",
+  "area_polygon",
   "textarea",
 ]);
 
@@ -45,6 +48,22 @@ export function formatCellValue(
 ): string {
   if (value === null || value === undefined) return "—";
   if (isLatLngValue(value)) return formatLatLng(value);
+  if (isAreaPolygonValue(value)) return formatAreaPolygon(value);
+
+  if (field?.fieldType === "multi_category") {
+    const dictionaryCode = field.dataSchema?.dictionary as string | undefined;
+    const formatted = formatMultiCategoryValue(value, (code) => {
+      if (!dictionaryLabels || !dictionaryCode) return null;
+      return (
+        formatDictionaryValue(
+          { fieldType: "category", dataSchema: { dictionary: dictionaryCode } },
+          code,
+          dictionaryLabels,
+        ) ?? null
+      );
+    });
+    return formatted ?? "—";
+  }
 
   if (field?.fieldType === "image" || field?.fieldType === "file") {
     return formatAttachmentList(value);

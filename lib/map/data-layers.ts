@@ -414,14 +414,15 @@ async function upsertLineLayer(
 }
 
 async function upsertDataLayer(map: MapLibreMap, entry: LayerGeoJsonEntry) {
-  const { sourceId } = getDataLayerIds(
+  const { sourceId, layerIds } = getDataLayerIds(
     entry.layer.id,
     entry.layer.geometryType,
   );
   const geojson = entry.geojson as FeatureCollection;
   const source = map.getSource(sourceId);
+  const hasAllLayers = layerIds.every((id) => Boolean(map.getLayer(id)));
 
-  if (source && source.type === "geojson") {
+  if (source && source.type === "geojson" && hasAllLayers) {
     (source as GeoJSONSource).setData(geojson);
   } else {
     removeDataLayerById(map, entry.layer.id, entry.layer.geometryType);

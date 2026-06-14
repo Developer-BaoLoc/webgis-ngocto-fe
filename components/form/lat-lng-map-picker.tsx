@@ -8,14 +8,12 @@ import {
   getAdministrativeBoundary,
   resolveMapView,
 } from "@/lib/api/map-view";
-import {
-  createBasemapStyle,
-  DEFAULT_BASEMAP,
-} from "@/lib/map/basemaps";
+import { DEFAULT_BASEMAP } from "@/lib/map/basemaps";
 import { padBounds } from "@/lib/map/bounds";
 import {
-  createMapboxBasemapStyle,
+  createMapboxTransformRequest,
   getMapboxAccessToken,
+  resolveMapBasemapStyle,
 } from "@/lib/map/mapbox-basemap";
 import { upsertWardBoundaryLayer } from "@/lib/map/ward-boundary-layer";
 import { toMapLibreCenter } from "@/lib/map/vietnam";
@@ -105,11 +103,7 @@ export function LatLngMapPicker({
   useEffect(() => {
     if (!open || !mapMeta || !containerRef.current) return;
 
-    const token = getMapboxAccessToken();
-    const style =
-      token != null
-        ? createMapboxBasemapStyle(token, DEFAULT_BASEMAP)
-        : createBasemapStyle(DEFAULT_BASEMAP);
+    const { style } = resolveMapBasemapStyle(DEFAULT_BASEMAP);
 
     const initial = isLatLngValue(initialValue) ? initialValue : null;
 
@@ -123,6 +117,9 @@ export function LatLngMapPicker({
       minZoom: mapMeta.mapView.minZoom ?? PICKER_MIN_ZOOM,
       maxZoom: mapMeta.mapView.maxZoom ?? PICKER_MAX_ZOOM,
       attributionControl: false,
+      transformRequest: getMapboxAccessToken()
+        ? createMapboxTransformRequest()
+        : undefined,
     });
 
     map.addControl(new maplibregl.NavigationControl(), "top-right");

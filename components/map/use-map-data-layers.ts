@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Map as MapLibreMap } from "maplibre-gl";
 import { loadLayerGeoJsonEntries, type LayerGeoJsonEntry } from "@/lib/api/map-geojson";
 import {
@@ -75,15 +75,19 @@ export function useMapDataLayers({
     applyLayersVisibility(map, entriesRef.current, hiddenLayerIds);
   }, [map, loaded, hiddenKey, hiddenLayerIds]);
 
-  const restoreOnMap = async (targetMap: MapLibreMap) => {
-    await restoreDataLayers(targetMap, entriesRef.current);
-    applyLayersVisibility(targetMap, entriesRef.current, hiddenLayerIds);
-    bindMapFeatureInteractions(
-      targetMap,
-      entriesRef.current,
-      interactionOptionsRef.current,
-    );
-  };
+  const restoreOnMap = useCallback(
+    async (targetMap: MapLibreMap) => {
+      if (!entriesRef.current.length) return;
+      await restoreDataLayers(targetMap, entriesRef.current);
+      applyLayersVisibility(targetMap, entriesRef.current, hiddenLayerIds);
+      bindMapFeatureInteractions(
+        targetMap,
+        entriesRef.current,
+        interactionOptionsRef.current,
+      );
+    },
+    [hiddenLayerIds],
+  );
 
   return { error, loaded, restoreOnMap, entriesRef, entries };
 }

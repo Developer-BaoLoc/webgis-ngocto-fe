@@ -18,6 +18,7 @@ import {
 } from "@/lib/fields/display-schema";
 import { resolveEditableSchema } from "@/lib/layers/schema-admin";
 import { validateFieldDataSchema } from "@/lib/fields/field-config";
+import { getFieldTypesForLayerGeometry } from "@/lib/fields/field-types";
 import { enrichFieldTypes } from "@/lib/i18n/vi";
 import { cn } from "@/lib/utils";
 import {
@@ -188,6 +189,10 @@ export function SchemaDesigner({ layerId }: SchemaDesignerProps) {
   }
 
   const activeFields = draft?.fields?.filter((f) => f.isActive !== false) ?? [];
+  const availableFieldTypes = getFieldTypesForLayerGeometry(
+    layer?.geometryType,
+    fieldTypes,
+  );
 
   return (
     <div className="space-y-4">
@@ -283,7 +288,7 @@ export function SchemaDesigner({ layerId }: SchemaDesignerProps) {
           onClose={closeFieldModal}
         >
           <FieldFormModalContent
-            fieldTypes={fieldTypes}
+            fieldTypes={availableFieldTypes}
             displayOptions={displayOptions}
             form={fieldForm}
             editingField={editingField}

@@ -15,21 +15,23 @@ export const BASEMAPS: Record<BasemapId, BasemapConfig> = {
     id: "satellite",
     label: "Vệ tinh + nhãn",
     tiles: [
-      "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+      "https://mt1.google.com/vt/lyrs=y&hl=vi&x={x}&y={y}&z={z}",
     ],
-    attribution: "© Esri, Maxar, Earthstar Geographics",
-    maxzoom: 20,
+    attribution: "© Google",
+    maxzoom: 22,
   },
   terrain: {
     id: "terrain",
     label: "Bản đồ đường",
-    tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
-    attribution: "© OpenStreetMap",
-    maxzoom: 20,
+    tiles: [
+      "https://mt1.google.com/vt/lyrs=m&hl=vi&x={x}&y={y}&z={z}",
+    ],
+    attribution: "© Google",
+    maxzoom: 22,
   },
 };
 
-export const DEFAULT_BASEMAP: BasemapId = "terrain";
+export const DEFAULT_BASEMAP: BasemapId = "satellite";
 
 export function createBasemapStyle(id: BasemapId): StyleSpecification {
   const basemap = BASEMAPS[id];

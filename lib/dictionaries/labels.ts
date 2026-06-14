@@ -1,4 +1,5 @@
 import { getDictionaryItems } from "@/lib/api/dictionaries";
+import { formatMultiCategoryValue } from "@/lib/fields/multi-category";
 import type { SchemaField } from "@/types/api/schema";
 
 export type DictionaryLabelMap = Map<string, string>;
@@ -47,11 +48,10 @@ export function formatDictionaryValue(
   const dictionaryCode = field.dataSchema?.dictionary as string | undefined;
   if (!dictionaryCode) return null;
 
-  if (field.fieldType === "multi_category" && Array.isArray(value)) {
-    const labels = (value as string[])
-      .map((code) => labelMap.get(mapKey(dictionaryCode, code)) ?? null)
-      .filter((label): label is string => Boolean(label));
-    return labels.length > 0 ? labels.join(", ") : null;
+  if (field.fieldType === "multi_category") {
+    return formatMultiCategoryValue(value, (code) =>
+      labelMap.get(mapKey(dictionaryCode, code)) ?? null,
+    );
   }
 
   if (field.fieldType === "category" && typeof value === "string") {

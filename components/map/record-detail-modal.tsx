@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Modal } from "@/components/ui/modal";
 import { resolvePublicAssetUrl } from "@/lib/api/assets";
 import { normalizeAttachmentList } from "@/lib/fields/attachments";
+import { normalizeMultiCategoryDisplayText } from "@/lib/fields/multi-category";
 import { cn } from "@/lib/utils";
 import type { AttachmentRef } from "@/types/api/assets";
 import type { RecordDisplayData, RecordDisplayField } from "@/types/api/records";
@@ -193,8 +194,12 @@ export function RecordDetailModal({
 }
 
 function DetailFieldRow({ field }: { field: RecordDisplayField }) {
-  const value = field.displayValue?.trim() || "—";
-  const isLong = value.length > 80 || value.includes("\n");
+  let value = field.displayValue?.trim() || "—";
+  if (field.fieldType === "multi_category" && value !== "—") {
+    value = normalizeMultiCategoryDisplayText(value);
+  }
+  const isMultiLine =
+    field.fieldType === "multi_category" || value.length > 80 || value.includes("\n");
 
   return (
     <div className="grid gap-1 px-4 py-3.5 sm:grid-cols-[9.5rem_1fr] sm:gap-4">
@@ -202,7 +207,7 @@ function DetailFieldRow({ field }: { field: RecordDisplayField }) {
       <dd
         className={cn(
           "text-sm font-semibold text-foreground",
-          isLong && "whitespace-pre-wrap break-words font-normal leading-relaxed",
+          isMultiLine && "whitespace-pre-wrap break-words font-normal leading-relaxed",
         )}
       >
         {value}

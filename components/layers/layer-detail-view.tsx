@@ -4,9 +4,12 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { LayerImportDialog } from "@/components/import/layer-import-dialog";
 import { LayerImportToolbar } from "@/components/layers/layer-import-toolbar";
+import { LayerSymbol } from "@/components/layers/layer-symbol";
+import { PageBackLink } from "@/components/layout/page-back-link";
 import { RecordsTable } from "@/components/records/records-table";
 import { RecordForm } from "@/components/records/record-form";
 import { LayerBadge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Modal } from "@/components/ui/modal";
 import {
   getLayerDetailByCode,
@@ -17,6 +20,7 @@ import { deleteRecord, getLayerRecords } from "@/lib/api/records";
 import { toLayer } from "@/lib/layers/adapter";
 import type { LayerSchema } from "@/types/api/schema";
 import type { RecordItem } from "@/types/api/records";
+import type { Layer } from "@/types/layer.types";
 import { geometryKindLabels } from "@/types/layer.types";
 
 interface LayerDetailViewProps {
@@ -24,6 +28,7 @@ interface LayerDetailViewProps {
 }
 
 export function LayerDetailView({ code }: LayerDetailViewProps) {
+  const [layer, setLayer] = useState<Layer | null>(null);
   const [layerName, setLayerName] = useState("");
   const [layerId, setLayerId] = useState("");
   const [geometryType, setGeometryType] = useState("");
@@ -53,15 +58,16 @@ export function LayerDetailView({ code }: LayerDetailViewProps) {
 
     try {
       const detail = await getLayerDetailByCode(code);
-      const layer = toLayer(detail);
-      setLayerId(layer.id);
-      setLayerName(layer.name);
-      setGeometryType(layer.geometryType);
-      setColor(layer.color);
+      const layerData = toLayer(detail);
+      setLayer(layerData);
+      setLayerId(layerData.id);
+      setLayerName(layerData.name);
+      setGeometryType(layerData.geometryType);
+      setColor(layerData.color);
 
       const [schemaData, recordsData] = await Promise.all([
-        getLayerSchema(layer.id),
-        getLayerRecords(layer.id, {
+        getLayerSchema(layerData.id),
+        getLayerRecords(layerData.id, {
           page,
           pageSize,
           sortBy: "createdAt",
@@ -148,62 +154,77 @@ export function LayerDetailView({ code }: LayerDetailViewProps) {
 
   return (
     <div className="space-y-4">
-      <section className="overflow-hidden rounded-xl border border-border bg-surface shadow-sm">
-        <div className="flex flex-col gap-3 border-b border-border bg-slate-50/60 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex min-w-0 items-center gap-3">
-            <Link
-              href="/lop-du-lieu"
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border bg-white text-muted transition hover:bg-slate-50 hover:text-foreground"
-              aria-label="Quay lại danh sách lớp"
-            >
-              ←
-            </Link>
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="truncate text-lg font-semibold text-foreground">
-                  {layerName || "Lớp dữ liệu"}
-                </h1>
-                <LayerBadge
-                  label={geometryKindLabels[geometryType] ?? geometryType}
-                  color={color}
-                />
+      <section className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
+        <div
+          className="h-1.5"
+          style={{ backgroundColor: color }}
+          aria-hidden
+        />
+        <div className="border-b border-border bg-gradient-to-r from-slate-50/80 to-white px-5 py-4">
+          <PageBackLink href="/lop-du-lieu" label="Danh sách lớp" className="mb-4" />
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex min-w-0 items-center gap-4">
+              {layer && <LayerSymbol layer={layer} size="md" />}
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h1 className="truncate text-xl font-semibold tracking-tight text-foreground">
+                    {layerName || "Lớp dữ liệu"}
+                  </h1>
+                  <LayerBadge
+                    label={geometryKindLabels[geometryType] ?? geometryType}
+                    color={color}
+                  />
+                </div>
+                {schema && (
+                  <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-muted">
+                    <span className="rounded-full bg-slate-100 px-2.5 py-0.5 font-medium text-foreground">
+                      {total} bản ghi
+                    </span>
+                    {!isLoading && total > 0 && totalPages > 1 && (
+                      <span>
+                        Trang {page}/{totalPages}
+                      </span>
+                    )}
+                    <span className="font-mono uppercase tracking-wide">
+                      {code}
+                    </span>
+                  </div>
+                )}
               </div>
-              {schema && (
-                <p className="mt-0.5 text-xs text-muted">
-                  {total} bản ghi
-                  {!isLoading && total > 0 && totalPages > 1 && ` · Trang ${page}/${totalPages}`}
-                </p>
-              )}
             </div>
-          </div>
 
-          {schema && (
-            <LayerImportToolbar
-              templateLoading={templateLoading}
-              onDownloadTemplate={handleDownloadTemplate}
-              onImport={() => setImportOpen(true)}
-              onAddRecord={openCreate}
-            />
-          )}
+            {schema && (
+              <LayerImportToolbar
+                templateLoading={templateLoading}
+                onDownloadTemplate={handleDownloadTemplate}
+                onImport={() => setImportOpen(true)}
+                onAddRecord={openCreate}
+              />
+            )}
+          </div>
         </div>
 
         {error && (
-          <div className="border-b border-red-100 bg-red-50 px-4 py-2.5 text-sm text-red-700">
+          <div className="border-b border-red-100 bg-red-50 px-5 py-2.5 text-sm text-red-700">
             {error}
           </div>
         )}
 
-        <div className="p-4">
+        <div className="p-5">
           {!schema && !isLoading ? (
-            <p className="text-sm text-muted">
-              Lớp chưa có cấu trúc dữ liệu.{" "}
-              <Link
-                href="/quan-tri/lop-du-lieu"
-                className="font-medium text-primary hover:underline"
-              >
-                Thiết kế cấu trúc
-              </Link>
-            </p>
+            <EmptyState
+              title="Lớp chưa có cấu trúc dữ liệu"
+              description="Thiết kế các trường biểu mẫu trước khi thêm hoặc import bản ghi."
+              action={
+                <Link
+                  href="/quan-tri/lop-du-lieu"
+                  className="inline-flex rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-dark"
+                >
+                  Thiết kế cấu trúc
+                </Link>
+              }
+              className="py-10"
+            />
           ) : (
             <RecordsTable
               fields={schema?.fields ?? []}
