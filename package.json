@@ -6,7 +6,8 @@
     "dev": "next dev -p 4001",
     "build": "next build",
     "start": "next start -p 4001",
-    "lint": "eslint"
+    "lint": "eslint",
+    "generate:dashboard": "node scripts/generate-agri-dashboard-data.mjs"
   },
   "dependencies": {
     "maplibre-gl": "^5.24.0",

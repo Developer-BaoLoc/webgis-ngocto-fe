@@ -6,7 +6,7 @@ import { SidebarNav } from "./sidebar-nav";
 import { SidebarProvider } from "./sidebar-provider";
 import { cn } from "@/lib/utils";
 
-const FULLSCREEN_ROUTES = ["/ban-do"];
+const FULLSCREEN_ROUTES = ["/ban-do", "/"];
 
 interface AppShellProps {
   children: ReactNode;
@@ -32,7 +32,7 @@ export function AppShell({ children }: AppShellProps) {
             className={cn(
               "flex min-h-0 flex-1 flex-col",
               isFullscreen
-                ? "overflow-hidden"
+                ? "overflow-hidden p-0"
                 : "overflow-auto p-6 lg:p-8",
             )}
           >

@@ -1,23 +1,11 @@
 "use client";
 
-import { useLayerCatalog } from "@/providers/layer-catalog-provider";
-import { siteConfig } from "@/config/site.config";
-import { wardConfig } from "@/config/ward.config";
-import { PageHeader } from "@/components/layout/page-header";
-import { DynamicDashboardPage } from "@/components/dashboard/dynamic-dashboard-page";
+import { AgriIocDashboard } from "@/components/dashboard/ioc/agri-ioc-dashboard";
 
 export default function DashboardPage() {
-  const { catalog } = useLayerCatalog();
-  const project = catalog?.project;
-
-  const description = project
-    ? `${project.description} — ${project.district}, ${project.province}`
-    : `${siteConfig.description} — ${wardConfig.district}, ${wardConfig.city}`;
-
   return (
-    <div className="space-y-8">
-      <PageHeader title="Tổng quan" description={description} />
-      <DynamicDashboardPage />
+    <div className="flex h-full min-h-0 flex-1 flex-col">
+      <AgriIocDashboard />
     </div>
   );
 }

@@ -1,0 +1,858 @@
+{
+  "meta": {
+    "title": "Trung tâm điều hành Nông nghiệp",
+    "ward": "Phường Long Bình",
+    "district": "Quận Cái Răng",
+    "city": "Thành phố Cần Thơ",
+    "source": "BẢNG TỔNG HỢP SỐ LIỆU NÔNG NGHIỆP"
+  },
+  "kpis": {
+    "htxCount": 13,
+    "thtCount": 5,
+    "thuyLoiStations": 19,
+    "ocopProducts": 20,
+    "ocopOwners": 9,
+    "productionZones": 3,
+    "effectiveModels": 14,
+    "totalMembers": 168,
+    "totalLandHa": 2616.9,
+    "totalRevenueMillion": 34898,
+    "totalProfitMillion": 17253.5,
+    "activeOrgs": 15,
+    "irrigationAreaHa": 1711
+  },
+  "charts": {
+    "sectorDistribution": [
+      {
+        "name": "Dịch vụ bơm tưới",
+        "value": 6
+      },
+      {
+        "name": "Trồng trọt",
+        "value": 5
+      },
+      {
+        "name": "Thủy sản",
+        "value": 3
+      },
+      {
+        "name": "Vận tải & dịch vụ",
+        "value": 2
+      },
+      {
+        "name": "Thương mại nông sản",
+        "value": 1
+      },
+      {
+        "name": "Khác",
+        "value": 1
+      }
+    ],
+    "areaDistribution": [
+      {
+        "name": "Bình Thạnh C",
+        "value": 5
+      },
+      {
+        "name": "Bình Trung",
+        "value": 5
+      },
+      {
+        "name": "Bình Thạnh B",
+        "value": 4
+      },
+      {
+        "name": "Bình Thuận",
+        "value": 4
+      },
+      {
+        "name": "Bình Hiếu",
+        "value": 4
+      },
+      {
+        "name": "Bình Tân",
+        "value": 4
+      },
+      {
+        "name": "Bình Lợi",
+        "value": 3
+      },
+      {
+        "name": "Thạnh Hiếu",
+        "value": 3
+      },
+      {
+        "name": "An Hòa",
+        "value": 3
+      },
+      {
+        "name": "Bình Hòa",
+        "value": 2
+      }
+    ],
+    "bomType": [
+      {
+        "name": "Bơm điện",
+        "value": 10
+      },
+      {
+        "name": "Bơm dầu",
+        "value": 9
+      }
+    ],
+    "ocopStars": [
+      {
+        "name": "3 sao",
+        "value": 10
+      },
+      {
+        "name": "4 sao",
+        "value": 9
+      }
+    ],
+    "financialCompare": [
+      {
+        "label": "HTX",
+        "cost": 10701.353099999998,
+        "revenue": 23695.819199999998,
+        "profit": 12994.46615
+      },
+      {
+        "label": "THT",
+        "cost": 4918,
+        "revenue": 7520,
+        "profit": 2602
+      },
+      {
+        "label": "Trạm bơm",
+        "cost": 2025.2184899999997,
+        "revenue": 3682.2154500000006,
+        "profit": 1656.99688
+      }
+    ],
+    "topRevenue": [
+      {
+        "name": "HTX NN Bình Hiếu",
+        "value": 20520,
+        "type": "HTX"
+      },
+      {
+        "name": "THT Nuôi lươn Long Bình",
+        "value": 3570,
+        "type": "THT"
+      },
+      {
+        "name": "THT Mít Thái VietGAP Long Bình",
+        "value": 2500,
+        "type": "THT"
+      },
+      {
+        "name": "HTX Ngọc Liên Phát",
+        "value": 2460,
+        "type": "HTX"
+      },
+      {
+        "name": "THT Nông nghiệp Long Bình",
+        "value": 1260,
+        "type": "THT"
+      },
+      {
+        "name": "HTX NN Bình Thạnh C",
+        "value": 273,
+        "type": "HTX"
+      },
+      {
+        "name": "HTX NN và DV Thuận Tiến",
+        "value": 206.7692,
+        "type": "HTX"
+      },
+      {
+        "name": "THT bơm tưới kênh Thanh niên",
+        "value": 145,
+        "type": "THT"
+      },
+      {
+        "name": "HTX NN Bình Thạnh B",
+        "value": 83.05,
+        "type": "HTX"
+      },
+      {
+        "name": "HTX NN Thạnh Hiếu",
+        "value": 76,
+        "type": "HTX"
+      }
+    ],
+    "modelGroups": [
+      {
+        "name": "Trồng trọt",
+        "value": 7
+      },
+      {
+        "name": "Thủy sản",
+        "value": 5
+      },
+      {
+        "name": "Công nghệ cao",
+        "value": 2
+      }
+    ],
+    "productionZones": [
+      {
+        "name": "Vùng chuyên canh màu",
+        "sector": "trồng màu",
+        "area": "Bình Thạnh C",
+        "landHa": 2,
+        "output": "25",
+        "revenueMillion": 300,
+        "profitMillion": 180,
+        "status": "sản xuất theo vụ\n(hiện đang k sx)"
+      },
+      {
+        "name": "Vùng chuyên trồng bưởi da xanh",
+        "sector": "trồng bưởi",
+        "area": "An Hòa",
+        "landHa": 4,
+        "output": "43",
+        "revenueMillion": 1075,
+        "profitMillion": 415,
+        "status": "Đang hoạt động"
+      },
+      {
+        "name": "Vùng chuyên trồng dưa hấu",
+        "sector": "Dưa hấu",
+        "area": "Bình Thuận",
+        "landHa": 12,
+        "output": "900",
+        "revenueMillion": 5400,
+        "profitMillion": 1080,
+        "status": "Đang hoạt động"
+      }
+    ]
+  },
+  "highlights": {
+    "htx": [
+      {
+        "type": "HTX",
+        "name": "HTX Ngọc Liên Phát",
+        "representative": "Ngô Hoài Tâm",
+        "area": "Bình Lợi",
+        "sector": "Bán buôn nông lâm sản nguyên liệu",
+        "sectorGroup": "Thương mại nông sản",
+        "landHa": 17,
+        "members": 27,
+        "output": "351 tấn",
+        "channel": "Các Công ty lúa gạo",
+        "costMillion": 2420,
+        "revenueMillion": 2460,
+        "profitMillion": 40,
+        "phone": "0963269862",
+        "status": "Đang HĐ",
+        "note": ""
+      },
+      {
+        "type": "HTX",
+        "name": "HTX NN và TMDV Minh Anh",
+        "representative": "Dương Lê Bằng Phương",
+        "area": "Thạnh Hiếu",
+        "sector": "Sản xuất và kinh doanh dưa lưới",
+        "sectorGroup": "Trồng trọt",
+        "landHa": 1.2,
+        "members": 5,
+        "output": "42",
+        "channel": "Địa phương và Tp HCM",
+        "costMillion": 2.6,
+        "revenueMillion": 4.1,
+        "profitMillion": 1.5,
+        "phone": "0939048168",
+        "status": "Đang HĐ",
+        "note": ""
+      },
+      {
+        "type": "HTX",
+        "name": "HTX NS Mekong Delta Hưng Thịnh",
+        "representative": "Nguyễn Hùng Cường",
+        "area": "Bình Thạnh B",
+        "sector": "Sản xuất và kinh doanh dưa lưới",
+        "sectorGroup": "Trồng trọt",
+        "landHa": 0.8,
+        "members": 10,
+        "output": "36",
+        "channel": "Địa phương và Tp HCM",
+        "costMillion": 1.9,
+        "revenueMillion": 2.9,
+        "profitMillion": 1,
+        "phone": "0931089595",
+        "status": "Đang HĐ",
+        "note": ""
+      },
+      {
+        "type": "HTX",
+        "name": "HTX NN và DV Thuận Tiến",
+        "representative": "Phan Văn Oanh",
+        "area": "Bình Thuận",
+        "sector": "Bơm tưới",
+        "sectorGroup": "Dịch vụ bơm tưới",
+        "landHa": 55.3,
+        "members": 20,
+        "output": "80",
+        "channel": "Nông dân",
+        "costMillion": 113.7231,
+        "revenueMillion": 206.7692,
+        "profitMillion": 93.04615,
+        "phone": "0397862939",
+        "status": "Đang HĐ",
+        "note": ""
+      },
+      {
+        "type": "HTX",
+        "name": "HTX NN Bình Hiếu",
+        "representative": "Nguyễn Văn Hiện",
+        "area": "Bình Hiếu",
+        "sector": "Sản xuất lúa xác nhận",
+        "sectorGroup": "Trồng trọt",
+        "landHa": 285,
+        "members": 33,
+        "output": "21.09",
+        "channel": "Các Công ty lúa gạo",
+        "costMillion": 7923,
+        "revenueMillion": 20520,
+        "profitMillion": 12597,
+        "phone": "0907403860",
+        "status": "Đang HĐ",
+        "note": ""
+      },
+      {
+        "type": "HTX",
+        "name": "HTX NN Bình Hòa Tiến",
+        "representative": "Trần Văn Thắng",
+        "area": "Bình Hòa",
+        "sector": "Bơm tưới",
+        "sectorGroup": "Dịch vụ bơm tưới",
+        "landHa": 110,
+        "members": 12,
+        "output": "110",
+        "channel": "Nông dân",
+        "costMillion": 40,
+        "revenueMillion": 70,
+        "profitMillion": 30,
+        "phone": "0377714455",
+        "status": "Đang HĐ",
+        "note": ""
+      }
+    ],
+    "tht": [
+      {
+        "type": "THT",
+        "name": "THT bơm tưới kênh Thanh niên",
+        "representative": "Đoàn Văn Thưởng",
+        "area": "Bình Lợi",
+        "sector": "Bơm tưới",
+        "sectorGroup": "Dịch vụ bơm tưới",
+        "landHa": 73,
+        "members": 6,
+        "output": "73 ha",
+        "channel": "Nông dân",
+        "costMillion": 100,
+        "revenueMillion": 145,
+        "profitMillion": 45,
+        "phone": "0379961857",
+        "status": "Đang HĐ",
+        "note": ""
+      },
+      {
+        "type": "THT",
+        "name": "THT Mít Thái VietGAP Long Bình",
+        "representative": "Phạm Thị Kim Ba",
+        "area": "Bình Trung",
+        "sector": "Sản xuất Mít Thái",
+        "sectorGroup": "Trồng trọt",
+        "landHa": 10,
+        "members": 17,
+        "output": "300 tấn",
+        "channel": "Cò lái",
+        "costMillion": 1500,
+        "revenueMillion": 2500,
+        "profitMillion": 1000,
+        "phone": "0795918495",
+        "status": "Đang HĐ",
+        "note": ""
+      },
+      {
+        "type": "THT",
+        "name": "THT Nông nghiệp Long Bình",
+        "representative": "Trần Văn Trường",
+        "area": "Bình Trung",
+        "sector": "Mua bán lúa hàng hóa",
+        "sectorGroup": "Trồng trọt",
+        "landHa": 30,
+        "members": 7,
+        "output": "210 tấn",
+        "channel": "Công ty lúa gạo, nông dân",
+        "costMillion": 750,
+        "revenueMillion": 1260,
+        "profitMillion": 510,
+        "phone": "0899051079",
+        "status": "Đang HĐ",
+        "note": ""
+      },
+      {
+        "type": "THT",
+        "name": "THT Nuôi lươn Long Bình",
+        "representative": "Ngô Văn Tâm",
+        "area": "Bình Trung",
+        "sector": "Nuôi lươn thương phẩm",
+        "sectorGroup": "Thủy sản",
+        "landHa": 0.05,
+        "members": 7,
+        "output": "51 tấn",
+        "channel": "Cò lái",
+        "costMillion": 2550,
+        "revenueMillion": 3570,
+        "profitMillion": 1020,
+        "phone": "0919566414",
+        "status": "Đang HĐ",
+        "note": ""
+      },
+      {
+        "type": "THT",
+        "name": "THT bơm tưới",
+        "representative": "Nguyễn Văn Cứ",
+        "area": "Bình Tân",
+        "sector": "Bơm tưới",
+        "sectorGroup": "Dịch vụ bơm tưới",
+        "landHa": 30,
+        "members": 1,
+        "output": "30",
+        "channel": "Nông dân",
+        "costMillion": 18,
+        "revenueMillion": 45,
+        "profitMillion": 27,
+        "phone": "0389369300",
+        "status": "Đang HĐ",
+        "note": ""
+      }
+    ],
+    "thuyLoi": [
+      {
+        "type": "Trạm bơm",
+        "name": "Trạm bơm Kênh Thanh niên",
+        "representative": "Đoàn Văn Thưởng",
+        "area": "Bình Lợi",
+        "sector": "Dịch vụ bơm tưới",
+        "sectorGroup": "Dịch vụ bơm tưới",
+        "landHa": 56,
+        "members": 3,
+        "output": "56",
+        "channel": "Nông dân",
+        "costMillion": 79.60615,
+        "revenueMillion": 144.7385,
+        "profitMillion": 65.13231,
+        "phone": "0379961857",
+        "status": "Đang HĐ",
+        "note": "Bơm dầu"
+      },
+      {
+        "type": "Trạm bơm",
+        "name": "Trạm bơm Kênh 3 Khéo",
+        "representative": "Nguyễn Văn Lực",
+        "area": "Bình Trung",
+        "sector": "Dịch vụ bơm tưới",
+        "sectorGroup": "Dịch vụ bơm tưới",
+        "landHa": 17,
+        "members": 3,
+        "output": "17",
+        "channel": "Nông dân",
+        "costMillion": 24.16615,
+        "revenueMillion": 43.93846,
+        "profitMillion": 19.77231,
+        "phone": "0907765211",
+        "status": "Đang HĐ",
+        "note": "Bơm dầu"
+      },
+      {
+        "type": "Trạm bơm",
+        "name": "Trạm bơm điện Bình Tân-Bình Hiếu\n (Kênh 5 Thước)",
+        "representative": "Đặng Thanh Bình",
+        "area": "Bình Tân",
+        "sector": "Dịch vụ bơm tưới",
+        "sectorGroup": "Dịch vụ bơm tưới",
+        "landHa": 169,
+        "members": 2,
+        "output": "169",
+        "channel": "Nông dân",
+        "costMillion": 160.16,
+        "revenueMillion": 291.2,
+        "profitMillion": 131.04,
+        "phone": "094638209",
+        "status": "Đang HĐ",
+        "note": "Bơm điện"
+      },
+      {
+        "type": "Trạm bơm",
+        "name": "Trạm bơm Kênh phèn",
+        "representative": "Nguyễn Văn Hiện",
+        "area": "Bình Hiếu",
+        "sector": "Dịch vụ bơm tưới",
+        "sectorGroup": "Dịch vụ bơm tưới",
+        "landHa": 100,
+        "members": 33,
+        "output": "100",
+        "channel": "Nông dân",
+        "costMillion": 94.76923,
+        "revenueMillion": 172.3077,
+        "profitMillion": 77.53846,
+        "phone": "0907403860",
+        "status": "Đang HĐ",
+        "note": "Bơm điện"
+      },
+      {
+        "type": "Trạm bơm",
+        "name": "Trạm bơm Kênh bờ Dừa",
+        "representative": "Hồ Thanh Lưu",
+        "area": "Bình Thạnh B",
+        "sector": "Dịch vụ bơm tưới",
+        "sectorGroup": "Dịch vụ bơm tưới",
+        "landHa": 80,
+        "members": 5,
+        "output": "80",
+        "channel": "Nông dân",
+        "costMillion": 75.81538,
+        "revenueMillion": 137.8462,
+        "profitMillion": 62.03077,
+        "phone": "094638209",
+        "status": "Đang HĐ",
+        "note": "Bơm điện"
+      },
+      {
+        "type": "Trạm bơm",
+        "name": "Trạm bơm Kênh 6 Đực",
+        "representative": "Nguyễn Văn Bay",
+        "area": "An Hòa",
+        "sector": "Dịch vụ bơm tưới",
+        "sectorGroup": "Dịch vụ bơm tưới",
+        "landHa": 100,
+        "members": 4,
+        "output": "100",
+        "channel": "Nông dân",
+        "costMillion": 94.76923,
+        "revenueMillion": 172.3077,
+        "profitMillion": 77.53846,
+        "phone": "0837946677",
+        "status": "Đang HĐ",
+        "note": "Bơm điện"
+      },
+      {
+        "type": "Trạm bơm",
+        "name": "Trạm bơm Kênh Nhà Việt",
+        "representative": "Nguyễn Quốc Toàn",
+        "area": "Bình Hiếu",
+        "sector": "Dịch vụ bơm tưới",
+        "sectorGroup": "Dịch vụ bơm tưới",
+        "landHa": 12,
+        "members": 1,
+        "output": "12",
+        "channel": "Nông dân",
+        "costMillion": 17.05846,
+        "revenueMillion": 31.01538,
+        "profitMillion": 13.95692,
+        "phone": "",
+        "status": "Đang HĐ",
+        "note": "Bơm dầu"
+      },
+      {
+        "type": "Trạm bơm",
+        "name": "Trạm bơm kênh Tắt",
+        "representative": "Trần Văn Ghi",
+        "area": "Bình Thạnh C",
+        "sector": "Dịch vụ bơm tưới",
+        "sectorGroup": "Dịch vụ bơm tưới",
+        "landHa": 100,
+        "members": 8,
+        "output": "100",
+        "channel": "Nông dân",
+        "costMillion": 94.76923,
+        "revenueMillion": 172.3077,
+        "profitMillion": 77.53846,
+        "phone": "0765968219",
+        "status": "Đang HĐ",
+        "note": "Bơm điện"
+      }
+    ],
+    "ocop": [
+      {
+        "owner": "Chủ thể",
+        "product": "Tên Sản phẩm OCOP",
+        "stars": "Xếp hạng",
+        "representative": "Người đại diện",
+        "area": "Địa chỉ",
+        "sector": "Ngành nghề sản xuất/kinh doanh",
+        "output": "Sản lượng",
+        "channel": "Kênh tiêu thụ",
+        "costMillion": null,
+        "revenueMillion": null,
+        "profitMillion": null,
+        "status": "Tình trạng HĐ"
+      },
+      {
+        "owner": "Cơ sở 10 Oanh",
+        "product": "Rượu nếp than 10 Oanh",
+        "stars": "3 sao",
+        "representative": "Phan Văn Oanh",
+        "area": "Bình Thuận",
+        "sector": "SX kinh doanh rượu nếp than",
+        "output": "1000 lít",
+        "channel": "Sỉ qua lái và lẻ",
+        "costMillion": 45,
+        "revenueMillion": 100,
+        "profitMillion": 55,
+        "status": "Đang HĐ"
+      },
+      {
+        "owner": "",
+        "product": "Rượu hương nếp 10 Oanh",
+        "stars": "3 sao",
+        "representative": "",
+        "area": "Khác",
+        "sector": "SX kinh doanh rượu nếp hương nếp",
+        "output": "1000 lít",
+        "channel": "Sỉ qua lái và lẻ",
+        "costMillion": 25,
+        "revenueMillion": 60,
+        "profitMillion": 35,
+        "status": ""
+      },
+      {
+        "owner": "Hộ kinh doanh\n Võ Đình Chiến",
+        "product": "Cá thát lát tẩm gia vị Đình Chiến",
+        "stars": "3 sao",
+        "representative": "Võ Thị Mỹ Diễm",
+        "area": "Bình Hiếu",
+        "sector": "SX cá thát lát tẩm gia vị",
+        "output": "10 tấn",
+        "channel": "Sỉ qua lái và lẻ",
+        "costMillion": 740,
+        "revenueMillion": 1850,
+        "profitMillion": 1110,
+        "status": "Đang HĐ"
+      },
+      {
+        "owner": "",
+        "product": "Khô Lươn Đình Chiến",
+        "stars": "3 sao",
+        "representative": "",
+        "area": "Khác",
+        "sector": "SX khô lươn",
+        "output": "5 tấn",
+        "channel": "Sỉ qua lái và lẻ",
+        "costMillion": 260,
+        "revenueMillion": 650,
+        "profitMillion": 390,
+        "status": ""
+      },
+      {
+        "owner": "Cơ sở sản xuất Tân Mỹ",
+        "product": "Kẹo đậu Phộng",
+        "stars": "3 sao",
+        "representative": "Trương Khánh Văn",
+        "area": "Thạnh Hiếu",
+        "sector": "SX kẹo đậu Phộng",
+        "output": "3 tấn",
+        "channel": "Sỉ qua lái và lẻ",
+        "costMillion": 261,
+        "revenueMillion": 580,
+        "profitMillion": 319,
+        "status": "Đang HĐ"
+      },
+      {
+        "owner": "",
+        "product": "Bánh Hạnh nhân",
+        "stars": "3 sao",
+        "representative": "",
+        "area": "Khác",
+        "sector": "SX bánh Hạnh nhân",
+        "output": "1,5 tấn",
+        "channel": "Sỉ qua lái và lẻ",
+        "costMillion": 130.5,
+        "revenueMillion": 290,
+        "profitMillion": 159.5,
+        "status": ""
+      },
+      {
+        "owner": "",
+        "product": "Bánh kẹp nước cốt dừa Tân Mỹ",
+        "stars": "3 sao",
+        "representative": "",
+        "area": "Khác",
+        "sector": "SX bánh kẹp nước cốt dừa",
+        "output": "2 tấn",
+        "channel": "Sỉ qua lái và lẻ",
+        "costMillion": 135,
+        "revenueMillion": 300,
+        "profitMillion": 165,
+        "status": ""
+      },
+      {
+        "owner": "Cơ sở Trường Thịnh",
+        "product": "Mật ong Trường Thịnh",
+        "stars": "3 sao",
+        "representative": "Trần Văn Trường",
+        "area": "Bình Trung",
+        "sector": "SX mật ong",
+        "output": "960 lít",
+        "channel": "Chợ truyền thống",
+        "costMillion": 56,
+        "revenueMillion": 280,
+        "profitMillion": 224,
+        "status": "Đang HĐ"
+      },
+      {
+        "owner": "Hộ kinh doanh\nNguyễn Thành Tân",
+        "product": "Đường mía",
+        "stars": "3 sao",
+        "representative": "Nguyễn Thành Tân",
+        "area": "Bình Thuận",
+        "sector": "SX đường mía",
+        "output": "20 tấn",
+        "channel": "Chợ truyền thống",
+        "costMillion": 120,
+        "revenueMillion": 269,
+        "profitMillion": 149,
+        "status": "Đang HĐ"
+      },
+      {
+        "owner": "HTX nông sản mekongdelta\nHưng Thịnh",
+        "product": "Dưa lưới",
+        "stars": "4 sao",
+        "representative": "Nguyễn Hùng Cường",
+        "area": "Bình Thạnh B",
+        "sector": "SX dưa lưới",
+        "output": "36",
+        "channel": "Địa phương\n và Tp HCM",
+        "costMillion": 1.9,
+        "revenueMillion": 2.9,
+        "profitMillion": 1,
+        "status": "Đang HĐ"
+      },
+      {
+        "owner": "công ty TNHH 3 Sương",
+        "product": "Khóm sấy dẻo muối ớt",
+        "stars": "3 sao",
+        "representative": "Trần Ngọc Sương",
+        "area": "Thạnh hiếu",
+        "sector": "SX khóm sấy dẻo muối ớt",
+        "output": "100 tấn",
+        "channel": "Xuất khẩu",
+        "costMillion": null,
+        "revenueMillion": null,
+        "profitMillion": null,
+        "status": "Đang HĐ"
+      }
+    ],
+    "effectiveModels": [
+      {
+        "group": "Trồng trọt",
+        "name": "HTX NN Bình Hiếu",
+        "representative": "Nguyễn Văn Hiện",
+        "area": "An Hòa",
+        "sector": "Sản xuất lúa xác nhận",
+        "landHa": 285,
+        "members": 33,
+        "output": "21.09",
+        "revenueMillion": 20520000000,
+        "profitMillion": 12597000000,
+        "status": "Đang HĐ"
+      },
+      {
+        "group": "Trồng trọt",
+        "name": "Mô hình trồng bưởi da xanh",
+        "representative": "Trần Văn Hai",
+        "area": "Khác",
+        "sector": "Trồng bưởi",
+        "landHa": 1.3,
+        "members": 1,
+        "output": "14",
+        "revenueMillion": 470,
+        "profitMillion": 190,
+        "status": "Đang hoạt động"
+      },
+      {
+        "group": "Trồng trọt",
+        "name": "Mô hình trồng măng cục xen bòn bon",
+        "representative": "Nguyễn Văn Rõ",
+        "area": "Thạnh Hiếu",
+        "sector": "Trồng măng cục",
+        "landHa": 1.82,
+        "members": 1,
+        "output": "8",
+        "revenueMillion": 496,
+        "profitMillion": 271,
+        "status": "Đang hoạt động"
+      },
+      {
+        "group": "Trồng trọt",
+        "name": "Mô hình trồng mít thái theo hướng ATVSTP",
+        "representative": "Phạm Thị Kim Ba",
+        "area": "Bình Trung",
+        "sector": "Mít ruột đỏ, mít thái",
+        "landHa": 25,
+        "members": 19,
+        "output": "560",
+        "revenueMillion": 670,
+        "profitMillion": 420,
+        "status": "Đang hoạt động"
+      },
+      {
+        "group": "Trồng trọt",
+        "name": "Mô hình trồng sầu riêng",
+        "representative": "Nguyễn Tấn Long",
+        "area": "Bình Lợi",
+        "sector": "Sầu riêng",
+        "landHa": 1,
+        "members": 1,
+        "output": "12",
+        "revenueMillion": 850,
+        "profitMillion": 580,
+        "status": "Đang hoạt động"
+      },
+      {
+        "group": "Trồng trọt",
+        "name": "Mô hình trồng hoa tết",
+        "representative": "",
+        "area": "Khác",
+        "sector": "",
+        "landHa": null,
+        "members": null,
+        "output": "",
+        "revenueMillion": null,
+        "profitMillion": null,
+        "status": ""
+      },
+      {
+        "group": "Trồng trọt",
+        "name": "Vùng chuyên canh lúa HTX nông nghiệp Bình Hòa Tiến",
+        "representative": "Trần Văn Thắng",
+        "area": "Bình Hòa",
+        "sector": "Vùng chuyên canh lúa HTX nông nghiệp Bình Hòa Tiến",
+        "landHa": 110,
+        "members": 70,
+        "output": "8.14",
+        "revenueMillion": 792000000,
+        "profitMillion": 486200000,
+        "status": "Đang hoạt động"
+      },
+      {
+        "group": "Thủy sản",
+        "name": "Mô hình cơ giới hóa đồng bộ trên lúa theo hướng an toàn gắn với thu rơm rạ phục vụ đề án 1 triệu hecta lúa chất lượng cao.",
+        "representative": "Trương Tấn Trị",
+        "area": "Bình Hiếu",
+        "sector": "Vùng chuyên canh lúa giống",
+        "landHa": 52,
+        "members": 52,
+        "output": "38.45",
+        "revenueMillion": 374400000,
+        "profitMillion": 359944000,
+        "status": "Đang hoạt động"
+      }
+    ]
+  }
+}
