@@ -1,5 +1,5 @@
 import type { GeoJSONSource, Map as MapLibreMap } from "maplibre-gl";
-import type { FeatureCollection } from "geojson";
+import type { Feature, FeatureCollection, Geometry, Position } from "geojson";
 import { resolvePublicAssetUrl } from "@/lib/api/assets";
 import type { LayerGeoJsonEntry } from "@/lib/api/map-geojson";
 import { extractStyleFromLayer } from "@/lib/layers/style";
@@ -20,11 +20,23 @@ function getDataLayerIds(layerId: string, geometryType: string) {
     case "polygon":
       return {
         sourceId,
-        layerIds: [`${sourceId}-fill`, `${sourceId}-line`],
+        layerIds: [
+          `${sourceId}-fill`,
+          `${sourceId}-line`,
+          `${sourceId}-symbol`,
+          `${sourceId}-hit`,
+        ],
       };
     case "line":
     case "linestring":
-      return { sourceId, layerIds: [`${sourceId}-line`] };
+      return {
+        sourceId,
+        layerIds: [
+          `${sourceId}-line`,
+          `${sourceId}-symbol`,
+          `${sourceId}-hit`,
+        ],
+      };
     default:
       return {
         sourceId,
@@ -37,7 +49,7 @@ function getDataLayerIds(layerId: string, geometryType: string) {
   }
 }
 
-function getPointIconUrl(layer: LayerGeoJsonEntry["layer"]): string | null {
+function getLayerIconUrl(layer: LayerGeoJsonEntry["layer"]): string | null {
   const style = extractStyleFromLayer(layer);
   const icon = style.icon;
   if (icon && typeof icon === "object" && icon.url) {
@@ -53,7 +65,7 @@ function getIconImageId(layerId: string) {
   return `layer-icon-${layerId}`;
 }
 
-async function ensurePointIcon(
+async function ensureLayerIcon(
   map: MapLibreMap,
   layerId: string,
   iconUrl: string,
@@ -82,6 +94,9 @@ function removeDataLayerById(
   }
   if (map.getSource(sourceId)) map.removeSource(sourceId);
 
+  const markerSourceId = getMarkerSourceId(sourceId);
+  if (map.getSource(markerSourceId)) map.removeSource(markerSourceId);
+
   const imageId = getIconImageId(layerId);
   if (map.hasImage(imageId)) map.removeImage(imageId);
 }
@@ -97,8 +112,12 @@ export function findLayerEntryBySourceId(
   entries: LayerGeoJsonEntry[],
   sourceId: string,
 ): LayerGeoJsonEntry | undefined {
+  const normalized = sourceId.endsWith("-markers")
+    ? sourceId.slice(0, -"-markers".length)
+    : sourceId;
+
   return entries.find(
-    (entry) => getDataLayerSourceId(entry.layer.id) === sourceId,
+    (entry) => getDataLayerSourceId(entry.layer.id) === normalized,
   );
 }
 
@@ -111,14 +130,163 @@ export function removeAllDataLayers(
   }
 }
 
+function collectPositions(geometry: Geometry, positions: Position[] = []): Position[] {
+  switch (geometry.type) {
+    case "Point":
+      positions.push(geometry.coordinates);
+      break;
+    case "MultiPoint":
+      positions.push(...geometry.coordinates);
+      break;
+    case "LineString":
+      positions.push(...geometry.coordinates);
+      break;
+    case "MultiLineString":
+      for (const line of geometry.coordinates) {
+        positions.push(...line);
+      }
+      break;
+    case "Polygon":
+      for (const ring of geometry.coordinates) {
+        positions.push(...ring);
+      }
+      break;
+    case "MultiPolygon":
+      for (const polygon of geometry.coordinates) {
+        for (const ring of polygon) {
+          positions.push(...ring);
+        }
+      }
+      break;
+    case "GeometryCollection":
+      for (const part of geometry.geometries) {
+        collectPositions(part, positions);
+      }
+      break;
+  }
+  return positions;
+}
+
+function getFeatureMarkerPoint(geometry: Geometry): Position | null {
+  if (geometry.type === "Point") {
+    return geometry.coordinates;
+  }
+  if (geometry.type === "MultiPoint" && geometry.coordinates.length > 0) {
+    return geometry.coordinates[0];
+  }
+
+  const positions = collectPositions(geometry);
+  if (!positions.length) return null;
+
+  let minLng = positions[0][0];
+  let maxLng = positions[0][0];
+  let minLat = positions[0][1];
+  let maxLat = positions[0][1];
+
+  for (const [lng, lat] of positions) {
+    minLng = Math.min(minLng, lng);
+    maxLng = Math.max(maxLng, lng);
+    minLat = Math.min(minLat, lat);
+    maxLat = Math.max(maxLat, lat);
+  }
+
+  return [(minLng + maxLng) / 2, (minLat + maxLat) / 2];
+}
+
+function buildMarkerGeoJson(geojson: FeatureCollection): FeatureCollection {
+  const features: Feature[] = [];
+
+  for (const feature of geojson.features) {
+    if (!feature.geometry) continue;
+    const coordinates = getFeatureMarkerPoint(feature.geometry);
+    if (!coordinates) continue;
+
+    features.push({
+      type: "Feature",
+      geometry: { type: "Point", coordinates },
+      properties: feature.properties ?? {},
+      id: feature.id,
+    });
+  }
+
+  return { type: "FeatureCollection", features };
+}
+
+function getMarkerSourceId(sourceId: string) {
+  return `${sourceId}-markers`;
+}
+
+async function upsertLayerIconMarkers(
+  map: MapLibreMap,
+  entry: LayerGeoJsonEntry,
+  sourceId: string,
+  geojson: FeatureCollection,
+) {
+  const iconUrl = getLayerIconUrl(entry.layer);
+  const markerSourceId = getMarkerSourceId(sourceId);
+  const symbolLayerId = `${sourceId}-symbol`;
+  const hitLayerId = `${sourceId}-hit`;
+
+  if (!iconUrl) {
+    if (map.getLayer(symbolLayerId)) map.removeLayer(symbolLayerId);
+    if (map.getLayer(hitLayerId)) map.removeLayer(hitLayerId);
+    if (map.getSource(markerSourceId)) map.removeSource(markerSourceId);
+    return;
+  }
+
+  const iconImageId = await ensureLayerIcon(map, entry.layer.id, iconUrl);
+  if (!iconImageId) return;
+
+  const markerGeojson = buildMarkerGeoJson(geojson);
+  const markerSource = map.getSource(markerSourceId);
+
+  if (markerSource && markerSource.type === "geojson") {
+    (markerSource as GeoJSONSource).setData(markerGeojson);
+  } else {
+    if (map.getLayer(symbolLayerId)) map.removeLayer(symbolLayerId);
+    if (map.getLayer(hitLayerId)) map.removeLayer(hitLayerId);
+    if (map.getSource(markerSourceId)) map.removeSource(markerSourceId);
+    map.addSource(markerSourceId, { type: "geojson", data: markerGeojson });
+  }
+
+  if (!map.getLayer(symbolLayerId)) {
+    map.addLayer({
+      id: symbolLayerId,
+      type: "symbol",
+      source: markerSourceId,
+      layout: {
+        "icon-image": iconImageId,
+        "icon-size": POINT_ICON_SIZE,
+        "icon-allow-overlap": true,
+        "icon-anchor": "bottom",
+      },
+    });
+  } else {
+    map.setLayoutProperty(symbolLayerId, "icon-size", POINT_ICON_SIZE);
+  }
+
+  if (!map.getLayer(hitLayerId)) {
+    map.addLayer({
+      id: hitLayerId,
+      type: "circle",
+      source: markerSourceId,
+      paint: {
+        "circle-radius": POINT_HIT_RADIUS,
+        "circle-opacity": 0.01,
+        "circle-stroke-width": 0,
+      },
+    });
+  }
+}
+
 async function upsertPointLayer(
   map: MapLibreMap,
   entry: LayerGeoJsonEntry,
   sourceId: string,
 ) {
-  const iconUrl = getPointIconUrl(entry.layer);
+  const iconUrl = getLayerIconUrl(entry.layer);
   const iconImageId = iconUrl
-    ? await ensurePointIcon(map, entry.layer.id, iconUrl)
+    ? await ensureLayerIcon(map, entry.layer.id, iconUrl)
     : null;
 
   const circleLayerId = `${sourceId}-circle`;
@@ -184,10 +352,11 @@ async function upsertPointLayer(
   }
 }
 
-function upsertPolygonLayer(
+async function upsertPolygonLayer(
   map: MapLibreMap,
   entry: LayerGeoJsonEntry,
   sourceId: string,
+  geojson: FeatureCollection,
 ) {
   const style = extractStyleFromLayer(entry.layer);
   const fillLayerId = `${sourceId}-fill`;
@@ -216,12 +385,15 @@ function upsertPolygonLayer(
       },
     });
   }
+
+  await upsertLayerIconMarkers(map, entry, sourceId, geojson);
 }
 
-function upsertLineLayer(
+async function upsertLineLayer(
   map: MapLibreMap,
   entry: LayerGeoJsonEntry,
   sourceId: string,
+  geojson: FeatureCollection,
 ) {
   const style = extractStyleFromLayer(entry.layer);
   const lineLayerId = `${sourceId}-line`;
@@ -237,6 +409,8 @@ function upsertLineLayer(
       },
     });
   }
+
+  await upsertLayerIconMarkers(map, entry, sourceId, geojson);
 }
 
 async function upsertDataLayer(map: MapLibreMap, entry: LayerGeoJsonEntry) {
@@ -256,11 +430,11 @@ async function upsertDataLayer(map: MapLibreMap, entry: LayerGeoJsonEntry) {
 
   switch (entry.layer.geometryType) {
     case "polygon":
-      upsertPolygonLayer(map, entry, sourceId);
+      await upsertPolygonLayer(map, entry, sourceId, geojson);
       break;
     case "line":
     case "linestring":
-      upsertLineLayer(map, entry, sourceId);
+      await upsertLineLayer(map, entry, sourceId, geojson);
       break;
     default:
       await upsertPointLayer(map, entry, sourceId);
