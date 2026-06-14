@@ -1,9 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/layout/page-header";
 import { LayerStyleFields } from "@/components/admin/layer-style-fields";
-import { AdminSubNav } from "@/components/admin/admin-sub-nav";
 import { Modal } from "@/components/ui/modal";
 import { Card, CardContent } from "@/components/ui/card";
 import { inputClass } from "@/components/form/field-wrapper";
@@ -21,9 +21,9 @@ import {
   getDefaultStyle,
   hasPointIcon,
 } from "@/lib/layers/style";
+import { getLayerSchemaStatusBadge } from "@/lib/layers/schema-admin";
 import type { AdminLayer, LayerStyle } from "@/types/api/admin";
 import type { LayerGeometryTypeMeta } from "@/types/api/metadata";
-import { SCHEMA_STATUS_LABELS } from "@/lib/i18n/vi";
 import { geometryKindLabels } from "@/types/layer.types";
 import {
   DataTable,
@@ -57,11 +57,13 @@ function emptyForm(sortOrder: number, geometryType = "point"): LayerFormState {
 }
 
 export function LayerAdminPage() {
+  const router = useRouter();
   const [layers, setLayers] = useState<AdminLayer[]>([]);
   const [geometryTypes, setGeometryTypes] = useState<LayerGeometryTypeMeta[]>(
     [],
   );
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<AdminLayer | null>(null);
@@ -76,7 +78,7 @@ export function LayerAdminPage() {
         getAdminLayers(),
         getLayerGeometryTypes().catch(() => []),
       ]);
-      setLayers(adminLayers);
+      setLayers(adminLayers.filter((layer) => layer.isActive !== false));
       setGeometryTypes(types);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Không tải được danh sách");
@@ -182,10 +184,25 @@ export function LayerAdminPage() {
   }
 
   async function handleDelete(layer: AdminLayer) {
-    if (!confirm(`Xóa lớp "${layer.name}"?`)) return;
+    const confirmed = confirm(
+      `Xóa vĩnh viễn lớp "${layer.name}"?\n\nToàn bộ cấu trúc, bản ghi và dữ liệu trên bản đồ sẽ bị xóa. Không thể hoàn tác.`,
+    );
+    if (!confirmed) return;
+
+    setError(null);
+    setSuccess(null);
+
     try {
-      await deleteLayer(layer.id);
-      await load();
+      const result = await deleteLayer(layer.id);
+      setLayers((prev) => prev.filter((item) => item.id !== layer.id));
+
+      const recordsNote =
+        result.recordsDeleted && result.recordsDeleted > 0
+          ? ` (${result.recordsDeleted} bản ghi đã xóa)`
+          : "";
+
+      setSuccess(`Đã xóa lớp "${layer.name}"${recordsNote}.`);
+      router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Xóa thất bại");
     }
@@ -202,10 +219,10 @@ export function LayerAdminPage() {
 
   return (
     <div className="space-y-6">
-      <AdminSubNav />
-
       <PageHeader
         title="Quản lý lớp dữ liệu"
+        backHref="/quan-tri"
+        backLabel="Quản trị"
         action={
           <button
             type="button"
@@ -220,6 +237,12 @@ export function LayerAdminPage() {
       {error && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {error}
+        </div>
+      )}
+
+      {success && (
+        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+          {success}
         </div>
       )}
 
@@ -244,7 +267,10 @@ export function LayerAdminPage() {
                 </tr>
               </DataTableHead>
               <DataTableBody>
-                {layers.map((layer) => (
+                {layers.map((layer) => {
+                  const schemaBadge = getLayerSchemaStatusBadge(layer);
+
+                  return (
                   <DataTableRow key={layer.id}>
                     <DataTableCell variant="primary">
                       {layer.name}
@@ -253,24 +279,9 @@ export function LayerAdminPage() {
                       {layerTypeLabel(layer)}
                     </DataTableCell>
                     <DataTableCell>
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        <TableBadge
-                          variant={
-                            layer.currentSchemaVersionId ? "success" : "warning"
-                          }
-                        >
-                          {layer.currentSchemaVersionId
-                            ? SCHEMA_STATUS_LABELS.published
-                            : layer.draftSchemaId
-                              ? SCHEMA_STATUS_LABELS.draft
-                              : SCHEMA_STATUS_LABELS.none}
-                        </TableBadge>
-                        {!layer.isActive && layer.isActive === false && (
-                          <TableBadge variant="danger">
-                            Không hoạt động
-                          </TableBadge>
-                        )}
-                      </div>
+                      <TableBadge variant={schemaBadge.variant}>
+                        {schemaBadge.label}
+                      </TableBadge>
                     </DataTableCell>
                     <DataTableCell variant="actions" align="right">
                       <TableActions>
@@ -294,7 +305,8 @@ export function LayerAdminPage() {
                       </TableActions>
                     </DataTableCell>
                   </DataTableRow>
-                ))}
+                  );
+                })}
               </DataTableBody>
             </DataTable>
           )}

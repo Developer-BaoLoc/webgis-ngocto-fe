@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/layout/page-header";
-import { AdminSubNav } from "@/components/admin/admin-sub-nav";
 import { Modal } from "@/components/ui/modal";
 import { Card, CardContent } from "@/components/ui/card";
 import { inputClass } from "@/components/form/field-wrapper";
@@ -78,10 +77,10 @@ export function DashboardAdminPage() {
 
   return (
     <div className="space-y-6">
-      <AdminSubNav />
-
       <PageHeader
         title="Dashboard"
+        backHref="/quan-tri"
+        backLabel="Quản trị"
         action={
           <button
             type="button"

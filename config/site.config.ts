@@ -1,8 +1,8 @@
 import { wardConfig } from "./ward.config";
 
 export const siteConfig = {
-  name: "GIS Long Bình",
-  shortName: "GIS LB",
-  description: `Hệ thống thông tin địa lý — ${wardConfig.name}, ${wardConfig.city}`,
+  name: "OneGis",
+  shortName: "OneGis",
+  description: `Hệ thống thông tin địa lý — ${wardConfig.locationLabel}`,
   locale: "vi-VN",
 } as const;

@@ -3,22 +3,20 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { Modal } from "@/components/ui/modal";
-import { LayerBadge } from "@/components/ui/badge";
+import { PageBackLink } from "@/components/layout/page-back-link";
 import { getLayerById } from "@/lib/api/layers-admin";
 import { getFieldTypes, getFieldDisplayOptions } from "@/lib/api/metadata";
 import { getDictionaries } from "@/lib/api/dictionaries";
 import {
   addSchemaField,
-  createSchemaDraft,
   deleteSchemaField,
-  getLayerSchemaDraft,
-  getSchemaDraft,
   updateSchemaField,
 } from "@/lib/api/schema-drafts";
 import {
   buildDisplaySchemaForSave,
   DEFAULT_FIELD_DISPLAY_OPTIONS,
 } from "@/lib/fields/display-schema";
+import { resolveEditableSchema } from "@/lib/layers/schema-admin";
 import { validateFieldDataSchema } from "@/lib/fields/field-config";
 import { enrichFieldTypes } from "@/lib/i18n/vi";
 import { cn } from "@/lib/utils";
@@ -26,7 +24,6 @@ import {
   FieldFormModalContent,
   fieldToFormPayload,
 } from "@/components/admin/field-form-modal";
-import { AdminSubNav } from "@/components/admin/admin-sub-nav";
 import { SchemaFieldList } from "@/components/admin/schema-field-list";
 import type {
   AdminLayer,
@@ -53,28 +50,6 @@ const toolbarBtn =
 
 interface SchemaDesignerProps {
   layerId: string;
-}
-
-async function resolveDraft(
-  layerId: string,
-  layer: AdminLayer,
-): Promise<SchemaDraft> {
-  try {
-    return await getLayerSchemaDraft(layerId);
-  } catch {
-    let schemaId = layer.draftSchemaId;
-    if (!schemaId) {
-      const newDraft = await createSchemaDraft(layerId);
-      schemaId = newDraft.id;
-    }
-    return getSchemaDraft(schemaId);
-  }
-}
-
-function schemaStatusLabel(status?: string): string | null {
-  if (status === "published") return "Đã áp dụng";
-  if (status === "draft") return "Đang chỉnh sửa";
-  return null;
 }
 
 export function SchemaDesigner({ layerId }: SchemaDesignerProps) {
@@ -110,7 +85,7 @@ export function SchemaDesigner({ layerId }: SchemaDesignerProps) {
       setDictionaryNames(
         Object.fromEntries(dictionaries.map((d) => [d.code, d.name])),
       );
-      setDraft(await resolveDraft(layerId, layerData));
+      setDraft(await resolveEditableSchema(layerId, layerData));
     } catch (e) {
       setError(
         e instanceof Error ? e.message : "Không tải được cấu trúc dữ liệu",
@@ -213,29 +188,20 @@ export function SchemaDesigner({ layerId }: SchemaDesignerProps) {
   }
 
   const activeFields = draft?.fields?.filter((f) => f.isActive !== false) ?? [];
-  const status = schemaStatusLabel(draft?.status);
 
   return (
     <div className="space-y-4">
-      <AdminSubNav />
+      <PageBackLink
+        href="/quan-tri/lop-du-lieu"
+        label="Quản lý lớp dữ liệu"
+      />
 
       <section className="overflow-hidden rounded-xl border border-border bg-surface shadow-sm">
         <div className="flex flex-col gap-3 border-b border-border bg-slate-50/60 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex min-w-0 items-center gap-3">
-            <Link
-              href="/quan-tri/lop-du-lieu"
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border bg-white text-muted transition hover:bg-slate-50 hover:text-foreground"
-              aria-label="Quay lại quản lý lớp"
-            >
-              ←
-            </Link>
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="truncate text-lg font-semibold text-foreground">
-                  {layer ? layer.name : "Cấu trúc dữ liệu"}
-                </h1>
-              </div>
-            </div>
+          <div className="min-w-0">
+            <h1 className="truncate text-lg font-semibold text-foreground">
+              {layer ? layer.name : "Cấu trúc dữ liệu"}
+            </h1>
           </div>
 
           <div className="flex shrink-0 flex-wrap items-center gap-2">

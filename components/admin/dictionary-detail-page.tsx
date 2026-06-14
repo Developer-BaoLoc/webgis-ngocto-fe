@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { AdminSubNav } from "@/components/admin/admin-sub-nav";
 import { DictionaryBatchValuesInput } from "@/components/admin/dictionary-values-input";
 import { PageHeader } from "@/components/layout/page-header";
 import { Modal } from "@/components/ui/modal";
@@ -172,8 +171,6 @@ export function DictionaryDetailPage({ code }: DictionaryDetailPageProps) {
 
   return (
     <div className="space-y-6">
-      <AdminSubNav />
-
       <PageHeader
         title={
           dictionary
@@ -187,24 +184,18 @@ export function DictionaryDetailPage({ code }: DictionaryDetailPageProps) {
             ? `${activeValues.length} giá trị lựa chọn`
             : undefined
         }
+        backHref="/quan-tri/danh-muc"
+        backLabel="Danh mục dùng chung"
         action={
-          <div className="flex flex-wrap gap-2">
-            <Link
-              href="/quan-tri/danh-muc"
-              className="rounded-lg border border-border px-3 py-2 text-sm text-muted hover:bg-slate-50"
+          dictionary ? (
+            <button
+              type="button"
+              onClick={() => setShowBatchModal(true)}
+              className="rounded-lg border border-border px-3 py-2 text-sm hover:bg-slate-50"
             >
-              ← Danh sách danh mục
-            </Link>
-            {dictionary && (
-              <button
-                type="button"
-                onClick={() => setShowBatchModal(true)}
-                className="rounded-lg border border-border px-3 py-2 text-sm hover:bg-slate-50"
-              >
-                Thêm nhiều giá trị
-              </button>
-            )}
-          </div>
+              Thêm nhiều giá trị
+            </button>
+          ) : undefined
         }
       />
 

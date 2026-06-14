@@ -3,6 +3,7 @@ import { unwrapData, type ApiResponse } from "@/types/api/common";
 import type {
   AdminLayer,
   CreateLayerPayload,
+  DeleteLayerResult,
   UpdateLayerPayload,
 } from "@/types/api/admin";
 
@@ -34,8 +35,12 @@ export async function updateLayer(
   return unwrapData(res);
 }
 
-export async function deleteLayer(layerId: string): Promise<void> {
-  await apiFetch(`/layers/${layerId}`, { method: "DELETE" });
+export async function deleteLayer(layerId: string): Promise<DeleteLayerResult> {
+  const res = await apiFetch<ApiResponse<DeleteLayerResult>>(
+    `/layers/${layerId}`,
+    { method: "DELETE" },
+  );
+  return unwrapData(res);
 }
 
 export async function getLayerById(layerId: string): Promise<AdminLayer> {

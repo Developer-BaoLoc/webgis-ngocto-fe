@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { AdminSubNav } from "@/components/admin/admin-sub-nav";
 import { DictionaryValuesInput } from "@/components/admin/dictionary-values-input";
 import { PageHeader } from "@/components/layout/page-header";
 import { Modal } from "@/components/ui/modal";
@@ -130,10 +129,10 @@ export function DictionaryAdminPage() {
 
   return (
     <div className="space-y-6">
-      <AdminSubNav />
-
       <PageHeader
         title="Danh mục dùng chung"
+        backHref="/quan-tri"
+        backLabel="Quản trị"
         action={
           <button
             type="button"

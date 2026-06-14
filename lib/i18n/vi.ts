@@ -39,8 +39,8 @@ export function enrichFieldTypes(types: FieldTypeMeta[]): FieldTypeMeta[] {
 }
 
 export const SCHEMA_STATUS_LABELS = {
-  published: "Đã xuất bản",
-  draft: "Bản nháp",
+  published: "Sẵn sàng",
+  draft: "Đang chỉnh sửa",
   none: "—",
 } as const;
 

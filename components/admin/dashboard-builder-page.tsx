@@ -1,9 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { PageHeader } from "@/components/layout/page-header";
-import { AdminSubNav } from "@/components/admin/admin-sub-nav";
 import { Modal } from "@/components/ui/modal";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { previewAnalytics } from "@/lib/api/analytics";
@@ -221,8 +219,6 @@ export function DashboardBuilderPage({ dashboardId }: DashboardBuilderPageProps)
 
   return (
     <div className="space-y-6">
-      <AdminSubNav />
-
       <PageHeader
         title={draft ? `Thiết kế: ${draft.name}` : "Thiết kế dashboard"}
         description={
@@ -230,14 +226,8 @@ export function DashboardBuilderPage({ dashboardId }: DashboardBuilderPageProps)
             ? `Bản nháp v${draft.version ?? 1} · ${draft.widgets.length} widget`
             : "Đang tải..."
         }
-        action={
-          <Link
-            href="/quan-tri/dashboard"
-            className="rounded-lg border border-border px-3 py-2 text-sm text-muted hover:bg-slate-50"
-          >
-            ← Danh sách dashboard
-          </Link>
-        }
+        backHref="/quan-tri/dashboard"
+        backLabel="Dashboard"
       />
 
       {error && (

@@ -30,6 +30,13 @@ export interface UpdateLayerPayload {
   description?: string | null;
   sortOrder?: number;
   style?: LayerStyle;
+  isActive?: boolean;
+}
+
+export interface DeleteLayerResult {
+  id: string;
+  deleted: boolean;
+  recordsDeleted?: number;
 }
 
 export interface AdminLayer {
@@ -44,8 +51,9 @@ export interface AdminLayer {
   endpoint?: string;
   style?: LayerStyle;
   isActive?: boolean;
-  draftSchemaId?: string;
+  draftSchemaId?: string | null;
   currentSchemaVersionId?: string;
+  schemaStatus?: "published" | "draft" | string;
   renderMode?: string;
 }
 

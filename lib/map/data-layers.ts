@@ -283,3 +283,34 @@ export async function restoreDataLayers(
   if (!entries.length) return;
   await syncDataLayers(map, entries);
 }
+
+export function setDataLayerVisibility(
+  map: MapLibreMap,
+  layerId: string,
+  geometryType: string,
+  visible: boolean,
+) {
+  const { layerIds } = getDataLayerIds(layerId, geometryType);
+  const visibility = visible ? "visible" : "none";
+
+  for (const id of layerIds) {
+    if (map.getLayer(id)) {
+      map.setLayoutProperty(id, "visibility", visibility);
+    }
+  }
+}
+
+export function applyLayersVisibility(
+  map: MapLibreMap,
+  entries: LayerGeoJsonEntry[],
+  hiddenLayerIds: ReadonlySet<string>,
+) {
+  for (const entry of entries) {
+    setDataLayerVisibility(
+      map,
+      entry.layer.id,
+      entry.layer.geometryType,
+      !hiddenLayerIds.has(entry.layer.id),
+    );
+  }
+}

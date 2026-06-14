@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { AdminSubNav } from "@/components/admin/admin-sub-nav";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -8,7 +7,7 @@ const sections = [
     href: "/quan-tri/lop-du-lieu",
     title: "Lớp dữ liệu",
     description:
-      "Tạo lớp (điểm/đường/vùng), thiết kế cấu trúc trường, xuất bản schema",
+      "Tạo lớp (điểm/đường/vùng) và thiết kế cấu trúc trường — áp dụng ngay sau khi lưu",
   },
   {
     href: "/quan-tri/danh-muc",
@@ -27,8 +26,6 @@ const sections = [
 export default function AdminHubPage() {
   return (
     <div className="space-y-6">
-      <AdminSubNav />
-
       <PageHeader
         title="Quản trị"
         description="Cấu hình lớp dữ liệu, danh mục dùng chung và dashboard cho hệ thống GIS"
@@ -43,9 +40,7 @@ export default function AdminHubPage() {
                   {section.title}
                 </h2>
                 <p className="mt-2 text-sm text-muted">{section.description}</p>
-                <p className="mt-4 text-sm font-medium text-primary">
-                  Mở →
-                </p>
+                <p className="mt-4 text-sm font-medium text-primary">Mở →</p>
               </CardContent>
             </Card>
           </Link>

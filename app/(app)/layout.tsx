@@ -1,6 +1,7 @@
 import { AuthGuard } from "@/components/auth/auth-guard";
 import { getLayerCatalog } from "@/lib/api/layers";
 import { LayerCatalogProvider } from "@/providers/layer-catalog-provider";
+import { MapLayerVisibilityProvider } from "@/providers/map-layer-visibility-provider";
 import { AppShell } from "@/components/layout/app-shell";
 
 export const dynamic = "force-dynamic";
@@ -23,7 +24,9 @@ export default async function AppLayout({
   return (
     <AuthGuard>
       <LayerCatalogProvider catalog={catalog} error={error}>
-        <AppShell>{children}</AppShell>
+        <MapLayerVisibilityProvider>
+          <AppShell>{children}</AppShell>
+        </MapLayerVisibilityProvider>
       </LayerCatalogProvider>
     </AuthGuard>
   );
