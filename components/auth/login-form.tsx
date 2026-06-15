@@ -3,7 +3,6 @@
 import { useState, type FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth, getAuthErrorMessage } from "@/providers/auth-provider";
-import { siteConfig } from "@/config/site.config";
 
 export function LoginForm() {
   const { login } = useAuth();
@@ -82,10 +81,6 @@ export function LoginForm() {
       >
         {isSubmitting ? "Đang đăng nhập..." : "Đăng nhập"}
       </button>
-
-      <p className="text-center text-xs text-muted">
-        {siteConfig.name} — Phase 0 JWT
-      </p>
     </form>
   );
 }
