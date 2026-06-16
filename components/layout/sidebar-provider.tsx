@@ -4,15 +4,22 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useState,
   type ReactNode,
 } from "react";
 
 const STORAGE_KEY = "onegis-sidebar-collapsed";
+const MOBILE_BREAKPOINT = 768;
 
 interface SidebarContextValue {
   collapsed: boolean;
   toggle: () => void;
+  isMobile: boolean;
+  mobileOpen: boolean;
+  openMobile: () => void;
+  closeMobile: () => void;
+  toggleMobile: () => void;
 }
 
 const SidebarContext = createContext<SidebarContextValue | null>(null);
@@ -28,6 +35,29 @@ function readCollapsed(): boolean {
 
 export function SidebarProvider({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(readCollapsed);
+  const [isMobile, setIsMobile] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`);
+    const sync = () => {
+      const mobile = mq.matches;
+      setIsMobile(mobile);
+      if (!mobile) setMobileOpen(false);
+    };
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+
+  useEffect(() => {
+    if (!isMobile || !mobileOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [isMobile, mobileOpen]);
 
   const toggle = useCallback(() => {
     setCollapsed((prev) => {
@@ -41,8 +71,25 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const openMobile = useCallback(() => setMobileOpen(true), []);
+  const closeMobile = useCallback(() => setMobileOpen(false), []);
+  const toggleMobile = useCallback(
+    () => setMobileOpen((prev) => !prev),
+    [],
+  );
+
   return (
-    <SidebarContext.Provider value={{ collapsed, toggle }}>
+    <SidebarContext.Provider
+      value={{
+        collapsed,
+        toggle,
+        isMobile,
+        mobileOpen,
+        openMobile,
+        closeMobile,
+        toggleMobile,
+      }}
+    >
       {children}
     </SidebarContext.Provider>
   );

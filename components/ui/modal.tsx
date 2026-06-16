@@ -7,11 +7,12 @@ interface ModalProps {
   title?: string;
   children: ReactNode;
   onClose: () => void;
-  size?: "md" | "lg" | "xl";
+  size?: "sm" | "md" | "lg" | "xl";
   padding?: boolean;
 }
 
 const sizeClasses = {
+  sm: "max-w-lg",
   md: "max-w-2xl",
   lg: "max-w-3xl",
   xl: "max-w-4xl",

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { wardConfig } from "@/config/ward.config";
 import { mainNavigation } from "@/constants/navigation";
@@ -92,37 +93,78 @@ export function SidebarNav() {
   const pathname = usePathname();
   const { layers, error } = useLayerCatalog();
   const { user, logout } = useAuth();
-  const { collapsed, toggle } = useSidebar();
+  const { collapsed, toggle, isMobile, mobileOpen, closeMobile } = useSidebar();
   const isMapPage =
     pathname === "/ban-do" || pathname.startsWith("/ban-do/");
+
+  useEffect(() => {
+    closeMobile();
+  }, [pathname, closeMobile]);
+
+  const showExpanded = isMobile || !collapsed;
 
   return (
     <aside
       className={cn(
-        "relative flex shrink-0 flex-col border-r border-border bg-surface transition-[width] duration-200 ease-in-out",
-        collapsed ? "w-[4.25rem]" : "w-64",
+        "flex shrink-0 flex-col border-r border-border bg-surface transition-[transform,width] duration-200 ease-in-out",
+        isMobile
+          ? cn(
+              "fixed inset-y-0 left-0 z-50 w-[min(18rem,85vw)] shadow-xl",
+              mobileOpen ? "translate-x-0" : "-translate-x-full",
+            )
+          : cn(
+              "relative",
+              collapsed ? "w-[4.25rem]" : "w-64",
+            ),
       )}
+      aria-hidden={isMobile && !mobileOpen}
     >
       <div
         className={cn(
           "border-b border-border",
-          collapsed ? "px-2 py-3" : "px-4 py-4",
+          showExpanded ? "px-4 py-4" : "px-2 py-3",
         )}
       >
         <div
           className={cn(
             "flex items-center",
-            collapsed ? "flex-col gap-2" : "gap-3",
+            showExpanded ? "gap-3" : "flex-col gap-2",
           )}
         >
-          <AppLogo size="sm" className={cn(collapsed && "h-8 max-w-[2rem]")} />
-          {!collapsed && (
+          <AppLogo
+            size="sm"
+            className={cn(!showExpanded && "h-8 max-w-[2rem]")}
+          />
+          {showExpanded && (
             <div className="min-w-0 flex-1">
               <OneGisWordmark size="md" />
-              <p className=" text-sm font-semibold text-foreground">
+              <p className="text-sm font-semibold text-foreground">
                 {wardConfig.locationLabel}
               </p>
             </div>
+          )}
+          {isMobile && (
+            <button
+              type="button"
+              onClick={closeMobile}
+              aria-label="Đóng menu"
+              className="ml-auto flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-muted transition-colors hover:bg-slate-100 hover:text-foreground"
+            >
+              <svg
+                className="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={1.5}
+                stroke="currentColor"
+                aria-hidden
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M6 18 18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
           )}
         </div>
       </div>
@@ -130,7 +172,7 @@ export function SidebarNav() {
       <nav
         className={cn(
           "flex-1 space-y-1 overflow-y-auto overflow-x-hidden",
-          collapsed ? "p-2" : "p-3",
+          showExpanded ? "p-3" : "p-2",
         )}
       >
         {mainNavigation.map((item) => {
@@ -143,52 +185,59 @@ export function SidebarNav() {
             <Link
               key={item.href}
               href={item.href}
-              title={collapsed ? item.label : undefined}
+              title={showExpanded ? undefined : item.label}
+              onClick={closeMobile}
               className={cn(
                 "flex items-center rounded-lg text-sm font-medium transition-colors",
-                collapsed ? "justify-center px-2 py-2.5" : "gap-3 px-3 py-2.5",
+                showExpanded
+                  ? "gap-3 px-3 py-2.5"
+                  : "justify-center px-2 py-2.5",
                 isActive
                   ? "bg-primary/10 text-primary"
                   : "text-muted hover:bg-slate-100 hover:text-foreground",
               )}
             >
               <NavIcon icon={item.icon} />
-              {!collapsed && <span>{item.label}</span>}
+              {showExpanded && <span>{item.label}</span>}
             </Link>
           );
         })}
 
         {isMapPage && layers.length > 0 && (
-          <div className={cn(collapsed ? "pt-2" : "pt-4")}>
-            {collapsed && (
+          <div className={cn(showExpanded ? "pt-4" : "pt-2")}>
+            {!showExpanded && (
               <div className="mb-2 flex justify-center">
                 <span className="h-px w-6 bg-border" aria-hidden />
               </div>
             )}
-            <SidebarLayerList layers={layers} collapsed={collapsed} />
+            <SidebarLayerList layers={layers} collapsed={!showExpanded} />
           </div>
         )}
 
-        {error && !collapsed && (
+        {error && showExpanded && (
           <p className="px-3 pt-4 text-xs text-red-600">
             Không kết nối được API. Kiểm tra BE :4000.
           </p>
         )}
       </nav>
 
-      <button
-        type="button"
-        onClick={toggle}
-        title={collapsed ? "Mở rộng menu" : "Thu gọn menu"}
-        aria-label={collapsed ? "Mở rộng menu" : "Thu gọn menu"}
-        className={cn(
-          "absolute top-1/2 -right-3 z-10 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-surface text-muted shadow-sm transition-colors hover:bg-slate-50 hover:text-foreground",
-        )}
-      >
-        <CollapseIcon collapsed={collapsed} />
-      </button>
+      {!isMobile && (
+        <button
+          type="button"
+          onClick={toggle}
+          title={collapsed ? "Mở rộng menu" : "Thu gọn menu"}
+          aria-label={collapsed ? "Mở rộng menu" : "Thu gọn menu"}
+          className="absolute top-1/2 -right-3 z-10 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-surface text-muted shadow-sm transition-colors hover:bg-slate-50 hover:text-foreground"
+        >
+          <CollapseIcon collapsed={collapsed} />
+        </button>
+      )}
 
-      <SidebarUserPanel user={user} onLogout={logout} collapsed={collapsed} />
+      <SidebarUserPanel
+        user={user}
+        onLogout={logout}
+        collapsed={!showExpanded}
+      />
     </aside>
   );
 }

@@ -24,6 +24,59 @@ type PopupMode = "hover" | "click";
 let sharedPopup: maplibregl.Popup | null = null;
 let detailButtonHandler: ((event: Event) => void) | null = null;
 let activePopupMode: PopupMode | null = null;
+let hoverHideTimer: ReturnType<typeof setTimeout> | null = null;
+let isPointerOverPopup = false;
+let popupHoverListeners: {
+  element: HTMLElement;
+  onEnter: () => void;
+  onLeave: () => void;
+} | null = null;
+
+function cancelScheduledHoverHide() {
+  if (hoverHideTimer) {
+    clearTimeout(hoverHideTimer);
+    hoverHideTimer = null;
+  }
+}
+
+function detachPopupHoverListeners() {
+  if (!popupHoverListeners) return;
+  const { element, onEnter, onLeave } = popupHoverListeners;
+  element.removeEventListener("mouseenter", onEnter);
+  element.removeEventListener("mouseleave", onLeave);
+  popupHoverListeners = null;
+}
+
+function attachPopupHoverListeners(popup: maplibregl.Popup) {
+  detachPopupHoverListeners();
+
+  const element = popup.getElement();
+  if (!element) return;
+
+  const onEnter = () => {
+    isPointerOverPopup = true;
+    cancelScheduledHoverHide();
+  };
+
+  const onLeave = () => {
+    isPointerOverPopup = false;
+    scheduleHideHoverPopup(popup);
+  };
+
+  element.addEventListener("mouseenter", onEnter);
+  element.addEventListener("mouseleave", onLeave);
+  popupHoverListeners = { element, onEnter, onLeave };
+}
+
+function scheduleHideHoverPopup(popup: maplibregl.Popup) {
+  cancelScheduledHoverHide();
+  hoverHideTimer = setTimeout(() => {
+    hoverHideTimer = null;
+    if (!isPointerOverPopup) {
+      hideHoverPopup(popup);
+    }
+  }, 180);
+}
 
 function getPopup(): maplibregl.Popup {
   if (!sharedPopup) {
@@ -148,10 +201,21 @@ function showFeaturePopup(
   }
 
   attachDetailButtonListener(popup, options?.onViewDetail);
+
+  if (mode === "hover") {
+    attachPopupHoverListeners(popup);
+  } else {
+    detachPopupHoverListeners();
+    isPointerOverPopup = false;
+    cancelScheduledHoverHide();
+  }
 }
 
 function hideHoverPopup(popup: maplibregl.Popup) {
   if (activePopupMode !== "hover") return;
+  cancelScheduledHoverHide();
+  detachPopupHoverListeners();
+  isPointerOverPopup = false;
   popup.remove();
   activePopupMode = null;
 }
@@ -185,6 +249,7 @@ export function bindMapFeatureInteractions(
     if (isIconHoverLayer(layerId)) {
       const onEnter = (event: MapLayerMouseEvent) => {
         map.getCanvas().style.cursor = "pointer";
+        cancelScheduledHoverHide();
         const context = resolveFeatureContext(event, entries);
         if (!context) return;
 
@@ -200,12 +265,29 @@ export function bindMapFeatureInteractions(
 
       const onLeave = () => {
         map.getCanvas().style.cursor = "";
-        hideHoverPopup(popup);
+        scheduleHideHoverPopup(popup);
+      };
+
+      const onClick = (event: MapLayerMouseEvent) => {
+        const context = resolveFeatureContext(event, entries);
+        if (!context) return;
+
+        event.originalEvent.stopPropagation();
+        cancelScheduledHoverHide();
+        showFeaturePopup(
+          map,
+          context.feature,
+          context.entry,
+          context.coordinates,
+          options,
+          "click",
+        );
       };
 
       map.on("mouseenter", layerId, onEnter);
       map.on("mouseleave", layerId, onLeave);
-      handlers.push({ layerId, onEnter, onLeave });
+      map.on("click", layerId, onClick);
+      handlers.push({ layerId, onClick, onEnter, onLeave });
       continue;
     }
 
@@ -245,6 +327,9 @@ export function bindMapFeatureInteractions(
       map.off("mouseenter", layerId, onEnter);
       map.off("mouseleave", layerId, onLeave);
     }
+    cancelScheduledHoverHide();
+    detachPopupHoverListeners();
+    isPointerOverPopup = false;
     popup.remove();
     activePopupMode = null;
     map.getCanvas().style.cursor = "";

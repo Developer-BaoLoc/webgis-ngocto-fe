@@ -149,8 +149,14 @@ export function AgriIocDashboard({
             Trực tuyến
           </span>
           <LiveClock />
-          <Link href="/ban-do" className="ioc-link-btn ioc-link-btn--sm">
-            Bản đồ toàn màn hình
+          <Link
+            href="/ban-do"
+            className="ioc-link-btn ioc-link-btn--sm ioc-link-btn--map"
+          >
+            <span className="ioc-link-btn-text">Bản đồ toàn màn hình</span>
+            <span className="ioc-link-btn-short" aria-hidden>
+              Bản đồ
+            </span>
           </Link>
         </div>
       </header>

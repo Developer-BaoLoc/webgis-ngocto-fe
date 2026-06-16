@@ -24,7 +24,7 @@ export default async function DashboardPage() {
       : null;
 
   return (
-    <div className="flex h-full min-h-0 flex-1 flex-col">
+    <div className="flex h-full min-h-0 max-md:h-auto max-md:min-h-full flex-1 flex-col">
       <AgriIocDashboard
         mapView={mapView}
         boundary={boundary}
