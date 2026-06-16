@@ -19,8 +19,11 @@ export interface MapFeatureInteractionOptions {
   onViewDetail?: (layerId: string, recordId: string) => void;
 }
 
+type PopupMode = "hover" | "click";
+
 let sharedPopup: maplibregl.Popup | null = null;
 let detailButtonHandler: ((event: Event) => void) | null = null;
+let activePopupMode: PopupMode | null = null;
 
 function getPopup(): maplibregl.Popup {
   if (!sharedPopup) {
@@ -33,6 +36,51 @@ function getPopup(): maplibregl.Popup {
     });
   }
   return sharedPopup;
+}
+
+function isIconHoverLayer(layerId: string): boolean {
+  return layerId.endsWith("-hit");
+}
+
+function isShapeClickLayer(layerId: string): boolean {
+  return layerId.endsWith("-fill") || layerId.endsWith("-line");
+}
+
+function resolveFeatureCoordinates(
+  feature: GeoJSONFeature,
+  lngLat: maplibregl.LngLatLike,
+): maplibregl.LngLatLike {
+  if (feature.geometry.type === "Point") {
+    return feature.geometry.coordinates as [number, number];
+  }
+  return lngLat;
+}
+
+function resolveFeatureContext(
+  event: MapLayerMouseEvent,
+  entries: LayerGeoJsonEntry[],
+) {
+  const feature = event.features?.[0];
+  const source = feature?.layer?.source ?? feature?.source;
+  if (!feature || !source) return null;
+
+  const entry = findLayerEntryBySourceId(entries, String(source));
+  if (!entry) return null;
+
+  return {
+    feature,
+    entry,
+    coordinates: resolveFeatureCoordinates(feature, event.lngLat),
+  };
+}
+
+function setPopupCloseButtonVisible(popup: maplibregl.Popup, visible: boolean) {
+  const closeButton = popup
+    .getElement()
+    ?.querySelector(".maplibregl-popup-close-button") as HTMLElement | null;
+  if (closeButton) {
+    closeButton.style.display = visible ? "" : "none";
+  }
 }
 
 function attachDetailButtonListener(
@@ -70,6 +118,7 @@ function showFeaturePopup(
   entry: LayerGeoJsonEntry,
   lngLat: maplibregl.LngLatLike,
   options?: MapFeatureInteractionOptions,
+  mode: PopupMode = "click",
 ) {
   const properties = { ...(feature.properties ?? {}) } as Record<string, unknown>;
   const { recordId, layerId } = extractRecordIds(properties);
@@ -90,6 +139,9 @@ function showFeaturePopup(
     )
     .addTo(map);
 
+  activePopupMode = mode;
+  setPopupCloseButtonVisible(popup, mode === "click");
+
   const popupRoot = popup.getElement();
   if (popupRoot) {
     initMapPopupCarousel(popupRoot);
@@ -98,10 +150,16 @@ function showFeaturePopup(
   attachDetailButtonListener(popup, options?.onViewDetail);
 }
 
+function hideHoverPopup(popup: maplibregl.Popup) {
+  if (activePopupMode !== "hover") return;
+  popup.remove();
+  activePopupMode = null;
+}
+
 type LayerHandler = {
   layerId: string;
-  onClick: (event: MapLayerMouseEvent) => void;
-  onEnter: () => void;
+  onClick?: (event: MapLayerMouseEvent) => void;
+  onEnter: (event: MapLayerMouseEvent) => void;
   onLeave: () => void;
 };
 
@@ -124,22 +182,48 @@ export function bindMapFeatureInteractions(
   const handlers: LayerHandler[] = [];
 
   for (const layerId of interactiveLayerIds) {
+    if (isIconHoverLayer(layerId)) {
+      const onEnter = (event: MapLayerMouseEvent) => {
+        map.getCanvas().style.cursor = "pointer";
+        const context = resolveFeatureContext(event, entries);
+        if (!context) return;
+
+        showFeaturePopup(
+          map,
+          context.feature,
+          context.entry,
+          context.coordinates,
+          options,
+          "hover",
+        );
+      };
+
+      const onLeave = () => {
+        map.getCanvas().style.cursor = "";
+        hideHoverPopup(popup);
+      };
+
+      map.on("mouseenter", layerId, onEnter);
+      map.on("mouseleave", layerId, onLeave);
+      handlers.push({ layerId, onEnter, onLeave });
+      continue;
+    }
+
+    if (!isShapeClickLayer(layerId)) continue;
+
     const onClick = (event: MapLayerMouseEvent) => {
-      const feature = event.features?.[0];
-      const source = feature?.layer?.source ?? feature?.source;
-      if (!feature || !source) return;
+      const context = resolveFeatureContext(event, entries);
+      if (!context) return;
 
       event.originalEvent.stopPropagation();
-
-      const entry = findLayerEntryBySourceId(entries, String(source));
-      if (!entry) return;
-
-      const coordinates =
-        feature.geometry.type === "Point"
-          ? (feature.geometry.coordinates as [number, number])
-          : event.lngLat;
-
-      showFeaturePopup(map, feature, entry, coordinates, options);
+      showFeaturePopup(
+        map,
+        context.feature,
+        context.entry,
+        context.coordinates,
+        options,
+        "click",
+      );
     };
 
     const onEnter = () => {
@@ -157,11 +241,12 @@ export function bindMapFeatureInteractions(
 
   cleanups.set(map, () => {
     for (const { layerId, onClick, onEnter, onLeave } of handlers) {
-      map.off("click", layerId, onClick);
+      if (onClick) map.off("click", layerId, onClick);
       map.off("mouseenter", layerId, onEnter);
       map.off("mouseleave", layerId, onLeave);
     }
     popup.remove();
+    activePopupMode = null;
     map.getCanvas().style.cursor = "";
   });
 }

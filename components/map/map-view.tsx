@@ -13,7 +13,7 @@ import {
   resolveMapBasemapStyle,
   setGoogleBasemapVisibility,
 } from "@/lib/map/mapbox-basemap";
-import { getGeoJsonBounds, padBounds } from "@/lib/map/bounds";
+import { getGeoJsonBounds, isValidMapViewBounds, normalizeMapViewBounds, padBounds, ensureBoundsSpan } from "@/lib/map/bounds";
 import {
   upsertWardBoundaryLayer,
   removeWardBoundaryLayer,
@@ -32,6 +32,8 @@ interface MapViewProps {
   layers?: Layer[];
   className?: string;
   fullscreen?: boolean;
+  embedded?: boolean;
+  showAllLayers?: boolean;
 }
 
 type MapProvider = "google" | "fallback";
@@ -47,7 +49,9 @@ function resolvePanBounds(
   mapView: MapViewConfig,
   boundary?: GeoJsonFeatureCollection | null,
 ): MapViewBounds {
-  if (mapView.panBounds) return mapView.panBounds;
+  if (mapView.panBounds && isValidMapViewBounds(mapView.panBounds)) {
+    return mapView.panBounds;
+  }
 
   const wardBounds =
     mapView.bounds ?? (boundary ? getGeoJsonBounds(boundary) : null);
@@ -80,30 +84,76 @@ function resolveFitBounds(
 
   if (!raw) return null;
 
-  return padBounds(raw, FIT_BOUNDS_GEO_PADDING_RATIO) ?? raw;
+  const normalized = normalizeMapViewBounds(raw);
+  if (!normalized) return null;
+
+  const padded = padBounds(normalized, FIT_BOUNDS_GEO_PADDING_RATIO) ?? normalized;
+  if (!isValidMapViewBounds(padded)) return null;
+
+  return ensureBoundsSpan(padded);
 }
-function applyInitialView(
-  map: maplibregl.Map,
-  mapView: MapViewConfig,
-  boundary?: GeoJsonFeatureCollection | null,
-) {
-  map.resize();
 
-  const bounds = resolveFitBounds(mapView, boundary);
+function resolveFitPadding(map: maplibregl.Map, preferred = FIT_BOUNDS_PADDING): number {
+  const container = map.getContainer();
+  const width = container.clientWidth;
+  const height = container.clientHeight;
 
-  if (bounds) {
-    map.fitBounds(bounds, {
-      padding: FIT_BOUNDS_PADDING,
-      maxZoom: FIT_BOUNDS_MAX_ZOOM,
-      duration: 0,
-    });
-    return;
-  }
+  if (width <= 0 || height <= 0) return 0;
 
+  const maxAllowed = Math.floor(Math.min(width, height) / 2) - 12;
+  if (maxAllowed <= 0) return 0;
+
+  return Math.min(preferred, Math.max(12, maxAllowed));
+}
+
+function jumpToMapView(map: maplibregl.Map, mapView: MapViewConfig) {
   map.jumpTo({
     center: toMapLibreCenter(mapView.center),
     zoom: mapView.zoom,
   });
+}
+
+function applyInitialView(
+  map: maplibregl.Map,
+  mapView: MapViewConfig,
+  boundary?: GeoJsonFeatureCollection | null,
+  options?: { embedded?: boolean },
+): boolean {
+  map.resize();
+
+  const bounds = resolveFitBounds(mapView, boundary);
+  const preferredPadding = options?.embedded ? 24 : FIT_BOUNDS_PADDING;
+  const padding = resolveFitPadding(map, preferredPadding);
+
+  if (bounds && isValidMapViewBounds(bounds) && padding > 0) {
+    try {
+      map.fitBounds(bounds, {
+        padding,
+        maxZoom: FIT_BOUNDS_MAX_ZOOM,
+        duration: 0,
+      });
+      return true;
+    } catch {
+      jumpToMapView(map, mapView);
+      return false;
+    }
+  }
+
+  jumpToMapView(map, mapView);
+  return padding > 0;
+}
+
+function applyPanBounds(
+  map: maplibregl.Map,
+  mapView: MapViewConfig,
+  boundary?: GeoJsonFeatureCollection | null,
+) {
+  const panBounds = resolvePanBounds(mapView, boundary);
+  if (isValidMapViewBounds(panBounds)) {
+    map.setMaxBounds(panBounds);
+    return;
+  }
+  map.setMaxBounds(null);
 }
 
 export function MapView({
@@ -112,9 +162,13 @@ export function MapView({
   layers = [],
   className,
   fullscreen = false,
+  embedded = false,
+  showAllLayers = false,
 }: MapViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
+  const needsInitialFitRef = useRef(true);
+  const embeddedRef = useRef(embedded);
   const providerRef = useRef<MapProvider>("google");
   const mapViewRef = useRef(mapView);
   const boundaryRef = useRef(boundary);
@@ -157,6 +211,7 @@ export function MapView({
     layers,
     ready: mapReady,
     interactionOptions: { onViewDetail: handleViewDetail },
+    showAllLayers,
   });
 
   useMapFeatureInteractions({
@@ -168,6 +223,24 @@ export function MapView({
     center: normalizeMapCenter(mapView.center),
   };
   boundaryRef.current = boundary;
+  embeddedRef.current = embedded;
+
+  const runInitialViewRef = useRef<(map: maplibregl.Map) => void>(() => {});
+
+  runInitialViewRef.current = (map: maplibregl.Map) => {
+    const fitted = applyInitialView(
+      map,
+      mapViewRef.current,
+      boundaryRef.current,
+      { embedded: embeddedRef.current },
+    );
+    if (fitted) {
+      needsInitialFitRef.current = false;
+    }
+    applyPanBounds(map, mapViewRef.current, boundaryRef.current);
+  };
+
+  const boundsKey = mapView.bounds ? JSON.stringify(mapView.bounds) : "";
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -212,8 +285,8 @@ export function MapView({
       if (initialBoundary?.features.length) {
         upsertWardBoundaryLayer(map, initialBoundary);
       }
-      applyInitialView(map, initialMapView, initialBoundary);
-      map.setMaxBounds(resolvePanBounds(initialMapView, initialBoundary));
+      needsInitialFitRef.current = true;
+      runInitialViewRef.current(map);
       setMapInstance(map);
       setIsLoading(false);
     });
@@ -244,7 +317,6 @@ export function MapView({
     const map = mapRef.current;
     if (!map || isLoading) return;
 
-    const nextMapView = mapViewRef.current;
     const nextBoundary = boundaryRef.current;
 
     if (nextBoundary?.features.length) {
@@ -253,13 +325,13 @@ export function MapView({
       removeWardBoundaryLayer(map);
     }
 
-    applyInitialView(map, nextMapView, nextBoundary);
-    map.setMaxBounds(resolvePanBounds(nextMapView, nextBoundary));
+    needsInitialFitRef.current = true;
+    runInitialViewRef.current(map);
   }, [
     mapView.center.lat,
     mapView.center.lng,
     mapView.zoom,
-    mapView.bounds,
+    boundsKey,
     boundary,
     isLoading,
   ]);
@@ -295,7 +367,7 @@ export function MapView({
       restoreBoundary();
       await restoreOnMap(map);
       map.jumpTo(view);
-      map.setMaxBounds(resolvePanBounds(mapViewRef.current, currentBoundary));
+      applyPanBounds(map, mapViewRef.current, currentBoundary);
     });
   }, [basemap, isLoading, restoreOnMap]);
 
@@ -306,6 +378,9 @@ export function MapView({
 
     const observer = new ResizeObserver(() => {
       map.resize();
+      if (needsInitialFitRef.current) {
+        runInitialViewRef.current(map);
+      }
     });
     observer.observe(container);
     return () => observer.disconnect();
@@ -313,13 +388,16 @@ export function MapView({
 
   const mapClassName =
     className ??
-    (fullscreen
+    (fullscreen || embedded
       ? "h-full w-full"
       : "h-[calc(100vh-12rem)] min-h-[400px] w-full rounded-xl");
 
+  const wrapperClass =
+    fullscreen || embedded ? "relative h-full w-full" : "relative";
+
   return (
-    <div className={fullscreen ? "relative h-full w-full" : "relative"}>
-      <BasemapSwitcher value={basemap} onChange={setBasemap} />
+    <div className={wrapperClass}>
+      <BasemapSwitcher value={basemap} onChange={setBasemap} compact={embedded} />
       {mapError && (
         <div className="absolute bottom-3 left-3 right-14 z-10 rounded-lg border border-amber-200 bg-amber-50/95 px-3 py-2 text-xs text-amber-900 shadow-sm">
           {mapError}
@@ -339,8 +417,8 @@ export function MapView({
       {isLoading && (
         <div
           className={
-            fullscreen
-              ? "absolute inset-0 z-10 flex items-center justify-center bg-slate-100/80 text-sm text-muted"
+            fullscreen || embedded
+              ? "absolute inset-0 z-10 flex items-center justify-center bg-white/75 text-sm text-muted"
               : "absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-slate-100/80 text-sm text-muted"
           }
         >

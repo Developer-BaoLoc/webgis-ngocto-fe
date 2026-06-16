@@ -3,11 +3,48 @@ import type { MapViewBounds, MapViewBoundsInput } from "@/types/api/map-view";
 
 type LngLat = [number, number];
 
+export function isValidMapViewBounds(
+  bounds: MapViewBounds | null | undefined,
+): bounds is MapViewBounds {
+  if (!bounds || !Array.isArray(bounds) || bounds.length !== 2) return false;
+  if (!Array.isArray(bounds[0]) || !Array.isArray(bounds[1])) return false;
+
+  const [[west, south], [east, north]] = bounds;
+  if (![west, south, east, north].every(Number.isFinite)) return false;
+
+  return east > west && north > south;
+}
+
+/** Đảm bảo bbox có diện tích tối thiểu — tránh fitBounds lỗi với điểm suy biến */
+export function ensureBoundsSpan(
+  bounds: MapViewBounds,
+  minLngSpan = 0.002,
+  minLatSpan = 0.002,
+): MapViewBounds {
+  const [[west, south], [east, north]] = bounds;
+  const lngSpan = east - west;
+  const latSpan = north - south;
+
+  if (lngSpan >= minLngSpan && latSpan >= minLatSpan) {
+    return bounds;
+  }
+
+  const lngPad = Math.max((minLngSpan - lngSpan) / 2, 0);
+  const latPad = Math.max((minLatSpan - latSpan) / 2, 0);
+
+  return [
+    [west - lngPad, south - latPad],
+    [east + lngPad, north + latPad],
+  ];
+}
+
 function extendBounds(
   bounds: { minLng: number; minLat: number; maxLng: number; maxLat: number },
   coord: LngLat,
 ) {
   const [lng, lat] = coord;
+  if (!Number.isFinite(lng) || !Number.isFinite(lat)) return;
+
   bounds.minLng = Math.min(bounds.minLng, lng);
   bounds.minLat = Math.min(bounds.minLat, lat);
   bounds.maxLng = Math.max(bounds.maxLng, lng);
@@ -40,7 +77,16 @@ function geometryBounds(geometry: GeoJsonGeometry | null) {
 
   walkCoordinates(geometry.coordinates, bounds);
 
-  if (!Number.isFinite(bounds.minLng)) return null;
+  if (
+    ![
+      bounds.minLng,
+      bounds.minLat,
+      bounds.maxLng,
+      bounds.maxLat,
+    ].every(Number.isFinite)
+  ) {
+    return null;
+  }
 
   return [
     [bounds.minLng, bounds.minLat],
@@ -74,7 +120,7 @@ export function getGeoJsonBounds(
     ];
   }
 
-  return result;
+  return result && isValidMapViewBounds(result) ? result : null;
 }
 
 /** Chuẩn hóa bbox từ BE: [west,south,east,north] hoặc [[west,south],[east,north]] */
@@ -132,8 +178,10 @@ export function padBounds(
   const lngPad = (east - west) * ratio;
   const latPad = (north - south) * ratio;
 
-  return [
+  const padded: MapViewBounds = [
     [west - lngPad, south - latPad],
     [east + lngPad, north + latPad],
   ];
+
+  return isValidMapViewBounds(padded) ? padded : null;
 }

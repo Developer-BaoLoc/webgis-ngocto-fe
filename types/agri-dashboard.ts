@@ -89,6 +89,32 @@ export interface EffectiveModelHighlight {
   status: string;
 }
 
+export interface ForecastPoint {
+  name: string;
+  value: number;
+  forecast?: boolean;
+}
+
+export type AlertSeverity = "high" | "medium" | "low";
+
+export interface AgriAlert {
+  id: string;
+  title: string;
+  area: string;
+  severity: AlertSeverity;
+  time: string;
+}
+
+export type FeedbackStatus = "resolved" | "processing" | "new";
+
+export interface CitizenFeedback {
+  id: string;
+  title: string;
+  area: string;
+  status: FeedbackStatus;
+  time: string;
+}
+
 export interface AgriDashboardData {
   meta: AgriDashboardMeta;
   kpis: AgriDashboardKpis;

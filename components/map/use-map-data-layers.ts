@@ -18,22 +18,28 @@ interface UseMapDataLayersOptions {
   layers: Layer[];
   ready: boolean;
   interactionOptions?: MapFeatureInteractionOptions;
+  /** Dashboard: hiển thị mọi lớp, bỏ qua trạng thái ẩn trên /ban-do */
+  showAllLayers?: boolean;
 }
+
+const EMPTY_HIDDEN = new Set<string>();
 
 export function useMapDataLayers({
   map,
   layers,
   ready,
   interactionOptions,
+  showAllLayers = false,
 }: UseMapDataLayersOptions) {
   const entriesRef = useRef<LayerGeoJsonEntry[]>([]);
   const [entries, setEntries] = useState<LayerGeoJsonEntry[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const { hiddenLayerIds } = useMapLayerVisibility();
+  const effectiveHidden = showAllLayers ? EMPTY_HIDDEN : hiddenLayerIds;
 
   const layerKey = layers.map((layer) => layer.id).join(",");
-  const hiddenKey = [...hiddenLayerIds].sort().join(",");
+  const hiddenKey = [...effectiveHidden].sort().join(",");
 
   const interactionOptionsRef = useRef(interactionOptions);
   interactionOptionsRef.current = interactionOptions;
@@ -51,7 +57,7 @@ export function useMapDataLayers({
         if (cancelled) return;
         entriesRef.current = entries;
         await restoreDataLayers(map, entries);
-        applyLayersVisibility(map, entries, hiddenLayerIds);
+        applyLayersVisibility(map, entries, effectiveHidden);
         bindMapFeatureInteractions(map, entries, interactionOptionsRef.current);
         setEntries(entries);
         setLoaded(true);
@@ -68,25 +74,25 @@ export function useMapDataLayers({
     return () => {
       cancelled = true;
     };
-  }, [map, ready, layerKey, layers]);
+  }, [map, ready, layerKey, layers, effectiveHidden, showAllLayers]);
 
   useEffect(() => {
     if (!map || !loaded || !entriesRef.current.length) return;
-    applyLayersVisibility(map, entriesRef.current, hiddenLayerIds);
-  }, [map, loaded, hiddenKey, hiddenLayerIds]);
+    applyLayersVisibility(map, entriesRef.current, effectiveHidden);
+  }, [map, loaded, hiddenKey, effectiveHidden]);
 
   const restoreOnMap = useCallback(
     async (targetMap: MapLibreMap) => {
       if (!entriesRef.current.length) return;
       await restoreDataLayers(targetMap, entriesRef.current);
-      applyLayersVisibility(targetMap, entriesRef.current, hiddenLayerIds);
+      applyLayersVisibility(targetMap, entriesRef.current, effectiveHidden);
       bindMapFeatureInteractions(
         targetMap,
         entriesRef.current,
         interactionOptionsRef.current,
       );
     },
-    [hiddenLayerIds],
+    [effectiveHidden],
   );
 
   return { error, loaded, restoreOnMap, entriesRef, entries };

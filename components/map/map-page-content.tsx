@@ -14,6 +14,8 @@ interface MapPageContentProps {
   boundary?: GeoJsonFeatureCollection | null;
   boundaryError?: string | null;
   fullscreen?: boolean;
+  embedded?: boolean;
+  showAllLayers?: boolean;
 }
 
 function buildMapView(
@@ -36,6 +38,8 @@ export function MapPageContent({
   boundary = null,
   boundaryError = null,
   fullscreen = false,
+  embedded = false,
+  showAllLayers = false,
 }: MapPageContentProps) {
   const { catalog, layers, error } = useLayerCatalog();
 
@@ -69,10 +73,11 @@ export function MapPageContent({
     </>
   );
 
-  if (fullscreen) {
+  if (fullscreen || embedded) {
     return (
       <div className="relative h-full min-h-0 w-full">
-        {(error || (resolvedBoundaryError && !resolvedBoundary?.features.length)) && (
+        {(error || (resolvedBoundaryError && !resolvedBoundary?.features.length)) &&
+          !embedded && (
           <div className="absolute left-4 right-4 top-4 z-20 flex max-w-md flex-col gap-2">
             {alerts}
           </div>
@@ -81,7 +86,9 @@ export function MapPageContent({
           mapView={mapView}
           boundary={resolvedBoundary}
           layers={layers}
-          fullscreen
+          fullscreen={fullscreen}
+          embedded={embedded}
+          showAllLayers={showAllLayers}
         />
       </div>
     );

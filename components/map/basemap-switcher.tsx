@@ -7,11 +7,12 @@ import { cn } from "@/lib/utils";
 interface BasemapSwitcherProps {
   value: BasemapId;
   onChange: (id: BasemapId) => void;
+  compact?: boolean;
 }
 
 const BASEMAP_ORDER: BasemapId[] = ["terrain", "satellite"];
 
-export function BasemapSwitcher({ value, onChange }: BasemapSwitcherProps) {
+export function BasemapSwitcher({ value, onChange, compact = false }: BasemapSwitcherProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -29,7 +30,7 @@ export function BasemapSwitcher({ value, onChange }: BasemapSwitcherProps) {
   }, [open]);
 
   return (
-    <div ref={rootRef} className="absolute right-3 top-3 z-10">
+    <div ref={rootRef} className={cn("absolute z-10", compact ? "right-2 top-2" : "right-3 top-3")}>
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
@@ -38,7 +39,10 @@ export function BasemapSwitcher({ value, onChange }: BasemapSwitcherProps) {
         aria-expanded={open}
         aria-haspopup="menu"
         className={cn(
-          "flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-surface/95 text-foreground shadow-md backdrop-blur-sm transition-colors hover:bg-slate-50",
+          "flex items-center justify-center rounded-lg border shadow-md backdrop-blur-sm transition-colors",
+          compact
+            ? "h-8 w-8 border-emerald-500/30 bg-slate-900/85 text-emerald-100 hover:bg-slate-800"
+            : "h-9 w-9 border-border bg-surface/95 text-foreground hover:bg-slate-50",
           open && "ring-2 ring-primary/30",
         )}
       >
