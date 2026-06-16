@@ -64,6 +64,11 @@ export function DonutChart({
   wide = false,
   emphasizeCenter = false,
   hideLegend = false,
+  centerLabel,
+  centerSubLabel = "tổng",
+  centerFontSize,
+  centerSubFontSize,
+  colors,
   className = "",
 }: {
   data: ChartDatum[];
@@ -73,11 +78,18 @@ export function DonutChart({
   wide?: boolean;
   emphasizeCenter?: boolean;
   hideLegend?: boolean;
+  centerLabel?: string | number;
+  centerSubLabel?: string;
+  centerFontSize?: number;
+  centerSubFontSize?: number;
+  colors?: string[];
   className?: string;
 }) {
-  const chartSize = mini ? 60 : size;
+  const chartSize = mini ? (size !== 168 ? size : 80) : size;
   const total = data.reduce((sum, item) => sum + item.value, 0) || 1;
-  const pad = mini ? 6 : compact ? 8 : 12;
+  const colorAt = (index: number) =>
+    colors?.[index] ?? PALETTE[index % PALETTE.length];
+  const pad = mini ? 8 : compact ? 8 : 12;
   const radius = chartSize / 2 - pad;
   const cx = chartSize / 2;
   const cy = chartSize / 2;
@@ -96,12 +108,28 @@ export function DonutChart({
     const x2 = cx + radius * Math.cos(endRad);
     const y2 = cy + radius * Math.sin(endRad);
     const d = `M ${cx} ${cy} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2} Z`;
-    return { d, color: PALETTE[index % PALETTE.length], item };
+    return { d, color: colorAt(index), item };
   });
 
-  const centerFont = mini ? 12 : emphasizeCenter ? 26 : compact ? 20 : 22;
-  const subFont = mini ? 7 : compact ? 11 : 11;
+  const centerFont =
+    centerFontSize ??
+    (mini
+      ? Math.max(12, Math.round(chartSize * 0.2))
+      : emphasizeCenter
+        ? 26
+        : compact
+          ? 18
+          : 22);
+  const subFont =
+    centerSubFontSize ??
+    (mini
+      ? Math.max(8, Math.round(chartSize * 0.12))
+      : compact
+        ? 10
+        : 11);
   const layoutWide = wide || mini;
+  const centerValue =
+    centerLabel !== undefined ? String(centerLabel) : String(total);
 
   return (
     <div
@@ -127,25 +155,23 @@ export function DonutChart({
         <circle cx={cx} cy={cy} r={radius * 0.58} fill="#ffffff" stroke="#e2e8f0" strokeWidth="1" />
         <text
           x={cx}
-          y={cy - (mini ? 2 : compact ? 2 : 4)}
+          y={cy - (mini ? (subFont <= 8 ? 1 : 2) : compact ? 2 : 4)}
           textAnchor="middle"
           fill="#15803d"
           fontSize={centerFont}
           fontWeight="700"
         >
-          {total}
+          {centerValue}
         </text>
-        {!hideLegend && (
-          <text
-            x={cx}
-            y={cy + (mini ? 7 : compact ? 10 : 16)}
-            textAnchor="middle"
-            fill="#64748b"
-            fontSize={subFont}
-          >
-            tổng
-          </text>
-        )}
+        <text
+          x={cx}
+          y={cy + (mini ? (subFont <= 8 ? 5 : 7) : compact ? 10 : 16)}
+          textAnchor="middle"
+          fill="#64748b"
+          fontSize={subFont}
+        >
+          {centerSubLabel}
+        </text>
       </svg>
       {!hideLegend && (
         <ul
@@ -155,7 +181,7 @@ export function DonutChart({
             <li key={item.name} className="ioc-legend-item">
               <span
                 className="ioc-legend-dot"
-                style={{ background: PALETTE[index % PALETTE.length] }}
+                style={{ background: colorAt(index) }}
               />
               <span className="min-w-0 flex-1 truncate">{item.name}</span>
               <strong>{item.value}</strong>
@@ -408,6 +434,88 @@ export function GroupedBarChart({
   );
 }
 
+export function SectorDistributionChart({
+  data,
+  total,
+}: {
+  data: ChartDatum[];
+  total: number;
+}) {
+  return (
+    <div className="ioc-sector-donut">
+      <DonutChart
+        data={data}
+        mini
+        size={108}
+        hideLegend
+        centerLabel={total}
+        centerSubLabel="tổ chức"
+        centerFontSize={11}
+        centerSubFontSize={7}
+        className="ioc-sector-donut-chart"
+      />
+      <ul className="ioc-legend ioc-sector-donut-legend">
+        {data.map((item, index) => (
+          <li key={item.name} className="ioc-legend-item">
+            <span
+              className="ioc-legend-dot"
+              style={{ background: PALETTE[index % PALETTE.length] }}
+            />
+            <span className="ioc-sector-donut-label" title={item.name}>
+              {item.name}
+            </span>
+            <strong>{item.value}</strong>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+export function FinancialDonutChart({ data }: { data: FinancialCompareRow[] }) {
+  const sliceColors = ["#f97316", "#0ea5e9"] as const;
+  const entityLabel = (label: string) => {
+    if (label === "HTX") return "Hợp tác xã";
+    if (label === "THT") return "Tổ hợp tác";
+    return label;
+  };
+
+  return (
+    <div className="ioc-fin-donut">
+      <div className="ioc-fin-donut-charts">
+        {data.map((row) => (
+          <div key={row.label} className="ioc-fin-donut-item">
+            <DonutChart
+              data={[
+                { name: "Chi phí", value: row.cost },
+                { name: "Lợi nhuận", value: row.profit },
+              ]}
+              mini
+              size={108}
+              colors={[...sliceColors]}
+              centerLabel={formatNumber(row.revenue, 0)}
+              centerSubLabel="Doanh thu"
+              centerFontSize={11}
+              centerSubFontSize={7}
+              hideLegend
+              className="ioc-fin-donut-chart"
+            />
+            <p className="ioc-fin-donut-entity">{entityLabel(row.label)}</p>
+          </div>
+        ))}
+      </div>
+      <div className="ioc-fin-donut-legend" aria-hidden>
+        <span className="ioc-fin-legend-item">
+          <span className="ioc-fin-dot ioc-fin-dot--cost" /> Chi phí
+        </span>
+        <span className="ioc-fin-legend-item">
+          <span className="ioc-fin-dot ioc-fin-dot--profit" /> Lợi nhuận
+        </span>
+      </div>
+    </div>
+  );
+}
+
 export function MiniFinancialBarChart({ data }: { data: FinancialCompareRow[] }) {
   const max = Math.max(
     ...data.flatMap((row) => [row.cost, row.revenue, row.profit]),
@@ -493,47 +601,98 @@ export function CompactFinancialChart({ data }: { data: FinancialCompareRow[] })
   );
 }
 
+type TopRevenueItem = {
+  name: string;
+  value: number;
+  type: string;
+};
+
+function shortenOrgName(name: string): string {
+  return name
+    .replace(/^HTX NN\s+/i, "")
+    .replace(/^HTX\s+/i, "")
+    .replace(/^THT\s+/i, "")
+    .replace(/\s+Long Bình$/i, "");
+}
+
 export function TopRevenueChart({
   data,
-  compact = false,
-  limit = 8,
+  limit = 5,
 }: {
   data: { name: string; value: number | null; type: string }[];
   compact?: boolean;
   limit?: number;
 }) {
-  const items = useMemo(
-    () => data.filter((d) => d.value != null).slice(0, limit),
+  const items = useMemo<TopRevenueItem[]>(
+    () =>
+      data
+        .filter((d) => d.value != null && (d.value ?? 0) > 0)
+        .slice(0, limit)
+        .map((d) => ({
+          name: d.name,
+          value: d.value ?? 0,
+          type: d.type,
+        })),
     [data, limit],
   );
-  const max = Math.max(...items.map((d) => d.value ?? 0), 1);
+
+  if (items.length === 0) {
+    return <p className="text-xs text-muted">Không có dữ liệu thu nhập</p>;
+  }
+
+  const leaderValue = items[0].value;
+  const maxSqrt = Math.sqrt(leaderValue);
 
   return (
-    <ul className={compact ? "space-y-2" : "space-y-2.5"}>
-      {items.map((item, index) => (
-        <li key={`${item.name}-${index}`} className="flex items-center gap-2">
-          <span className={`ioc-rank ${compact ? "ioc-rank--sm" : ""}`}>{index + 1}</span>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center justify-between gap-1">
-              <p className={`ioc-chart-label truncate ${compact ? "text-sm" : "text-sm"}`}>
-                {item.name}
-              </p>
-              <span className={`ioc-chart-value-gold shrink-0 ${compact ? "text-sm" : "text-xs"}`}>
-                {formatNumber(item.value ?? 0, 0)}
+    <ul className="ioc-top-revenue-rank">
+      {items.map((item, index) => {
+        const rank = index + 1;
+        const barWidth = Math.max(
+          8,
+          Math.round((Math.sqrt(item.value) / maxSqrt) * 100),
+        );
+
+        return (
+          <li
+            key={`${item.name}-${rank}`}
+            className={`ioc-top-revenue-rank-item ${
+              rank === 1 ? "ioc-top-revenue-rank-item--leader" : ""
+            }`}
+          >
+            <div className="ioc-top-revenue-rank-head">
+              <span
+                className={`ioc-top-revenue-rank-badge ${
+                  rank <= 3
+                    ? `ioc-top-revenue-rank-badge--${rank}`
+                    : "ioc-top-revenue-rank-badge--default"
+                }`}
+              >
+                {rank}
+              </span>
+              <div className="ioc-top-revenue-rank-info">
+                <span
+                  className="ioc-top-revenue-rank-name"
+                  title={item.name}
+                >
+                  {shortenOrgName(item.name)}
+                </span>
+                <span className="ioc-top-revenue-rank-type">{item.type}</span>
+              </div>
+              <span className="ioc-top-revenue-rank-value">
+                {formatNumber(item.value, 0)}
               </span>
             </div>
-            <div className={`ioc-bar-track ${compact ? "ioc-bar-track--sm mt-1" : "mt-1.5"}`}>
+            <div className="ioc-top-revenue-rank-bar" aria-hidden>
               <div
-                className="ioc-bar-fill"
-                style={{
-                  width: `${((item.value ?? 0) / max) * 100}%`,
-                  background: "linear-gradient(90deg, #fcd34d, #f59e0b)",
-                }}
+                className={`ioc-top-revenue-rank-bar-fill ${
+                  rank === 1 ? "ioc-top-revenue-rank-bar-fill--leader" : ""
+                }`}
+                style={{ width: `${barWidth}%` }}
               />
             </div>
-          </div>
-        </li>
-      ))}
+          </li>
+        );
+      })}
     </ul>
   );
 }
@@ -658,43 +817,77 @@ const FEEDBACK_META: Record<CitizenFeedback["status"], { label: string; cls: str
   new: { label: "Mới", cls: "ioc-fb--new" },
 };
 
+const FEEDBACK_CHART_COLORS = ["#22c55e", "#f59e0b", "#3b82f6"] as const;
+
+const FEEDBACK_STATUS_ORDER: CitizenFeedback["status"][] = [
+  "resolved",
+  "processing",
+  "new",
+];
+
 export function FeedbackList({
   data,
   stats,
 }: {
   data: CitizenFeedback[];
-  stats: { resolved: number; processing: number; new: number };
+  stats: { total: number; resolved: number; processing: number; new: number };
 }) {
+  const chartData = FEEDBACK_STATUS_ORDER.map((status) => ({
+    name: FEEDBACK_META[status].label,
+    value: stats[status],
+  })).filter((item) => item.value > 0);
+
+  const chartColors = FEEDBACK_STATUS_ORDER.map((status, index) => ({
+    status,
+    color: FEEDBACK_CHART_COLORS[index],
+  }))
+    .filter(({ status }) => stats[status] > 0)
+    .map(({ color }) => color);
+
+  const recentItems = data.slice(0, 3);
+
   return (
-    <div className="ioc-feedback">
-      <div className="ioc-feedback-stats">
-        <span className="ioc-feedback-stat ioc-fb--resolved">
-          <strong>{stats.resolved}</strong> Đã xử lý
-        </span>
-        <span className="ioc-feedback-stat ioc-fb--processing">
-          <strong>{stats.processing}</strong> Đang xử lý
-        </span>
-        <span className="ioc-feedback-stat ioc-fb--new">
-          <strong>{stats.new}</strong> Mới
-        </span>
-      </div>
-      <ul className="ioc-feedback-list">
-        {data.map((item) => (
-          <li key={item.id} className="ioc-feedback-item">
-            <span className={`ioc-fb-dot ${FEEDBACK_META[item.status].cls}`} aria-hidden />
-            <div className="min-w-0 flex-1">
-              <p className="ioc-feedback-title">{item.title}</p>
-              <div className="ioc-feedback-meta">
-                <span className={`ioc-feedback-badge ${FEEDBACK_META[item.status].cls}`}>
-                  {FEEDBACK_META[item.status].label}
-                </span>
-                <span className="ioc-feedback-area">{item.area}</span>
-                <span className="ioc-feedback-time">{item.time}</span>
+    <div className="ioc-feedback ioc-feedback--split">
+      {chartData.length > 0 ? (
+        <div className="ioc-feedback-chart-row">
+          <DonutChart
+            data={chartData}
+            compact
+            wide
+            size={96}
+            colors={chartColors}
+            centerLabel={stats.total}
+            centerSubLabel="phản ánh"
+            className="ioc-feedback-donut"
+          />
+        </div>
+      ) : (
+        <p className="text-xs text-muted">Chưa có phản ánh</p>
+      )}
+
+      {recentItems.length > 0 && (
+        <ul className="ioc-feedback-list ioc-feedback-list--compact">
+          {recentItems.map((item) => (
+            <li key={item.id} className="ioc-feedback-item ioc-feedback-item--compact">
+              <span className={`ioc-fb-dot ${FEEDBACK_META[item.status].cls}`} aria-hidden />
+              <div className="min-w-0 flex-1">
+                <p className="ioc-feedback-title ioc-feedback-title--compact">
+                  {item.title}
+                </p>
+                <div className="ioc-feedback-meta ioc-feedback-meta--compact">
+                  <span
+                    className={`ioc-feedback-badge ${FEEDBACK_META[item.status].cls}`}
+                  >
+                    {FEEDBACK_META[item.status].label}
+                  </span>
+                  <span className="ioc-feedback-area">{item.area}</span>
+                  <span className="ioc-feedback-time">{item.time}</span>
+                </div>
               </div>
-            </div>
-          </li>
-        ))}
-      </ul>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

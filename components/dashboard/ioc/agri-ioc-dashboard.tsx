@@ -13,11 +13,11 @@ import {
 } from "@/lib/dashboard/agri-data";
 import {
   AlertList,
-  DonutChart,
   FeedbackList,
+  FinancialDonutChart,
   ForecastAreaChart,
   IocPanel,
-  MiniFinancialBarChart,
+  SectorDistributionChart,
   TopRevenueChart,
 } from "@/components/dashboard/ioc/ioc-charts";
 import { IocMapPanel } from "@/components/dashboard/ioc/ioc-map-panel";
@@ -239,16 +239,19 @@ export function AgriIocDashboard({
               command
               className="ioc-panel--mini"
             >
-              <DonutChart data={charts.sectorDistribution} mini />
+              <SectorDistributionChart
+                data={charts.sectorDistribution}
+                total={sectorTotal}
+              />
             </IocPanel>
             <IocPanel
               title="So sánh tài chính"
-              subtitle="triệu đ"
+              subtitle="triệu đồng"
               compact
               command
               className="ioc-panel--mini"
             >
-              <MiniFinancialBarChart
+              <FinancialDonutChart
                 data={charts.financialCompare.filter((row) => row.label !== "Trạm bơm")}
               />
             </IocPanel>

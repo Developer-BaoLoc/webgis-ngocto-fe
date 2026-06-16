@@ -55,6 +55,12 @@ export function getOutputBySector(): { name: string; value: number }[] {
     .sort((a, b) => b.value - a.value);
 }
 
+const ALERT_SEVERITY_ORDER: Record<AgriAlert["severity"], number> = {
+  high: 0,
+  medium: 1,
+  low: 2,
+};
+
 /** Cảnh báo nông nghiệp — suy ra từ dữ liệu thật (vùng SX, trạm bơm, OCOP, lợi nhuận). */
 export function getAgriAlerts(): AgriAlert[] {
   const { charts, highlights } = agriDashboardData;
@@ -121,7 +127,12 @@ export function getAgriAlerts(): AgriAlert[] {
     });
   }
 
-  return alerts.slice(0, 4);
+  return alerts
+    .sort(
+      (a, b) =>
+        ALERT_SEVERITY_ORDER[a.severity] - ALERT_SEVERITY_ORDER[b.severity],
+    )
+    .slice(0, 4);
 }
 
 /** Phản ánh người dân — nội dung gắn với khu vực thật trong dữ liệu. */
