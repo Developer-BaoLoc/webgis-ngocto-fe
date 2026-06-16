@@ -222,6 +222,7 @@ export function MapView({
     interactionOptions: { onViewDetail: handleViewDetail },
     showAllLayers,
   });
+  console.log("MapView render", { layers });
 
   useMapFeatureInteractions({
     map: mapInstance,

@@ -48,6 +48,14 @@ export function useMapDataLayers({
     if (!map || !ready) return;
 
     let cancelled = false;
+    const duongLayer = layers.find((layer) => layer.code === "duong");
+    console.log("[duong-render-trace][frontend:useMapDataLayers:start]", {
+      ready,
+      hasMap: Boolean(map),
+      found: Boolean(duongLayer),
+      layer: duongLayer,
+      layerKey,
+    });
 
     setLoaded(false);
     setError(null);
@@ -55,6 +63,17 @@ export function useMapDataLayers({
     loadLayerGeoJsonEntries(layers)
       .then(async (entries) => {
         if (cancelled) return;
+        console.log("[duong-render-trace][frontend:useMapDataLayers:entries]", {
+          hasDuongEntry: entries.some((entry) => entry.layer.code === "duong"),
+          entries: entries
+            .filter((entry) => entry.layer.code === "duong")
+            .map((entry) => ({
+              layerId: entry.layer.id,
+              geometryKind: entry.layer.geometryKind,
+              geometryType: entry.layer.geometryType,
+              featureCount: entry.geojson.features.length,
+            })),
+        });
         entriesRef.current = entries;
         await restoreDataLayers(map, entries);
         applyLayersVisibility(map, entries, effectiveHidden);

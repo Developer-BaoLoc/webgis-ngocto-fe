@@ -19,7 +19,6 @@ import {
   extractStyleFromLayer,
   findGeometryMeta,
   getDefaultStyle,
-  hasLayerIcon,
 } from "@/lib/layers/style";
 import { getLayerSchemaStatusBadge } from "@/lib/layers/schema-admin";
 import {
@@ -128,10 +127,6 @@ export function LayerAdminPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!hasLayerIcon(form.style)) {
-      setError("Vui lòng upload icon cho lớp dữ liệu");
-      return;
-    }
     setIsSubmitting(true);
     setError(null);
     try {

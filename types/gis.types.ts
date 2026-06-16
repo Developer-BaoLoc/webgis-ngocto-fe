@@ -12,7 +12,7 @@ export type GeoJsonGeometryType =
 
 export interface GeoJsonGeometry {
   type: GeoJsonGeometryType;
-  coordinates: number[] | number[][] | number[][][];
+  coordinates: number[] | number[][] | number[][][] | number[][][][];
 }
 
 export interface GeoJsonFeature<

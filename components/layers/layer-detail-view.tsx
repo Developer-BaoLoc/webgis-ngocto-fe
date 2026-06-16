@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { GeoJsonImportDialog } from "@/components/import/geojson-import-dialog";
 import { LayerImportDialog } from "@/components/import/layer-import-dialog";
 import { LayerImportToolbar } from "@/components/layers/layer-import-toolbar";
 import { LayerSymbol } from "@/components/layers/layer-symbol";
@@ -46,6 +47,7 @@ export function LayerDetailView({ code }: LayerDetailViewProps) {
   const [formMode, setFormMode] = useState<"create" | "edit" | null>(null);
   const [editingRecord, setEditingRecord] = useState<RecordItem | null>(null);
   const [importOpen, setImportOpen] = useState(false);
+  const [geoJsonImportOpen, setGeoJsonImportOpen] = useState(false);
   const [templateLoading, setTemplateLoading] = useState(false);
 
   const loadData = useCallback(async () => {
@@ -198,6 +200,7 @@ export function LayerDetailView({ code }: LayerDetailViewProps) {
                 templateLoading={templateLoading}
                 onDownloadTemplate={handleDownloadTemplate}
                 onImport={() => setImportOpen(true)}
+                onGeoJsonImport={() => setGeoJsonImportOpen(true)}
                 onAddRecord={openCreate}
               />
             )}
@@ -259,6 +262,18 @@ export function LayerDetailView({ code }: LayerDetailViewProps) {
           layerName={layerName}
           fields={schema.fields}
           onClose={() => setImportOpen(false)}
+          onSuccess={() => {
+            loadData();
+          }}
+        />
+      )}
+
+      {geoJsonImportOpen && schema && layerId && (
+        <GeoJsonImportDialog
+          layerId={layerId}
+          layerName={layerName}
+          fields={schema.fields}
+          onClose={() => setGeoJsonImportOpen(false)}
           onSuccess={() => {
             loadData();
           }}

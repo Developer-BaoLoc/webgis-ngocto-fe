@@ -54,14 +54,12 @@ export function buildStylePayload(
     case "line":
       return {
         ...meta,
-        ...iconPayload,
         lineColor: style.lineColor ?? "#2563eb",
         lineWidth: Number(style.lineWidth ?? 3),
       };
     case "polygon":
       return {
         ...meta,
-        ...iconPayload,
         fillColor: style.fillColor ?? "#22c55e80",
         strokeColor: style.strokeColor ?? "#15803d",
       };

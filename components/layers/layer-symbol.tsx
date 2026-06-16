@@ -4,6 +4,10 @@ import type { Layer } from "@/types/layer.types";
 import { cn } from "@/lib/utils";
 
 export function getLayerIconUrl(layer: Layer): string | null {
+  if (layer.geometryType !== "point" && layer.geometryKind !== "point") {
+    return null;
+  }
+
   const style = extractStyleFromLayer(layer);
   if (style.iconUrl) {
     return resolvePublicAssetUrl(style.iconUrl);

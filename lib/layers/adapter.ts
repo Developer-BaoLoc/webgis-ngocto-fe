@@ -15,8 +15,7 @@ export function hasMapGeometry(kind: string): boolean {
 
 export function toLayer(item: LayerCatalogItem | LayerDetail): Layer {
   const geometryKind = resolveGeometryKind(item);
-
-  return {
+  const layer = {
     id: item.id,
     code: item.code,
     name: item.name,
@@ -31,4 +30,15 @@ export function toLayer(item: LayerCatalogItem | LayerDetail): Layer {
     sortOrder: item.sortOrder,
     style: item.style,
   };
+
+  if (item.code === "duong") {
+    console.log("[duong-render-trace][frontend:toLayer]", {
+      rawGeometryType: item.geometryType,
+      rawGeometryKind: item.geometryKind,
+      resolvedGeometryKind: geometryKind,
+      layer,
+    });
+  }
+
+  return layer;
 }

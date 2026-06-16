@@ -10,7 +10,7 @@ function isIconStyleField(field: StyleFieldMeta): boolean {
   return field.type === "icon" || field.type === "icon_upload";
 }
 
-function withLayerIconField(styleFields: StyleFieldMeta[]): StyleFieldMeta[] {
+function withPointIconField(styleFields: StyleFieldMeta[]): StyleFieldMeta[] {
   if (styleFields.some(isIconStyleField)) {
     return styleFields;
   }
@@ -21,14 +21,23 @@ export function enrichGeometryTypes(
   types: LayerGeometryTypeMeta[],
 ): LayerGeometryTypeMeta[] {
   return types.map((type) => {
-    if (!["point", "line", "polygon"].includes(type.type)) {
-      return type;
+    if (type.type === "point") {
+      return {
+        ...type,
+        styleFields: withPointIconField(type.styleFields ?? []),
+      };
     }
 
-    return {
-      ...type,
-      styleFields: withLayerIconField(type.styleFields ?? []),
-    };
+    if (type.type === "line" || type.type === "polygon") {
+      return {
+        ...type,
+        styleFields: (type.styleFields ?? []).filter(
+          (field) => !isIconStyleField(field),
+        ),
+      };
+    }
+
+    return type;
   });
 }
 
@@ -45,7 +54,6 @@ export const FALLBACK_GEOMETRY_TYPES: LayerGeometryTypeMeta[] =
       label: "Đường",
       geometryKind: "linestring",
       styleFields: [
-        LAYER_ICON_FIELD,
         { key: "lineColor", label: "Màu đường", type: "color" },
         { key: "lineWidth", label: "Độ dày", type: "number" },
       ],
@@ -55,7 +63,6 @@ export const FALLBACK_GEOMETRY_TYPES: LayerGeometryTypeMeta[] =
       label: "Vùng",
       geometryKind: "polygon",
       styleFields: [
-        LAYER_ICON_FIELD,
         { key: "fillColor", label: "Màu vùng", type: "color" },
         { key: "strokeColor", label: "Màu viền", type: "color" },
       ],

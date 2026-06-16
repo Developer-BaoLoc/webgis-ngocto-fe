@@ -2,6 +2,7 @@ import type { GeoJsonFeatureCollection, GeoJsonGeometry } from "@/types/gis.type
 import type { MapViewBounds, MapViewBoundsInput } from "@/types/api/map-view";
 
 type LngLat = [number, number];
+type NestedCoordinates = number[] | NestedCoordinates[];
 
 export function isValidMapViewBounds(
   bounds: MapViewBounds | null | undefined,
@@ -52,7 +53,7 @@ function extendBounds(
 }
 
 function walkCoordinates(
-  coords: number[] | number[][] | number[][][],
+  coords: NestedCoordinates,
   bounds: { minLng: number; minLat: number; maxLng: number; maxLat: number },
 ) {
   if (typeof coords[0] === "number") {
@@ -60,7 +61,7 @@ function walkCoordinates(
     return;
   }
 
-  for (const item of coords as Array<number[] | number[][] | number[][][]>) {
+  for (const item of coords as NestedCoordinates[]) {
     walkCoordinates(item, bounds);
   }
 }

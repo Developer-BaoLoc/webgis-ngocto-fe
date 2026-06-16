@@ -6,6 +6,7 @@ interface LayerImportToolbarProps {
   templateLoading?: boolean;
   onDownloadTemplate: () => void;
   onImport: () => void;
+  onGeoJsonImport: () => void;
   onAddRecord: () => void;
   className?: string;
 }
@@ -17,6 +18,7 @@ export function LayerImportToolbar({
   templateLoading = false,
   onDownloadTemplate,
   onImport,
+  onGeoJsonImport,
   onAddRecord,
   className,
 }: LayerImportToolbarProps) {
@@ -50,6 +52,18 @@ export function LayerImportToolbar({
       >
         <UploadIcon />
         Import Excel
+      </button>
+
+      <button
+        type="button"
+        onClick={onGeoJsonImport}
+        className={cn(
+          buttonBase,
+          "bg-cyan-700 text-white hover:bg-cyan-800",
+        )}
+      >
+        <UploadIcon />
+        Import GeoJSON
       </button>
 
       <button

@@ -17,7 +17,7 @@ interface LayerIconUploadFieldProps {
 export function LayerIconUploadField({
   style,
   onChange,
-  required = true,
+  required = false,
 }: LayerIconUploadFieldProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -133,7 +133,7 @@ export function LayerIconUploadField({
 
       {required && !style.iconAttachmentId && !isUploading && (
         <p className="text-xs text-muted">
-          Bắt buộc upload icon cho lớp dữ liệu (điểm, đường hoặc vùng)
+          Bắt buộc upload icon cho lớp dữ liệu điểm
         </p>
       )}
 

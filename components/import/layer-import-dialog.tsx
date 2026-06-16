@@ -3,6 +3,12 @@
 import { useMemo, useRef, useState } from "react";
 import { LayerImportErrorsTable } from "@/components/import/layer-import-errors-table";
 import { LayerImportPreviewTable } from "@/components/import/layer-import-preview-table";
+import {
+  buildNewFieldDrafts,
+  ImportNewFieldsPanel,
+  selectedNewFields,
+  type ImportNewFieldDraft,
+} from "@/components/import/import-new-fields-panel";
 import { Modal } from "@/components/ui/modal";
 import {
   executeLayerImport,
@@ -16,6 +22,7 @@ import {
 } from "@/lib/import/preview";
 import { cn } from "@/lib/utils";
 import type {
+  ImportColumnSuggestion,
   LayerImportExecuteResult,
   LayerImportStep,
 } from "@/types/api/import";
@@ -55,6 +62,12 @@ export function LayerImportDialog({
     null,
   );
   const [result, setResult] = useState<LayerImportExecuteResult | null>(null);
+  const [newFieldDrafts, setNewFieldDrafts] = useState<ImportNewFieldDraft[]>(
+    [],
+  );
+  const [newFieldSuggestions, setNewFieldSuggestions] = useState<
+    ImportColumnSuggestion[]
+  >([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -66,6 +79,8 @@ export function LayerImportDialog({
     setImportId(null);
     setPreviewState(null);
     setResult(null);
+    setNewFieldDrafts([]);
+    setNewFieldSuggestions([]);
     setError(null);
     setStep("upload");
     if (fileInputRef.current) fileInputRef.current.value = "";
@@ -82,6 +97,14 @@ export function LayerImportDialog({
 
       const previewData = await previewLayerImport(layerId, uploaded.importId);
       setPreviewState(normalizeLayerPreview(previewData));
+      setNewFieldSuggestions(previewData.columnSuggestions ?? []);
+      setNewFieldDrafts((previous) =>
+        buildNewFieldDrafts(
+          previewData.unknownColumns ?? [],
+          previewData.columnSuggestions ?? [],
+          previous,
+        ),
+      );
       setStep("preview");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Upload thất bại");
@@ -91,13 +114,20 @@ export function LayerImportDialog({
   }
 
   async function handleExecute() {
-    if (!importId || !previewState?.canImport) return;
+    if (
+      !importId ||
+      (!previewState?.canImport && selectedNewFields(newFieldDrafts).length === 0)
+    ) {
+      return;
+    }
     setError(null);
     setIsLoading(true);
     setStep("executing");
 
     try {
-      const executeResult = await executeLayerImport(layerId, importId);
+      const executeResult = await executeLayerImport(layerId, importId, {
+        newFields: selectedNewFields(newFieldDrafts),
+      });
       setResult(executeResult);
       setStep("done");
       onSuccess();
@@ -124,6 +154,8 @@ export function LayerImportDialog({
   }
 
   const canImport = previewState?.canImport === true;
+  const canCreateFields = selectedNewFields(newFieldDrafts).length > 0;
+  const canExecute = canImport || canCreateFields;
   const validationErrors = previewState?.validationErrors ?? [];
   const hasValidationErrors = validationErrors.length > 0;
 
@@ -260,6 +292,13 @@ export function LayerImportDialog({
               </div>
             )}
 
+            <ImportNewFieldsPanel
+              unknownColumns={newFieldDrafts.map((field) => field.sourceColumn)}
+              suggestions={newFieldSuggestions}
+              value={newFieldDrafts}
+              onChange={setNewFieldDrafts}
+            />
+
             <div>
               <h3 className="mb-2 text-sm font-semibold text-foreground">
                 Xem trước dữ liệu
@@ -275,10 +314,10 @@ export function LayerImportDialog({
               <div className="flex flex-wrap gap-3 pt-1">
                 <button
                   type="button"
-                  disabled={!canImport || isLoading}
+                  disabled={!canExecute || isLoading}
                   onClick={handleExecute}
                   title={
-                    !canImport
+                    !canExecute
                       ? "Sửa file Excel và tải lên lại trước khi import"
                       : undefined
                   }

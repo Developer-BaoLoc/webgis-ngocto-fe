@@ -12,6 +12,27 @@ export interface ImportUploadResult {
   fileName?: string;
   totalRows?: number;
   layerId?: string;
+  detectedColumns?: string[];
+  existingFields?: string[];
+  unknownColumns?: string[];
+  columnSuggestions?: ImportColumnSuggestion[];
+}
+
+export type ImportNewFieldType = "text" | "decimal" | "boolean" | "date";
+
+export interface ImportColumnSuggestion {
+  code: string;
+  label: string;
+  suggestedType: ImportNewFieldType;
+  confidence: number;
+}
+
+export interface ImportCreateFieldPayload {
+  code: string;
+  label: string;
+  fieldType: ImportNewFieldType;
+  required?: boolean;
+  dataSchema?: Record<string, unknown>;
 }
 
 export interface LayerImportValidationError {
@@ -54,6 +75,10 @@ export interface ImportPreviewResult {
   errors?: LayerImportValidationError[];
   validCount?: number;
   errorCount?: number;
+  detectedColumns?: string[];
+  existingFields?: string[];
+  unknownColumns?: string[];
+  columnSuggestions?: ImportColumnSuggestion[];
 }
 
 export interface LayerImportExecuteResult {

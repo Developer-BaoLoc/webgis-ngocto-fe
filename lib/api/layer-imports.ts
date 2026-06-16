@@ -4,6 +4,7 @@ import { unwrapData, type ApiErrorBody, type ApiResponse } from "@/types/api/com
 import type {
   ImportPreviewResult,
   ImportUploadResult,
+  ImportCreateFieldPayload,
   LayerImportExecuteResult,
   LayerImportValidationError,
 } from "@/types/api/import";
@@ -151,6 +152,7 @@ export async function previewLayerImport(
 export async function executeLayerImport(
   layerId: string,
   importId: string,
+  options: { newFields?: ImportCreateFieldPayload[] } = {},
 ): Promise<LayerImportExecuteResult> {
   const res = await authFetch(
     `/layers/${layerId}/imports/${encodeURIComponent(importId)}/execute`,
@@ -160,7 +162,11 @@ export async function executeLayerImport(
         Accept: "application/json",
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({}),
+      body: JSON.stringify({
+        ...(options.newFields && options.newFields.length > 0
+          ? { newFields: options.newFields }
+          : {}),
+      }),
     },
   );
   if (!res.ok) await parseError(res, "Thực hiện import thất bại");
