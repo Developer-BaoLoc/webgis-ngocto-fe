@@ -237,6 +237,7 @@ export function buildFeaturePopupHtml(options: {
   layerId: string;
   recordId?: string;
   properties: Record<string, unknown>;
+  destination?: { lat: number; lng: number };
 }): string {
   const popupSummary = parsePopupSummary(options.properties);
   const titleField = popupSummary[0];
@@ -266,10 +267,24 @@ export function buildFeaturePopupHtml(options: {
     options.recordId && options.layerId
       ? `<button
           type="button"
-          class="map-popup-detail-btn"
+          class="map-popup-action-btn map-popup-detail-btn"
           data-layer-id="${escapeHtml(options.layerId)}"
           data-record-id="${escapeHtml(options.recordId)}"
-        >Xem chi tiết</button>`
+        >Chi tiết</button>`
+      : "";
+
+  const directionsButton = options.destination
+    ? `<button
+          type="button"
+          class="map-popup-action-btn map-popup-directions-btn"
+          data-lat="${options.destination.lat}"
+          data-lng="${options.destination.lng}"
+        >Chỉ đường</button>`
+      : "";
+
+  const actionsHtml =
+    detailButton || directionsButton
+      ? `<div class="map-popup-actions">${directionsButton}${detailButton}</div>`
       : "";
 
   return `
@@ -281,7 +296,7 @@ export function buildFeaturePopupHtml(options: {
           <span class="map-popup-layer">${escapeHtml(options.layerName)}</span>
         </div>
         ${metaHtml ? `<div class="map-popup-meta">${metaHtml}</div>` : ""}
-        ${detailButton}
+        ${actionsHtml}
       </div>
     </article>
   `;

@@ -9,6 +9,7 @@ import {
   buildFeaturePopupHtml,
   extractRecordIds,
 } from "@/lib/map/feature-popup";
+import { openDirections, parseLngLatLike } from "@/lib/map/directions";
 import { initMapPopupCarousel } from "@/lib/map/popup-carousel";
 import {
   findLayerEntryBySourceId,
@@ -16,13 +17,18 @@ import {
 } from "@/lib/map/data-layers";
 
 export interface MapFeatureInteractionOptions {
-  onViewDetail?: (layerId: string, recordId: string) => void;
+  onViewDetail?: (
+    layerId: string,
+    recordId: string,
+    destination?: { lat: number; lng: number },
+  ) => void;
 }
 
 type PopupMode = "hover" | "click";
 
 let sharedPopup: maplibregl.Popup | null = null;
 let detailButtonHandler: ((event: Event) => void) | null = null;
+let directionsButtonHandler: ((event: Event) => void) | null = null;
 let activePopupMode: PopupMode | null = null;
 let hoverHideTimer: ReturnType<typeof setTimeout> | null = null;
 let isPointerOverPopup = false;
@@ -138,7 +144,12 @@ function setPopupCloseButtonVisible(popup: maplibregl.Popup, visible: boolean) {
 
 function attachDetailButtonListener(
   popup: maplibregl.Popup,
-  onViewDetail?: (layerId: string, recordId: string) => void,
+  destination: { lat: number; lng: number } | null,
+  onViewDetail?: (
+    layerId: string,
+    recordId: string,
+    coords?: { lat: number; lng: number },
+  ) => void,
 ) {
   if (detailButtonHandler) {
     const prev = popup.getElement()?.querySelector(".map-popup-detail-btn");
@@ -159,10 +170,45 @@ function attachDetailButtonListener(
     event.stopPropagation();
     const layerId = button.dataset.layerId;
     const recordId = button.dataset.recordId;
-    if (layerId && recordId) onViewDetail(layerId, recordId);
+    if (layerId && recordId) {
+      onViewDetail(
+        layerId,
+        recordId,
+        destination ?? undefined,
+      );
+    }
   };
 
   button.addEventListener("click", detailButtonHandler);
+}
+
+function attachDirectionsButtonListener(
+  popup: maplibregl.Popup,
+  destination: { lat: number; lng: number } | null,
+) {
+  if (directionsButtonHandler) {
+    const prev = popup
+      .getElement()
+      ?.querySelector(".map-popup-directions-btn");
+    prev?.removeEventListener("click", directionsButtonHandler);
+    directionsButtonHandler = null;
+  }
+
+  if (!destination) return;
+
+  const button = popup.getElement()?.querySelector(
+    ".map-popup-directions-btn",
+  ) as HTMLButtonElement | null;
+
+  if (!button) return;
+
+  directionsButtonHandler = (event: Event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    openDirections(destination);
+  };
+
+  button.addEventListener("click", directionsButtonHandler);
 }
 
 function showFeaturePopup(
@@ -175,6 +221,7 @@ function showFeaturePopup(
 ) {
   const properties = { ...(feature.properties ?? {}) } as Record<string, unknown>;
   const { recordId, layerId } = extractRecordIds(properties);
+  const destination = parseLngLatLike(lngLat);
 
   const popup = getPopup();
   popup
@@ -188,6 +235,7 @@ function showFeaturePopup(
           recordId ??
           (typeof feature.id === "string" ? feature.id : undefined),
         properties,
+        destination: destination ?? undefined,
       }),
     )
     .addTo(map);
@@ -200,7 +248,8 @@ function showFeaturePopup(
     initMapPopupCarousel(popupRoot);
   }
 
-  attachDetailButtonListener(popup, options?.onViewDetail);
+  attachDirectionsButtonListener(popup, destination);
+  attachDetailButtonListener(popup, destination, options?.onViewDetail);
 
   if (mode === "hover") {
     attachPopupHoverListeners(popup);

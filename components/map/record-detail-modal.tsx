@@ -8,11 +8,13 @@ import { normalizeMultiCategoryDisplayText } from "@/lib/fields/multi-category";
 import { cn } from "@/lib/utils";
 import type { AttachmentRef } from "@/types/api/assets";
 import type { RecordDisplayData, RecordDisplayField } from "@/types/api/records";
+import { openDirections, type MapLatLng } from "@/lib/map/directions";
 
 interface RecordDetailModalProps {
   data: RecordDisplayData | null;
   loading?: boolean;
   error?: string | null;
+  destination?: MapLatLng | null;
   onClose: () => void;
 }
 
@@ -59,6 +61,7 @@ export function RecordDetailModal({
   data,
   loading = false,
   error = null,
+  destination = null,
   onClose,
 }: RecordDetailModalProps) {
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
@@ -105,6 +108,16 @@ export function RecordDetailModal({
               <h2 className="mt-0.5 text-base font-bold leading-snug text-foreground">
                 {loading ? "Đang tải..." : title}
               </h2>
+              {destination && !loading && (
+                <button
+                  type="button"
+                  onClick={() => openDirections(destination)}
+                  className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs font-semibold text-emerald-800 transition hover:bg-emerald-100"
+                >
+                  <DirectionsIcon className="h-3.5 w-3.5" />
+                  Chỉ đường
+                </button>
+              )}
             </header>
 
             {loading && (
@@ -419,6 +432,25 @@ function ChevronIcon({ direction }: { direction: "left" | "right" }) {
           clipRule="evenodd"
         />
       )}
+    </svg>
+  );
+}
+
+function DirectionsIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth={1.75}
+      stroke="currentColor"
+      aria-hidden
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M9 6.75V15m6-6v8.25m.503 3.498 4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.369 1.684a1.125 1.125 0 0 1-1.006 0L9.503 3.252a1.125 1.125 0 0 0-1.006 0L3.622 5.689A1.125 1.125 0 0 0 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.369-1.684c.381-.19.622-.58.622-1.006Z"
+      />
     </svg>
   );
 }

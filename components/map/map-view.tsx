@@ -181,12 +181,21 @@ export function MapView({
   const [detailData, setDetailData] = useState<RecordDisplayData | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
+  const [detailDestination, setDetailDestination] = useState<{
+    lat: number;
+    lng: number;
+  } | null>(null);
 
   const handleViewDetail = useCallback(
-    async (layerId: string, recordId: string) => {
+    async (
+      layerId: string,
+      recordId: string,
+      destination?: { lat: number; lng: number },
+    ) => {
       setDetailLoading(true);
       setDetailError(null);
       setDetailData(null);
+      setDetailDestination(destination ?? null);
 
       try {
         const data = await getRecordDisplay(layerId, recordId);
@@ -430,10 +439,12 @@ export function MapView({
         data={detailData}
         loading={detailLoading}
         error={detailError}
+        destination={detailDestination}
         onClose={() => {
           setDetailData(null);
           setDetailError(null);
           setDetailLoading(false);
+          setDetailDestination(null);
         }}
       />
     </div>
