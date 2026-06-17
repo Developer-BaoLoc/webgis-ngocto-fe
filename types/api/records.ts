@@ -43,6 +43,7 @@ export interface PopupSummaryField {
   displayValue: string;
   fieldType?: string;
   value?: unknown;
+  dataSchema?: Record<string, unknown>;
   popupStyle?: {
     bold?: boolean;
     fontSize?: string;
@@ -56,6 +57,7 @@ export interface RecordDisplayField {
   fieldType?: string;
   required?: boolean;
   value?: unknown;
+  dataSchema?: Record<string, unknown>;
   displayValue: string;
 }
 

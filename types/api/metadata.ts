@@ -74,6 +74,7 @@ export interface RelationshipCheckResult {
   parentLayer: { id: string; code: string; name: string };
   relationType: string;
   foreignKey: string;
+  totalChildRecords?: number;
   childWithForeignKey: number;
   matched: number;
   unmatched: number;

@@ -1,4 +1,9 @@
-export type LayerGeometryType = "point" | "line" | "polygon" | string;
+export type LayerGeometryType =
+  | "point"
+  | "line"
+  | "polygon"
+  | "sub_layer"
+  | string;
 
 export interface LayerIconStyle {
   source?: string;
@@ -15,6 +20,10 @@ export interface LayerStyle {
   lineWidth?: number;
   fillColor?: string;
   strokeColor?: string;
+  layerRole?: "main_layer" | "sub_layer" | string;
+  isSpatial?: boolean;
+  showOnMap?: boolean;
+  showInMapSidebar?: boolean;
 }
 
 export interface CreateLayerPayload {

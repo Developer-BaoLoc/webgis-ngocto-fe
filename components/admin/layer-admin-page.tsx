@@ -98,6 +98,7 @@ export function LayerAdminPage() {
     geometryTypes.length > 0 ? geometryTypes : FALLBACK_GEOMETRY_TYPES;
 
   const selectedMeta = findGeometryMeta(typeOptions, form.geometryType);
+  const isSubLayer = form.geometryType === "sub_layer";
 
   function openCreate() {
     setEditing(null);
@@ -341,6 +342,12 @@ export function LayerAdminPage() {
                     Không đổi loại sau khi tạo
                   </p>
                 )}
+                {isSubLayer && !editing && (
+                  <p className="mt-1 rounded-md border border-blue-100 bg-blue-50 px-2 py-1.5 text-xs text-blue-800">
+                    Lớp phụ không yêu cầu icon, marker hoặc tọa độ. Lớp này dùng
+                    làm bảng con/import danh sách và không hiển thị trực tiếp trên bản đồ.
+                  </p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium">Thứ tự</label>
@@ -358,7 +365,7 @@ export function LayerAdminPage() {
               </div>
             </div>
 
-            {selectedMeta && (
+            {selectedMeta && selectedMeta.styleFields.length > 0 && (
               <LayerStyleFields
                 fields={selectedMeta.styleFields}
                 style={form.style}

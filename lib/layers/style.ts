@@ -5,6 +5,12 @@ export const DEFAULT_LAYER_STYLES: Record<string, LayerStyle> = {
   point: {},
   line: { lineColor: "#2563eb", lineWidth: 3 },
   polygon: { fillColor: "#22c55e80", strokeColor: "#15803d" },
+  sub_layer: {
+    layerRole: "sub_layer",
+    isSpatial: false,
+    showOnMap: false,
+    showInMapSidebar: false,
+  },
 };
 
 export function getDefaultStyle(geometryType: string): LayerStyle {
@@ -62,6 +68,14 @@ export function buildStylePayload(
         ...meta,
         fillColor: style.fillColor ?? "#22c55e80",
         strokeColor: style.strokeColor ?? "#15803d",
+      };
+    case "sub_layer":
+      return {
+        ...meta,
+        layerRole: "sub_layer",
+        isSpatial: false,
+        showOnMap: false,
+        showInMapSidebar: false,
       };
     default:
       return { ...meta, ...iconPayload, ...style };

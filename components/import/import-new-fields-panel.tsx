@@ -89,7 +89,7 @@ export function buildNewFieldDrafts(
     const suggestion = suggestionsByCode.get(column);
     return {
       sourceColumn: column,
-      create: true,
+      create: false,
       code: suggestion?.code ?? column,
       label: suggestion?.label ?? titleFromCode(column),
       fieldType: suggestion?.suggestedType ?? "text",
@@ -202,6 +202,12 @@ export function ImportNewFieldsPanel({
     });
   }
 
+  function setAllCreate(create: boolean) {
+    onChange(value.map((row) => ({ ...row, create })));
+  }
+
+  const selectedCount = value.filter((row) => row.create).length;
+
   return (
     <section className="space-y-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-4">
       <div>
@@ -211,6 +217,31 @@ export function ImportNewFieldsPanel({
         <p className="mt-1 text-sm text-amber-900">
           Chọn cột cần tạo field mới. Cột không chọn sẽ bị bỏ qua khi import.
         </p>
+      </div>
+
+      <div className="flex flex-col gap-3 rounded-lg border border-amber-200 bg-white px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm text-amber-900">
+          Chỉ các trường được chọn mới được tạo vào schema.
+          {selectedCount === 0 && (
+            <span className="font-semibold"> Hiện chưa chọn trường nào.</span>
+          )}
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setAllCreate(true)}
+            className="rounded-lg border border-amber-300 px-3 py-1.5 text-xs font-semibold text-amber-900 hover:bg-amber-50"
+          >
+            Chọn tất cả
+          </button>
+          <button
+            type="button"
+            onClick={() => setAllCreate(false)}
+            className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-muted hover:bg-slate-50"
+          >
+            Bỏ chọn tất cả
+          </button>
+        </div>
       </div>
 
       <div className="overflow-x-auto rounded-lg border border-amber-200 bg-white">

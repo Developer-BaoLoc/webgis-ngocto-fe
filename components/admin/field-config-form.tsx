@@ -142,6 +142,7 @@ function RelationshipConfigForm({
   const [loadingFields, setLoadingFields] = useState(false);
   const [checking, setChecking] = useState(false);
   const [resolving, setResolving] = useState(false);
+  const [mode, setMode] = useState<"basic" | "advanced">("basic");
   const [checkResult, setCheckResult] =
     useState<RelationshipCheckResult | null>(null);
   const [resolveResult, setResolveResult] =
@@ -150,6 +151,8 @@ function RelationshipConfigForm({
 
   const relationType = String(dataSchema.relationType ?? "many-to-one");
   const targetLayerId = String(dataSchema.targetLayerId ?? "");
+  const sourceLayer = layers.find((layer) => layer.id === sourceLayerId);
+  const targetLayer = layers.find((layer) => layer.id === targetLayerId);
 
   useEffect(() => {
     let cancelled = false;
@@ -214,6 +217,56 @@ function RelationshipConfigForm({
     });
   }
 
+  function normalizeCode(value: string): string {
+    const normalized = value
+      .normalize("NFD")
+      .replace(/\p{Diacritic}/gu, "")
+      .replace(/đ/g, "d")
+      .replace(/Đ/g, "D")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "")
+      .replace(/_+/g, "_");
+    if (!normalized) return "entity";
+    return /^[a-z]/.test(normalized) ? normalized : `l_${normalized}`;
+  }
+
+  function suggestedForeignKey(layer?: AdminLayer): string {
+    if (!layer) return "entity_id";
+    return `${normalizeCode(layer.code || layer.name)}_id`;
+  }
+
+  function handleTargetLayerChange(nextTargetLayerId: string) {
+    const nextTarget = layers.find((layer) => layer.id === nextTargetLayerId);
+    const hasForeignKey = String(dataSchema.foreignKey ?? "").trim();
+    patch({
+      targetLayerId: nextTargetLayerId,
+      targetDisplayField: "",
+      matchField: "",
+      ...(!hasForeignKey && !fieldCode
+        ? { foreignKey: suggestedForeignKey(nextTarget) }
+        : {}),
+    });
+  }
+
+  function fieldLabel(code: string) {
+    return fieldOptions.find((field) => field.code === code)?.label ?? code;
+  }
+
+  function selectedPopupFields(): string[] {
+    return Array.isArray(dataSchema.popupFields)
+      ? dataSchema.popupFields.map(String)
+      : [];
+  }
+
+  function togglePopupField(code: string, checked: boolean) {
+    const current = selectedPopupFields();
+    const next = checked
+      ? [...new Set([...current, code])]
+      : current.filter((item) => item !== code);
+    patch({ popupDisplayMode: "table", popupFields: next });
+  }
+
   const fieldOptions = [
     { code: "id", label: "ID bản ghi" },
     ...targetFields.map((field) => ({
@@ -223,6 +276,12 @@ function RelationshipConfigForm({
   ];
   const effectiveFieldCode =
     fieldCode || String(dataSchema.foreignKey ?? "").trim();
+  const totalChildRecords =
+    checkResult?.totalChildRecords ?? checkResult?.childWithForeignKey ?? 0;
+  const linkedCount = checkResult ? checkResult.childWithForeignKey : 0;
+  const missingLinkCount = checkResult
+    ? Math.max(0, totalChildRecords - checkResult.childWithForeignKey)
+    : 0;
 
   async function handleCheck() {
     if (!sourceLayerId) {
@@ -286,9 +345,142 @@ function RelationshipConfigForm({
 
   return (
     <div className="space-y-3 rounded-lg border border-border bg-slate-50 p-3">
-      <p className="text-sm font-medium">Cấu hình relationship</p>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-sm font-medium">Cấu hình relationship</p>
+          <p className="text-xs text-muted">
+            Dùng để liên kết bản ghi giữa các lớp dữ liệu động.
+          </p>
+        </div>
+        <div className="inline-flex rounded-lg border border-border bg-white p-1 text-xs font-semibold">
+          <button
+            type="button"
+            onClick={() => setMode("basic")}
+            className={`rounded-md px-3 py-1.5 ${
+              mode === "basic"
+                ? "bg-primary text-white"
+                : "text-muted hover:bg-slate-50"
+            }`}
+          >
+            Cơ bản
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode("advanced")}
+            className={`rounded-md px-3 py-1.5 ${
+              mode === "advanced"
+                ? "bg-primary text-white"
+                : "text-muted hover:bg-slate-50"
+            }`}
+          >
+            Nâng cao
+          </button>
+        </div>
+      </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
+      {mode === "basic" ? (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div>
+            <label className="block text-sm font-medium">
+              Quan hệ với lớp nào? *
+            </label>
+            <select
+              className={inputClass}
+              required
+              disabled={loadingLayers}
+              value={targetLayerId}
+              onChange={(event) => handleTargetLayerChange(event.target.value)}
+            >
+              <option value="">— Chọn layer —</option>
+              {layers
+                .filter((layer) => layer.id !== sourceLayerId)
+                .map((layer) => (
+                  <option key={layer.id} value={layer.id}>
+                    {layer.name} ({layer.code})
+                  </option>
+                ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium">Kiểu quan hệ *</label>
+            <select
+              className={inputClass}
+              required
+              value={relationType}
+              onChange={(event) => patch({ relationType: event.target.value })}
+            >
+              <option value="many-to-one">
+                Nhiều {sourceLayer?.name ?? "bản ghi này"} thuộc một{" "}
+                {targetLayer?.name ?? "bản ghi ở lớp kia"}
+              </option>
+              <option value="one-to-many">
+                Một {sourceLayer?.name ?? "bản ghi này"} có nhiều{" "}
+                {targetLayer?.name ?? "bản ghi ở lớp kia"}
+              </option>
+              <option value="many-to-many">Nhiều - nhiều (thiết kế trước)</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium">
+              Hiển thị theo trường nào? *
+            </label>
+            <select
+              className={inputClass}
+              required
+              disabled={!targetLayerId || loadingFields}
+              value={String(dataSchema.targetDisplayField ?? "")}
+              onChange={(event) =>
+                patch({
+                  targetDisplayField: event.target.value,
+                  matchField: dataSchema.matchField || event.target.value,
+                })
+              }
+            >
+              <option value="">— Chọn field hiển thị —</option>
+              {fieldOptions.map((field) => (
+                <option key={field.code} value={field.code}>
+                  {field.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium">
+              Khi import thì dò theo trường nào?
+            </label>
+            <select
+              className={inputClass}
+              disabled={!targetLayerId || loadingFields}
+              value={String(dataSchema.matchField ?? "")}
+              onChange={(event) => patch({ matchField: event.target.value })}
+            >
+              <option value="">
+                Theo field hiển thị
+                {dataSchema.targetDisplayField
+                  ? ` (${fieldLabel(String(dataSchema.targetDisplayField))})`
+                  : ""}
+              </option>
+              {fieldOptions.map((field) => (
+                <option key={field.code} value={field.code}>
+                  {field.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-900 sm:col-span-2">
+            ID bản ghi liên kết sẽ được lưu trong field{" "}
+            <strong className="font-mono">
+              {String(dataSchema.foreignKey ?? suggestedForeignKey(targetLayer))}
+            </strong>
+            . Người dùng chỉ nhìn thấy label đã resolve, không phải ID thô.
+          </div>
+        </div>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2">
         <div>
           <label className="block text-sm font-medium">Relation Type *</label>
           <select
@@ -312,13 +504,7 @@ function RelationshipConfigForm({
             required
             disabled={loadingLayers}
             value={targetLayerId}
-            onChange={(event) =>
-              patch({
-                targetLayerId: event.target.value,
-                targetDisplayField: "",
-                matchField: "",
-              })
-            }
+            onChange={(event) => handleTargetLayerChange(event.target.value)}
           >
             <option value="">— Chọn layer —</option>
             {layers.map((layer) => (
@@ -338,7 +524,7 @@ function RelationshipConfigForm({
             placeholder={relationType === "one-to-many" ? "entity_id" : "entity_id"}
           />
           <p className="mt-1 text-xs text-muted">
-            Many-to-One: dùng làm field code lưu ID. One-to-Many: field ở layer con.
+            Tên field ẩn dùng để lưu ID bản ghi được liên kết. Người dùng thường không cần chỉnh.
           </p>
         </div>
 
@@ -360,6 +546,9 @@ function RelationshipConfigForm({
               </option>
             ))}
           </select>
+          <p className="mt-1 text-xs text-muted">
+            Field ở layer đích dùng làm nhãn hiển thị thay cho ID.
+          </p>
         </div>
 
         <div>
@@ -377,6 +566,9 @@ function RelationshipConfigForm({
               </option>
             ))}
           </select>
+          <p className="mt-1 text-xs text-muted">
+            Khi import text, hệ thống dùng field này để tìm bản ghi cha.
+          </p>
         </div>
 
         <div>
@@ -390,13 +582,73 @@ function RelationshipConfigForm({
             <option value="skip">Bỏ qua dòng</option>
             <option value="create_parent">Tự tạo bản ghi cha (thiết kế trước)</option>
           </select>
+          <p className="mt-1 text-xs text-muted">
+            Mặc định báo lỗi để tránh liên kết sai hoặc mất dữ liệu âm thầm.
+          </p>
         </div>
       </div>
+      )}
 
       {relationType === "many-to-many" && (
         <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
           Many-to-Many đã lưu được metadata để mở rộng, nhưng UI nhập liệu/import hiện ưu tiên Many-to-One và One-to-Many.
         </p>
+      )}
+
+      {relationType === "one-to-many" && (
+        <div className="space-y-3 rounded-md border border-border bg-white px-3 py-3">
+          <div>
+            <p className="text-sm font-medium">Hiển thị danh sách con trong popup</p>
+            <p className="mt-1 text-xs text-muted">
+              Chọn các field của layer con muốn hiển thị. Nếu không chọn, popup tự lấy các field đầu tiên có dữ liệu.
+            </p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <label className="block text-sm font-medium">Kiểu hiển thị</label>
+              <select
+                className={inputClass}
+                value={String(dataSchema.popupDisplayMode ?? "table")}
+                onChange={(event) =>
+                  patch({ popupDisplayMode: event.target.value })
+                }
+              >
+                <option value="table">Bảng trên desktop, card trên mobile</option>
+                <option value="cards">Card list</option>
+              </select>
+            </div>
+            <div className="sm:col-span-2">
+              <p className="mb-2 text-sm font-medium">Field hiển thị</p>
+              <div className="grid max-h-40 gap-2 overflow-y-auto rounded-lg border border-border bg-slate-50 p-2 sm:grid-cols-2">
+                {targetFields
+                  .filter((field) => field.code !== dataSchema.foreignKey)
+                  .map((field) => {
+                    const selected = selectedPopupFields().includes(field.code);
+                    return (
+                      <label
+                        key={field.fieldId}
+                        className="flex items-center gap-2 rounded-md bg-white px-2 py-1.5 text-xs"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selected}
+                          onChange={(event) =>
+                            togglePopupField(field.code, event.target.checked)
+                          }
+                        />
+                        <span>
+                          {field.label}{" "}
+                          <span className="font-mono text-muted">
+                            ({field.code})
+                          </span>
+                        </span>
+                      </label>
+                    );
+                  })}
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       <div className="space-y-3 rounded-md border border-sky-200 bg-white px-3 py-3">
@@ -435,10 +687,36 @@ function RelationshipConfigForm({
             <p className="font-semibold">
               {checkResult.childLayer.name} → {checkResult.parentLayer.name}
             </p>
-            <div className="mt-2 grid gap-2 sm:grid-cols-3">
-              <span>Có khóa ngoại: <strong>{checkResult.childWithForeignKey}</strong></span>
-              <span>Match được: <strong>{checkResult.matched}</strong></span>
-              <span>Không match: <strong>{checkResult.unmatched}</strong></span>
+            {totalChildRecords === 0 ? (
+              <p className="mt-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-amber-800">
+                Chưa có dữ liệu để kiểm tra. Vui lòng import dữ liệu trước hoặc bấm "Resolve lại relationship".
+              </p>
+            ) : (
+              <div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+                <span>
+                  Tổng số bản ghi con: <strong>{totalChildRecords}</strong>
+                </span>
+                <span>
+                  Đã có liên kết: <strong>{linkedCount}</strong>
+                </span>
+                <span>
+                  Chưa có liên kết: <strong>{missingLinkCount}</strong>
+                </span>
+                <span>
+                  Liên kết hợp lệ: <strong>{checkResult.matched}</strong>
+                </span>
+                <span>
+                  Liên kết lỗi: <strong>{checkResult.unmatched}</strong>
+                </span>
+              </div>
+            )}
+            {relationType === "many-to-one" && checkResult.matched > 0 && (
+              <p className="mt-2 rounded-md border border-blue-100 bg-blue-50 px-3 py-2 text-blue-800">
+                Bạn có muốn tạo quan hệ ngược để hiển thị danh sách con trong popup bản đồ không?
+              </p>
+            )}
+            <div className="mt-2 text-muted">
+              Foreign key: <strong className="font-mono">{checkResult.foreignKey}</strong>
             </div>
             {checkResult.errors.length > 0 && (
               <ul className="mt-2 max-h-28 space-y-1 overflow-y-auto text-red-700">

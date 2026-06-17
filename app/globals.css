@@ -221,6 +221,133 @@ body {
   margin-top: 0.2rem;
 }
 
+.map-popup-relationship {
+  margin-top: 0.45rem;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+}
+
+.map-popup-rel-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 0.625rem;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #0f172a;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.map-popup-rel-title span {
+  border-radius: 9999px;
+  background: #e0f2fe;
+  padding: 0.1rem 0.45rem;
+  color: #0369a1;
+  font-size: 0.625rem;
+}
+
+.map-popup-rel-empty {
+  margin: 0;
+  padding: 0.625rem;
+  color: #64748b;
+  font-size: 0.75rem;
+}
+
+.map-popup-rel-table-wrap {
+  max-width: min(72vw, 30rem);
+  overflow-x: auto;
+}
+
+.map-popup-rel-table {
+  min-width: 28rem;
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.6875rem;
+}
+
+.map-popup-rel-table th,
+.map-popup-rel-table td {
+  border-bottom: 1px solid #e2e8f0;
+  padding: 0.45rem 0.5rem;
+  vertical-align: top;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.map-popup-rel-table th {
+  background: #f8fafc;
+  color: #475569;
+  font-weight: 700;
+}
+
+.map-popup-rel-table td {
+  color: #0f172a;
+}
+
+.map-popup-rel-table td.is-number {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.map-popup-rel-table td.is-badge {
+  color: #92400e;
+  font-weight: 700;
+}
+
+.map-popup-rel-cards {
+  display: none;
+  gap: 0.5rem;
+  padding: 0.5rem;
+}
+
+.map-popup-relationship.is-card-mode .map-popup-rel-table-wrap {
+  display: none;
+}
+
+.map-popup-relationship.is-card-mode .map-popup-rel-cards {
+  display: grid;
+}
+
+.map-popup-rel-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 0.625rem;
+  background: #f8fafc;
+  padding: 0.5rem;
+  color: #0f172a;
+  font-size: 0.75rem;
+}
+
+.map-popup-rel-card > strong {
+  display: block;
+  margin-bottom: 0.25rem;
+  line-height: 1.35;
+}
+
+.map-popup-rel-card-grid {
+  display: grid;
+  gap: 0.15rem;
+  color: #475569;
+}
+
+.map-popup-rel-card-grid span {
+  color: #64748b;
+}
+
+@media (max-width: 520px) {
+  .map-popup-rel-table-wrap {
+    display: none;
+  }
+
+  .map-popup-rel-cards {
+    display: grid;
+  }
+}
+
 .map-popup-actions {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

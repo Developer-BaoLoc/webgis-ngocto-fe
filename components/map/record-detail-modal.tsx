@@ -272,6 +272,9 @@ function DetailFieldRow({ field }: { field: RecordDisplayField }) {
   if (field.fieldType === "relationship" && isRelationshipDisplay(field.value)) {
     return <RelationshipDetailRow field={field} value={field.value} />;
   }
+  if (field.fieldType === "relationship" && Array.isArray(field.value)) {
+    return <RelationshipChildrenRow field={field} />;
+  }
 
   let value = field.displayValue?.trim() || "—";
   if (field.fieldType === "multi_category" && value !== "—") {
@@ -315,6 +318,12 @@ type RelationshipDisplayValue = {
   targetLayerCode?: unknown;
   targetDisplayField?: unknown;
   matchField?: unknown;
+};
+
+type RelationshipChildRow = {
+  id?: string;
+  label?: string;
+  properties: Record<string, unknown>;
 };
 
 function isRelationshipDisplay(value: unknown): value is RelationshipDisplayValue {
@@ -402,6 +411,203 @@ function RelationshipDetailRow({
             </strong>
           </span>
         </div>
+      </dd>
+    </div>
+  );
+}
+
+const RELATIONSHIP_SKIP_KEYS = new Set([
+  "id",
+  "_id",
+  "entity_id",
+  "geometry",
+  "geom",
+  "created_at",
+  "updated_at",
+  "deleted_at",
+  "location_status",
+]);
+
+function humanizeFieldCode(code: string): string {
+  return code
+    .replace(/_/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/^\p{Ll}/u, (char) => char.toUpperCase());
+}
+
+function getRelationshipChildren(value: unknown): RelationshipChildRow[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((item) => item && typeof item === "object")
+    .map((item) => {
+      const row = item as {
+        id?: unknown;
+        label?: unknown;
+        properties?: Record<string, unknown>;
+      };
+      return {
+        id: row.id ? String(row.id) : undefined,
+        label: row.label ? String(row.label) : undefined,
+        properties:
+          row.properties && typeof row.properties === "object"
+            ? row.properties
+            : {},
+      };
+    });
+}
+
+function isPresent(value: unknown): boolean {
+  return value !== null && value !== undefined && String(value).trim() !== "";
+}
+
+function formatChildValue(value: unknown): string {
+  if (!isPresent(value)) return "—";
+  if (typeof value === "number") return value.toLocaleString("vi-VN");
+  if (typeof value === "object") return JSON.stringify(value);
+  return String(value);
+}
+
+function getChildDisplayFields(
+  field: RecordDisplayField,
+  rows: RelationshipChildRow[],
+): string[] {
+  const configured = field.dataSchema?.popupFields;
+  if (Array.isArray(configured)) {
+    return configured.map(String).filter(Boolean).slice(0, 9);
+  }
+
+  const displayField =
+    typeof field.dataSchema?.targetDisplayField === "string"
+      ? field.dataSchema.targetDisplayField
+      : null;
+  const foreignKey =
+    typeof field.dataSchema?.foreignKey === "string"
+      ? field.dataSchema.foreignKey
+      : null;
+  const keys = new Set<string>();
+  if (displayField) keys.add(displayField);
+
+  for (const row of rows) {
+    for (const [key, value] of Object.entries(row.properties)) {
+      if (!isPresent(value)) continue;
+      if (key === foreignKey || RELATIONSHIP_SKIP_KEYS.has(key)) continue;
+      keys.add(key);
+      if (keys.size >= 6) break;
+    }
+    if (keys.size >= 6) break;
+  }
+
+  return [...keys];
+}
+
+function RelationshipChildrenRow({ field }: { field: RecordDisplayField }) {
+  const rows = getRelationshipChildren(field.value);
+  const fields = getChildDisplayFields(field, rows);
+  const cardMode = field.dataSchema?.popupDisplayMode === "cards";
+
+  return (
+    <div className="rounded-lg border border-border bg-white px-2.5 py-2 sm:col-span-2">
+      <dt className="flex items-center justify-between gap-2 text-xs font-medium text-muted">
+        <span>{field.label}</span>
+        <span className="rounded-full bg-sky-50 px-2 py-0.5 text-[0.6875rem] font-semibold text-sky-700">
+          {rows.length}
+        </span>
+      </dt>
+      <dd className="mt-2">
+        {rows.length === 0 ? (
+          <p className="text-xs text-muted">Chưa có dữ liệu liên kết.</p>
+        ) : fields.length === 0 ? (
+          <div className="grid gap-2">
+            {rows.map((row) => (
+              <div
+                key={row.id ?? row.label}
+                className="rounded-lg border border-border bg-slate-50 px-2.5 py-2 text-xs font-semibold text-foreground"
+              >
+                {row.label ?? row.id ?? "Bản ghi liên kết"}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <>
+            <div
+              className={cn(
+                "overflow-x-auto rounded-lg border border-border",
+                cardMode ? "hidden" : "hidden sm:block",
+              )}
+            >
+              <table className="min-w-full divide-y divide-border text-xs">
+                <thead className="bg-slate-50 text-left text-muted">
+                  <tr>
+                    {fields.map((code) => (
+                      <th key={code} className="whitespace-nowrap px-2.5 py-2">
+                        {humanizeFieldCode(code)}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {rows.map((row) => (
+                    <tr key={row.id ?? row.label}>
+                      {fields.map((code) => {
+                        const value =
+                          row.properties[code] ??
+                          (code === field.dataSchema?.targetDisplayField
+                            ? row.label
+                            : null);
+                        return (
+                          <td
+                            key={code}
+                            className={cn(
+                              "whitespace-nowrap px-2.5 py-2 text-foreground",
+                              typeof value === "number" && "text-right",
+                            )}
+                          >
+                            {formatChildValue(value)}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className={cn("grid gap-2", !cardMode && "sm:hidden")}>
+              {rows.map((row) => {
+                const titleCode = fields[0];
+                const title =
+                  (titleCode ? row.properties[titleCode] : null) ??
+                  row.label ??
+                  row.id;
+                return (
+                  <article
+                    key={row.id ?? row.label}
+                    className="rounded-lg border border-border bg-slate-50 px-2.5 py-2 text-xs"
+                  >
+                    <strong className="block text-foreground">
+                      {formatChildValue(title)}
+                    </strong>
+                    <div className="mt-1 grid gap-1 text-muted">
+                      {fields.slice(1).map((code) => {
+                        const value = row.properties[code];
+                        if (!isPresent(value)) return null;
+                        return (
+                          <span key={code}>
+                            {humanizeFieldCode(code)}:{" "}
+                            <strong className="text-foreground">
+                              {formatChildValue(value)}
+                            </strong>
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </>
+        )}
       </dd>
     </div>
   );

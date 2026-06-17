@@ -22,6 +22,7 @@ export const geometryKindLabels: Record<string, string> = {
   polygon: "Vùng",
   line: "Đường",
   linestring: "Đường",
+  sub_layer: "Lớp phụ",
   none: "Không có bản đồ",
 };
 
@@ -30,6 +31,7 @@ const GEOMETRY_KIND_TO_TYPE: Record<string, string> = {
   polygon: "Polygon",
   line: "LineString",
   linestring: "LineString",
+  sub_layer: "Lớp phụ",
   none: "None",
 };
 

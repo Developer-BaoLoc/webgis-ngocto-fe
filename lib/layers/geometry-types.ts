@@ -37,6 +37,15 @@ export function enrichGeometryTypes(
       };
     }
 
+    if (type.type === "sub_layer") {
+      return {
+        ...type,
+        label: type.label || "Lớp phụ",
+        geometryKind: "none",
+        styleFields: [],
+      };
+    }
+
     return type;
   });
 }
@@ -66,5 +75,11 @@ export const FALLBACK_GEOMETRY_TYPES: LayerGeometryTypeMeta[] =
         { key: "fillColor", label: "Màu vùng", type: "color" },
         { key: "strokeColor", label: "Màu viền", type: "color" },
       ],
+    },
+    {
+      type: "sub_layer",
+      label: "Lớp phụ",
+      geometryKind: "none",
+      styleFields: [],
     },
   ]);

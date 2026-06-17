@@ -313,6 +313,13 @@ export function LayerImportDialog({
               onChange={setNewFieldDrafts}
             />
 
+            {newFieldDrafts.length > 0 && !canCreateFields && !canImport && (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                File hiện chỉ có các cột chưa có trong schema. Hãy chọn ít nhất
+                một field mới để tạo, hoặc tải file có cột khớp schema hiện tại.
+              </div>
+            )}
+
             <div>
               <h3 className="mb-2 text-sm font-semibold text-foreground">
                 Xem trước dữ liệu

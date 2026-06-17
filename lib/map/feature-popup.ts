@@ -17,6 +17,17 @@ const TITLE_PROPERTY_KEYS = [
 
 const IMAGE_EXT = /\.(jpe?g|png|gif|webp|bmp|svg)$/i;
 const MAX_META_LINES = 3;
+const RELATIONSHIP_TECHNICAL_KEYS = new Set([
+  "id",
+  "_id",
+  "entity_id",
+  "geometry",
+  "geom",
+  "created_at",
+  "updated_at",
+  "deleted_at",
+  "location_status",
+]);
 
 const POPUP_FONT_SIZE: Record<string, string> = {
   small: "12px",
@@ -64,6 +75,12 @@ export function parsePopupSummary(
           displayValue: String(field.displayValue),
           fieldType: field.fieldType ? String(field.fieldType) : undefined,
           value: field.value,
+          dataSchema:
+            field.dataSchema &&
+            typeof field.dataSchema === "object" &&
+            !Array.isArray(field.dataSchema)
+              ? field.dataSchema
+              : undefined,
           popupStyle: field.popupStyle,
         };
       });
@@ -197,6 +214,167 @@ function formatPopupValueHtml(field: PopupSummaryField): string {
   return `<span style="${css}">${value}</span>`;
 }
 
+function isPresent(value: unknown): boolean {
+  return value !== null && value !== undefined && String(value).trim() !== "";
+}
+
+function humanizeFieldCode(code: string): string {
+  return code
+    .replace(/_/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/^\p{Ll}/u, (char) => char.toUpperCase());
+}
+
+function formatRelationshipCell(value: unknown): string {
+  if (!isPresent(value)) return "—";
+  if (typeof value === "number") return value.toLocaleString("vi-VN");
+  if (typeof value === "object") return escapeHtml(JSON.stringify(value));
+  return escapeHtml(String(value));
+}
+
+function relationshipCellClass(value: unknown): string {
+  if (typeof value === "number") return " is-number";
+  const text = String(value ?? "");
+  if (/^\s*-?\d+([.,]\d+)?\s*$/.test(text)) return " is-number";
+  if (/\b\d+\s*sao\b/i.test(text)) return " is-badge";
+  return "";
+}
+
+function getRelationshipRows(field: PopupSummaryField): Array<{
+  id?: string;
+  label?: string;
+  properties: Record<string, unknown>;
+}> {
+  if (!Array.isArray(field.value)) return [];
+  return field.value
+    .filter((item) => item && typeof item === "object")
+    .map((item) => {
+      const row = item as {
+        id?: unknown;
+        label?: unknown;
+        properties?: Record<string, unknown>;
+      };
+      return {
+        id: row.id ? String(row.id) : undefined,
+        label: row.label ? String(row.label) : undefined,
+        properties:
+          row.properties && typeof row.properties === "object"
+            ? row.properties
+            : {},
+      };
+    });
+}
+
+function getRelationshipPopupFields(
+  field: PopupSummaryField,
+  rows: Array<{ label?: string; properties: Record<string, unknown> }>,
+): string[] {
+  const configured = field.dataSchema?.popupFields;
+  if (Array.isArray(configured)) {
+    return configured.map(String).filter(Boolean).slice(0, 9);
+  }
+
+  const displayField =
+    typeof field.dataSchema?.targetDisplayField === "string"
+      ? field.dataSchema.targetDisplayField
+      : null;
+  const foreignKey =
+    typeof field.dataSchema?.foreignKey === "string"
+      ? field.dataSchema.foreignKey
+      : null;
+  const keys = new Set<string>();
+  if (displayField) keys.add(displayField);
+
+  for (const row of rows) {
+    for (const [key, value] of Object.entries(row.properties)) {
+      if (!isPresent(value)) continue;
+      if (key === foreignKey || RELATIONSHIP_TECHNICAL_KEYS.has(key)) continue;
+      keys.add(key);
+      if (keys.size >= 5) break;
+    }
+    if (keys.size >= 5) break;
+  }
+
+  return [...keys];
+}
+
+function buildRelationshipTableHtml(field: PopupSummaryField): string {
+  const modeClass =
+    field.dataSchema?.popupDisplayMode === "cards" ? " is-card-mode" : "";
+  const rows = getRelationshipRows(field);
+  if (rows.length === 0) {
+    return `<div class="map-popup-relationship${modeClass}"><div class="map-popup-rel-title">${escapeHtml(field.label)}</div><p class="map-popup-rel-empty">Chưa có dữ liệu liên kết.</p></div>`;
+  }
+
+  const fields = getRelationshipPopupFields(field, rows);
+  if (fields.length === 0) {
+    return `<div class="map-popup-relationship${modeClass}"><div class="map-popup-rel-title">${escapeHtml(field.label)}</div>${rows
+      .map(
+        (row) =>
+          `<div class="map-popup-rel-card"><strong>${escapeHtml(row.label ?? row.id ?? "Bản ghi liên kết")}</strong></div>`,
+      )
+      .join("")}</div>`;
+  }
+
+  const headers = fields
+    .map((code) => `<th>${escapeHtml(humanizeFieldCode(code))}</th>`)
+    .join("");
+  const body = rows
+    .map(
+      (row) =>
+        `<tr>${fields
+          .map((code) => {
+            const value =
+              row.properties[code] ??
+              (code === field.dataSchema?.targetDisplayField ? row.label : null);
+            const cellClass = relationshipCellClass(value);
+            return `<td class="${cellClass.trim()}">${formatRelationshipCell(value)}</td>`;
+          })
+          .join("")}</tr>`,
+    )
+    .join("");
+
+  const cards = rows
+    .map((row) => {
+      const titleCode = fields[0];
+      const title =
+        (titleCode ? row.properties[titleCode] : null) ?? row.label ?? row.id;
+      const details = fields
+        .slice(1)
+        .map((code) => {
+          const value = row.properties[code];
+          if (!isPresent(value)) return "";
+          return `<div><span>${escapeHtml(humanizeFieldCode(code))}:</span> <strong>${formatRelationshipCell(value)}</strong></div>`;
+        })
+        .join("");
+      return `<article class="map-popup-rel-card">
+        <strong>${formatRelationshipCell(title)}</strong>
+        ${details ? `<div class="map-popup-rel-card-grid">${details}</div>` : ""}
+      </article>`;
+    })
+    .join("");
+
+  return `<div class="map-popup-relationship${modeClass}">
+    <div class="map-popup-rel-title">${escapeHtml(field.label)} <span>${rows.length}</span></div>
+    <div class="map-popup-rel-table-wrap">
+      <table class="map-popup-rel-table">
+        <thead><tr>${headers}</tr></thead>
+        <tbody>${body}</tbody>
+      </table>
+    </div>
+    <div class="map-popup-rel-cards">${cards}</div>
+  </div>`;
+}
+
+function formatPopupFieldHtml(field: PopupSummaryField): string {
+  if (field.fieldType === "relationship" && Array.isArray(field.value)) {
+    return buildRelationshipTableHtml(field);
+  }
+
+  return `<p class="map-popup-meta-line">${formatPopupValueHtml(field)}</p>`;
+}
+
 function buildPopupGalleryHtml(images: AttachmentRef[]): string {
   if (images.length === 0) return "";
 
@@ -259,10 +437,7 @@ export function buildFeaturePopupHtml(options: {
     .slice(0, MAX_META_LINES);
 
   const metaHtml = metaFields
-    .map(
-      (field) =>
-        `<p class="map-popup-meta-line">${formatPopupValueHtml(field)}</p>`,
-    )
+    .map((field) => formatPopupFieldHtml(field))
     .join("");
 
   const detailButton =
