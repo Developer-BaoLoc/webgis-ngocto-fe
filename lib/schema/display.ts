@@ -1,5 +1,6 @@
 import { formatLatLng, isLatLngValue } from "@/lib/fields/lat-lng";
 import { formatAreaPolygon, isAreaPolygonValue } from "@/lib/fields/area-polygon";
+import { formatLineGeometry, isLineGeometryValue } from "@/lib/fields/line";
 import { formatMultiCategoryValue } from "@/lib/fields/multi-category";
 import { formatAttachmentList } from "@/lib/fields/attachments";
 import { formatSchemaFieldValue } from "@/lib/fields/units";
@@ -95,9 +96,16 @@ export function formatCellValue(
     }
   }
 
+  if (
+    field &&
+    (field.fieldType === "line" || field.fieldType === "linestring")
+  ) {
+    return formatLineGeometry(value);
+  }
   if (value === null || value === undefined) return "—";
   if (isLatLngValue(value)) return formatLatLng(value);
   if (isAreaPolygonValue(value)) return formatAreaPolygon(value);
+  if (isLineGeometryValue(value)) return formatLineGeometry(value);
 
   if (field?.fieldType === "multi_category") {
     const dictionaryCode = field.dataSchema?.dictionary as string | undefined;

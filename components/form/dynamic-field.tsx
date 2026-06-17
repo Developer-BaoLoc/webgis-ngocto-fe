@@ -9,6 +9,7 @@ import type { RelationshipOption } from "@/types/api/metadata";
 import type { SchemaField } from "@/types/api/schema";
 import { LatLngField } from "./lat-lng-field";
 import { AreaPolygonField } from "./area-polygon-field";
+import { LineStringField } from "./line-string-field";
 import { AttachmentUploadField } from "./attachment-upload-field";
 import { FieldWrapper, inputClass } from "./field-wrapper";
 
@@ -153,6 +154,16 @@ function DynamicFieldInput({
     case "area_polygon":
       return (
         <AreaPolygonField
+          value={value}
+          onChange={onChange}
+          required={Boolean(field.dataSchema?.required)}
+        />
+      );
+
+    case "line":
+    case "linestring":
+      return (
+        <LineStringField
           value={value}
           onChange={onChange}
           required={Boolean(field.dataSchema?.required)}

@@ -19,6 +19,8 @@ export const FIELD_TYPE_LABELS: Record<string, string> = {
   relationship: "Quan hệ",
   lat_lng: "Toạ độ",
   area_polygon: "Vùng",
+  line: "Đường",
+  linestring: "Đường",
   image: "Hình ảnh",
   file: "Tệp tin",
 };

@@ -7,6 +7,11 @@ import { getDisplayFields } from "@/lib/schema/display";
 import { normalizeAttachmentList } from "@/lib/fields/attachments";
 import { normalizeAreaPolygonProperty, validateAreaPolygonProperty } from "@/lib/fields/area-polygon";
 import { normalizeLatLngProperty } from "@/lib/fields/lat-lng";
+import {
+  isLineGeometryValue,
+  normalizeLineProperty,
+  validateLineProperty,
+} from "@/lib/fields/line";
 import type { RecordItem } from "@/types/api/records";
 import type { LayerSchema } from "@/types/api/schema";
 import type { SchemaField } from "@/types/api/schema";
@@ -30,7 +35,19 @@ export function RecordForm({
   const isEdit = !!record;
 
   const [values, setValues] = useState<Record<string, unknown>>(() => {
-    if (record) return { ...record.properties };
+    if (record) {
+      const initial = { ...record.properties };
+      for (const field of fields) {
+        if (
+          (field.fieldType === "line" || field.fieldType === "linestring") &&
+          initial[field.code] === undefined &&
+          isLineGeometryValue(record.geometry)
+        ) {
+          initial[field.code] = record.geometry;
+        }
+      }
+      return initial;
+    }
     const init: Record<string, unknown> = {};
     for (const f of fields) {
       if (f.fieldType === "boolean") init[f.code] = false;
@@ -72,6 +89,16 @@ export function RecordForm({
 
       if (field.fieldType === "area_polygon") {
         const normalized = normalizeAreaPolygonProperty(result[field.code]);
+        if (normalized === null) {
+          delete result[field.code];
+        } else {
+          result[field.code] = normalized;
+        }
+        continue;
+      }
+
+      if (field.fieldType === "line" || field.fieldType === "linestring") {
+        const normalized = normalizeLineProperty(result[field.code]);
         if (normalized === null) {
           delete result[field.code];
         } else {
@@ -149,6 +176,10 @@ export function RecordForm({
         const message = validateAreaPolygonProperty(values[field.code], required);
         if (message) nextFieldErrors[field.code] = message;
       }
+      if (field.fieldType === "line" || field.fieldType === "linestring") {
+        const message = validateLineProperty(values[field.code], required);
+        if (message) nextFieldErrors[field.code] = message;
+      }
     }
 
     if (Object.keys(nextFieldErrors).length > 0) {
@@ -189,7 +220,9 @@ export function RecordForm({
             className={
               field.fieldType === "textarea" ||
               field.fieldType === "lat_lng" ||
-              field.fieldType === "area_polygon"
+              field.fieldType === "area_polygon" ||
+              field.fieldType === "line" ||
+              field.fieldType === "linestring"
                 ? "sm:col-span-2"
                 : undefined
             }

@@ -124,6 +124,10 @@ function aliasesForField(fieldCode: string): string[] {
   return aliases[fieldCode] ?? [];
 }
 
+function isLineField(field: Pick<SchemaField, "fieldType">): boolean {
+  return field.fieldType === "line" || field.fieldType === "linestring";
+}
+
 function buildAutoMappingRows(
   propertyKeys: string[],
   fields: SchemaField[],
@@ -133,7 +137,12 @@ function buildAutoMappingRows(
   );
 
   return fields.flatMap((field) => {
-    const candidates = [field.code, field.label, ...aliasesForField(field.code)];
+    const candidates = [
+      field.code,
+      field.label,
+      ...(isLineField(field) ? ["geometry", "__geometry__"] : []),
+      ...aliasesForField(field.code),
+    ];
     for (const candidate of candidates) {
       const exact = propertyKeys.find((key) => key === candidate);
       if (exact) return [{ sourceKey: exact, fieldCode: field.code }];
@@ -142,6 +151,19 @@ function buildAutoMappingRows(
     }
     return [];
   });
+}
+
+function withLineGeometryMappingRows(
+  rows: MappingRow[],
+  fields: SchemaField[],
+  hasLineGeometry: boolean,
+): MappingRow[] {
+  if (!hasLineGeometry) return rows;
+  const mappedFields = new Set(rows.map((row) => row.fieldCode).filter(Boolean));
+  const additions = fields
+    .filter((field) => isLineField(field) && !mappedFields.has(field.code))
+    .map((field) => ({ sourceKey: "geometry", fieldCode: field.code }));
+  return additions.length > 0 ? [...rows, ...additions] : rows;
 }
 
 function mappingRowsToPayload(rows: MappingRow[]): Record<string, string> {
@@ -240,6 +262,12 @@ async function inspectLocalFile(file: File): Promise<LocalFileInfo> {
   const propertyKeys = new Set<string>();
   for (const feature of parsed.features) {
     if (feature.geometry?.type) geometryTypes.add(feature.geometry.type);
+    if (
+      feature.geometry?.type === "LineString" ||
+      feature.geometry?.type === "MultiLineString"
+    ) {
+      propertyKeys.add("geometry");
+    }
     for (const key of Object.keys(feature.properties ?? {})) {
       propertyKeys.add(key);
     }
@@ -303,13 +331,18 @@ export function GeoJsonImportDialog({
     [fields],
   );
   const propertyKeys = useMemo(() => {
+    const hasLineGeometry = [
+      ...(localInfo?.geometryTypes ?? []),
+      ...Object.keys(preview?.geometryTypes ?? {}),
+    ].some((type) => type === "LineString" || type === "MultiLineString");
     const keys = new Set([
       ...(localInfo?.propertyKeys ?? []),
       ...mappingRows.map((row) => row.sourceKey).filter(Boolean),
       ...COMMON_OSM_KEYS,
+      ...(hasLineGeometry ? ["geometry"] : []),
     ]);
     return [...keys];
-  }, [localInfo, mappingRows]);
+  }, [localInfo, mappingRows, preview]);
   const geometryTypes = useMemo(() => {
     const keys = new Set([
       ...(localInfo?.geometryTypes ?? []),
@@ -359,7 +392,14 @@ export function GeoJsonImportDialog({
     try {
       const info = await inspectLocalFile(nextFile);
       setLocalInfo(info);
-      const rows = buildAutoMappingRows(info.propertyKeys, importableFields);
+      const hasLineGeometry = info.geometryTypes.some(
+        (type) => type === "LineString" || type === "MultiLineString",
+      );
+      const rows = withLineGeometryMappingRows(
+        buildAutoMappingRows(info.propertyKeys, importableFields),
+        importableFields,
+        hasLineGeometry,
+      );
       setMappingRows(rows);
       if (info.warning) setNotice({ kind: "info", message: info.warning });
     } catch (error) {
@@ -422,6 +462,16 @@ export function GeoJsonImportDialog({
         sampleSize: 20,
       });
       setPreview(data);
+      const hasLineGeometry = Object.keys(data.geometryTypes ?? {}).some(
+        (type) => type === "LineString" || type === "MultiLineString",
+      );
+      setMappingRows((currentRows) =>
+        withLineGeometryMappingRows(
+          currentRows,
+          importableFields,
+          hasLineGeometry,
+        ),
+      );
       setNewFieldSuggestions(data.columnSuggestions ?? []);
       setNewFieldDrafts((previous) =>
         buildNewFieldDrafts(
