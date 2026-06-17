@@ -34,6 +34,13 @@ function defaultDataSchemaForType(
   return {
     ...(required ? { required: true } : {}),
     ...(fieldType === "image" || fieldType === "file" ? { maxCount: 20 } : {}),
+    ...(fieldType === "relationship"
+      ? {
+          relationType: "many-to-one",
+          targetPrimaryKey: "id",
+          notFoundAction: "error",
+        }
+      : {}),
   };
 }
 
@@ -156,12 +163,14 @@ export function ImportNewFieldsPanel({
   unknownColumns,
   suggestions = [],
   fieldTypes,
+  sourceLayerId,
   value,
   onChange,
 }: {
   unknownColumns: string[];
   suggestions?: ImportColumnSuggestion[];
   fieldTypes: FieldTypeMeta[];
+  sourceLayerId?: string;
   value: ImportNewFieldDraft[];
   onChange: (value: ImportNewFieldDraft[]) => void;
 }) {
@@ -302,6 +311,8 @@ export function ImportNewFieldsPanel({
                           fieldTypes.find((type) => type.type === row.fieldType)
                             ?.configFields
                         }
+                        sourceLayerId={sourceLayerId}
+                        fieldCode={row.code}
                         onChange={(dataSchema) =>
                           updateRow(index, {
                             dataSchema: withRequiredFlag(

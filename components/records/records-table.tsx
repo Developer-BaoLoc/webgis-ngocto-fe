@@ -56,12 +56,30 @@ function TableCellContent({
     return <span className="text-muted">—</span>;
   }
 
-  const isMultiLine = field.fieldType === "multi_category";
+  const relationshipStatus =
+    field.fieldType === "relationship" &&
+    value &&
+    typeof value === "object" &&
+    !Array.isArray(value)
+      ? String((value as { status?: unknown }).status ?? "")
+      : "";
+  const isMultiLine =
+    field.fieldType === "multi_category" ||
+    (field.fieldType === "relationship" && text.includes("\n"));
+  const isRelationshipWarning =
+    relationshipStatus === "empty" || relationshipStatus === "not_found";
 
   return (
     <span
       className={
-        isMultiLine ? "whitespace-pre-line text-sm" : "whitespace-nowrap text-sm"
+        [
+          isMultiLine ? "whitespace-pre-line text-sm" : "whitespace-nowrap text-sm",
+          relationshipStatus === "empty" ? "text-amber-700" : "",
+          relationshipStatus === "not_found" ? "text-red-700" : "",
+          isRelationshipWarning ? "font-medium" : "",
+        ]
+          .filter(Boolean)
+          .join(" ")
       }
     >
       {text}

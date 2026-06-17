@@ -183,7 +183,9 @@ function formatPopupValueHtml(field: PopupSummaryField): string {
   }
 
   const value =
-    field.fieldType === "multi_category" && display.includes("\n")
+    (field.fieldType === "multi_category" ||
+      field.fieldType === "relationship") &&
+    display.includes("\n")
       ? display
           .split("\n")
           .map((line) => escapeHtml(truncate(line.trim())))

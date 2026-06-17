@@ -103,6 +103,56 @@ export const FALLBACK_CONFIG_FIELDS: Record<string, ConfigFieldMeta[]> = {
       type: "number",
     },
   ],
+  relationship: [
+    {
+      key: "relationType",
+      label: "Loại quan hệ",
+      required: true,
+      type: "select",
+      options: [
+        { code: "many-to-one", label: "Many-to-One" },
+        { code: "one-to-many", label: "One-to-Many" },
+        { code: "many-to-many", label: "Many-to-Many" },
+      ],
+    },
+    {
+      key: "targetLayerId",
+      label: "Target Table / Layer",
+      required: true,
+      type: "layer",
+    },
+    {
+      key: "foreignKey",
+      label: "Foreign Key field",
+      required: false,
+      type: "text",
+    },
+    {
+      key: "targetDisplayField",
+      label: "Display Field",
+      required: true,
+      type: "field",
+      sourceLayerKey: "targetLayerId",
+    },
+    {
+      key: "matchField",
+      label: "Match Field khi import",
+      required: false,
+      type: "field",
+      sourceLayerKey: "targetLayerId",
+    },
+    {
+      key: "notFoundAction",
+      label: "Nếu import không tìm thấy",
+      required: false,
+      type: "select",
+      options: [
+        { code: "error", label: "Báo lỗi" },
+        { code: "skip", label: "Bỏ qua dòng" },
+        { code: "create_parent", label: "Tự tạo bản ghi cha (thiết kế trước)" },
+      ],
+    },
+  ],
 };
 
 export function getConfigFieldsForType(
@@ -192,6 +242,18 @@ export function summarizeFieldDataSchema(
     dataSchema.maxCount
   ) {
     parts.push(`tối đa ${String(dataSchema.maxCount)}`);
+  }
+
+  if (fieldType === "relationship") {
+    if (dataSchema.relationType) {
+      parts.push(`quan hệ: ${String(dataSchema.relationType)}`);
+    }
+    if (dataSchema.targetDisplayField) {
+      parts.push(`hiển thị: ${String(dataSchema.targetDisplayField)}`);
+    }
+    if (dataSchema.foreignKey) {
+      parts.push(`khóa ngoại: ${String(dataSchema.foreignKey)}`);
+    }
   }
 
   return parts.join(" · ");

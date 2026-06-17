@@ -269,12 +269,17 @@ function DetailHeroGallery({
 }
 
 function DetailFieldRow({ field }: { field: RecordDisplayField }) {
+  if (field.fieldType === "relationship" && isRelationshipDisplay(field.value)) {
+    return <RelationshipDetailRow field={field} value={field.value} />;
+  }
+
   let value = field.displayValue?.trim() || "—";
   if (field.fieldType === "multi_category" && value !== "—") {
     value = normalizeMultiCategoryDisplayText(value);
   }
   const isMultiLine =
     field.fieldType === "multi_category" ||
+    field.fieldType === "relationship" ||
     value.length > 60 ||
     value.includes("\n");
 
@@ -294,6 +299,109 @@ function DetailFieldRow({ field }: { field: RecordDisplayField }) {
         )}
       >
         {value}
+      </dd>
+    </div>
+  );
+}
+
+type RelationshipDisplayValue = {
+  value?: unknown;
+  rawValue?: unknown;
+  label?: unknown;
+  status?: unknown;
+  message?: unknown;
+  foreignKey?: unknown;
+  targetLayerName?: unknown;
+  targetLayerCode?: unknown;
+  targetDisplayField?: unknown;
+  matchField?: unknown;
+};
+
+function isRelationshipDisplay(value: unknown): value is RelationshipDisplayValue {
+  return (
+    Boolean(value) &&
+    typeof value === "object" &&
+    value !== null &&
+    !Array.isArray(value) &&
+    "status" in value
+  );
+}
+
+function formatRelationshipRawValue(value: RelationshipDisplayValue): string {
+  const raw = value.rawValue ?? value.value;
+  if (raw === null || raw === undefined || String(raw).trim() === "") {
+    return "Chưa liên kết";
+  }
+  return String(raw);
+}
+
+function RelationshipDetailRow({
+  field,
+  value,
+}: {
+  field: RecordDisplayField;
+  value: RelationshipDisplayValue;
+}) {
+  const status = String(value.status ?? "");
+  const isWarning = status === "empty" || status === "not_found";
+  const displayLabel =
+    value.label !== null && value.label !== undefined && String(value.label).trim()
+      ? String(value.label)
+      : status === "empty"
+        ? "Chưa liên kết"
+        : "—";
+  const targetLayer = [
+    value.targetLayerName,
+    value.targetLayerCode ? `(${String(value.targetLayerCode)})` : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  return (
+    <div className="rounded-lg border border-border bg-slate-50/50 px-2.5 py-2 sm:col-span-2">
+      <dt className="text-xs font-medium text-muted">{field.label}</dt>
+      <dd className="mt-1 space-y-2 text-xs">
+        <div
+          className={cn(
+            "rounded-md border px-2 py-1.5 font-medium",
+            isWarning
+              ? "border-amber-200 bg-amber-50 text-amber-800"
+              : "border-emerald-200 bg-emerald-50 text-emerald-800",
+          )}
+        >
+          {status === "not_found"
+            ? String(value.message ?? "Không tìm thấy bản ghi cha")
+            : displayLabel}
+        </div>
+
+        <div className="grid gap-1.5 text-muted sm:grid-cols-2">
+          <span>
+            Giá trị lưu trong database:{" "}
+            <strong className="font-mono text-foreground">
+              {formatRelationshipRawValue(value)}
+            </strong>
+          </span>
+          <span>
+            Label resolve:{" "}
+            <strong className="text-foreground">{displayLabel}</strong>
+          </span>
+          <span>
+            Target layer:{" "}
+            <strong className="text-foreground">{targetLayer || "—"}</strong>
+          </span>
+          <span>
+            Display field:{" "}
+            <strong className="font-mono text-foreground">
+              {String(value.targetDisplayField ?? "—")}
+            </strong>
+          </span>
+          <span>
+            Match field:{" "}
+            <strong className="font-mono text-foreground">
+              {String(value.matchField ?? "—")}
+            </strong>
+          </span>
+        </div>
       </dd>
     </div>
   );

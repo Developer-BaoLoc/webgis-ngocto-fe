@@ -292,6 +292,7 @@ export function SchemaDesigner({ layerId }: SchemaDesignerProps) {
             displayOptions={displayOptions}
             form={fieldForm}
             editingField={editingField}
+            sourceLayerId={layerId}
             isSubmitting={isSubmitting}
             onChange={setFieldForm}
             onSubmit={handleSaveField}

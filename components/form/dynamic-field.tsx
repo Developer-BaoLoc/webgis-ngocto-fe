@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { getDictionaryItems } from "@/lib/api/dictionaries";
+import { getRelationshipOptions } from "@/lib/api/metadata";
 import { getFieldUnitLabel } from "@/lib/fields/units";
 import type { DictionaryItem } from "@/types/api/dictionary";
+import type { RelationshipOption } from "@/types/api/metadata";
 import type { SchemaField } from "@/types/api/schema";
 import { LatLngField } from "./lat-lng-field";
 import { AreaPolygonField } from "./area-polygon-field";
@@ -130,6 +132,15 @@ function DynamicFieldInput({
         />
       );
 
+    case "relationship":
+      return (
+        <RelationshipSelect
+          field={field}
+          value={value}
+          onChange={onChange}
+        />
+      );
+
     case "lat_lng":
       return (
         <LatLngField
@@ -182,6 +193,85 @@ function DynamicFieldInput({
         />
       );
   }
+}
+
+function getRelationshipRawValue(value: unknown): string {
+  if (value === null || value === undefined) return "";
+  if (typeof value === "object") {
+    const obj = value as { value?: unknown; id?: unknown };
+    const raw = obj.value ?? obj.id;
+    return raw === null || raw === undefined ? "" : String(raw);
+  }
+  return String(value);
+}
+
+function RelationshipSelect({
+  field,
+  value,
+  onChange,
+}: {
+  field: SchemaField;
+  value: unknown;
+  onChange: (value: unknown) => void;
+}) {
+  const [options, setOptions] = useState<RelationshipOption[]>([]);
+  const [loading, setLoading] = useState(false);
+  const targetLayerId = String(field.dataSchema?.targetLayerId ?? "");
+  const displayField = String(
+    field.dataSchema?.targetDisplayField ??
+      field.dataSchema?.displayField ??
+      "id",
+  );
+  const selectedValue = getRelationshipRawValue(value);
+
+  useEffect(() => {
+    if (!targetLayerId) return;
+    setLoading(true);
+    getRelationshipOptions({
+      targetLayerId,
+      displayField,
+      limit: 200,
+    })
+      .then((items) => {
+        const hasSelected =
+          !selectedValue || items.some((item) => item.value === selectedValue);
+        const currentLabel =
+          typeof value === "object" && value !== null
+            ? String((value as { label?: unknown }).label ?? selectedValue)
+            : selectedValue;
+        setOptions(
+          hasSelected || !selectedValue
+            ? items
+            : [{ value: selectedValue, label: currentLabel }, ...items],
+        );
+      })
+      .catch(() => setOptions([]))
+      .finally(() => setLoading(false));
+  }, [displayField, selectedValue, targetLayerId, value]);
+
+  if (!targetLayerId) {
+    return (
+      <p className="text-sm text-muted">
+        Chưa cấu hình target layer cho relationship field này.
+      </p>
+    );
+  }
+
+  return (
+    <select
+      className={inputClass}
+      value={selectedValue}
+      disabled={loading}
+      onChange={(event) => onChange(event.target.value || null)}
+    >
+      <option value="">— Chọn —</option>
+      {options.map((option) => (
+        <option key={option.value} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+    </select>
+  );
 }
 
 function getPlainNumericValue(value: unknown): string {

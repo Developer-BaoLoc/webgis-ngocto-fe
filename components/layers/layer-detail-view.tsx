@@ -16,14 +16,14 @@ import {
   getLayerDetailByCode,
   getLayerSchema,
 } from "@/lib/api/layers";
-import { getFieldTypes } from "@/lib/api/metadata";
+import { getFieldTypes, getRelationshipSuggestions } from "@/lib/api/metadata";
 import { downloadLayerImportTemplate } from "@/lib/api/layer-imports";
 import { deleteRecord, getLayerRecords } from "@/lib/api/records";
 import { getFieldTypesForLayerGeometry } from "@/lib/fields/field-types";
 import { enrichFieldTypes } from "@/lib/i18n/vi";
 import { toLayer } from "@/lib/layers/adapter";
 import type { LayerSchema } from "@/types/api/schema";
-import type { FieldTypeMeta } from "@/types/api/metadata";
+import type { FieldTypeMeta, RelationshipSuggestion } from "@/types/api/metadata";
 import type { RecordItem } from "@/types/api/records";
 import type { Layer } from "@/types/layer.types";
 import { geometryKindLabels } from "@/types/layer.types";
@@ -41,6 +41,9 @@ export function LayerDetailView({ code }: LayerDetailViewProps) {
   const [color, setColor] = useState("#64748b");
   const [schema, setSchema] = useState<LayerSchema | null>(null);
   const [records, setRecords] = useState<RecordItem[]>([]);
+  const [relationshipSuggestions, setRelationshipSuggestions] = useState<
+    RelationshipSuggestion[]
+  >([]);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [page, setPage] = useState(1);
@@ -79,7 +82,7 @@ export function LayerDetailView({ code }: LayerDetailViewProps) {
         getFieldTypesForLayerGeometry(layerData.geometryType, enrichedTypes),
       );
 
-      const [schemaData, recordsData] = await Promise.all([
+      const [schemaData, recordsData, suggestionsData] = await Promise.all([
         getLayerSchema(layerData.id),
         getLayerRecords(layerData.id, {
           page,
@@ -87,10 +90,12 @@ export function LayerDetailView({ code }: LayerDetailViewProps) {
           sortBy: "createdAt",
           sortOrder: "desc",
         }),
+        getRelationshipSuggestions(layerData.id).catch(() => []),
       ]);
 
       setSchema(schemaData);
       setRecords(recordsData.records);
+      setRelationshipSuggestions(suggestionsData);
       const recordTotal = recordsData.meta.total ?? recordsData.records.length;
       const pages =
         recordsData.meta.totalPages ??
@@ -103,6 +108,7 @@ export function LayerDetailView({ code }: LayerDetailViewProps) {
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Không tải được dữ liệu lớp");
+      setRelationshipSuggestions([]);
     } finally {
       initializedRef.current = true;
       setIsLoading(false);
@@ -226,6 +232,13 @@ export function LayerDetailView({ code }: LayerDetailViewProps) {
         )}
 
         <div className="p-5">
+          {relationshipSuggestions.length > 0 && layerId && (
+            <RelationshipSuggestionsPanel
+              layerId={layerId}
+              suggestions={relationshipSuggestions}
+            />
+          )}
+
           {!schema && !isLoading ? (
             <EmptyState
               title="Lớp chưa có cấu trúc dữ liệu"
@@ -309,6 +322,38 @@ export function LayerDetailView({ code }: LayerDetailViewProps) {
           />
         </Modal>
       )}
+    </div>
+  );
+}
+
+function RelationshipSuggestionsPanel({
+  layerId,
+  suggestions,
+}: {
+  layerId: string;
+  suggestions: RelationshipSuggestion[];
+}) {
+  return (
+    <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+      <p className="font-semibold">Gợi ý relationship chiều ngược</p>
+      <div className="mt-2 space-y-2">
+        {suggestions.slice(0, 3).map((item) => (
+          <div
+            key={`${item.sourceLayerId}-${item.foreignKey}`}
+            className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"
+          >
+            <p>
+              {item.message}
+            </p>
+            <Link
+              href={`/quan-tri/lop-du-lieu/${layerId}/schema`}
+              className="inline-flex shrink-0 rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-xs font-semibold text-amber-900 hover:bg-amber-100"
+            >
+              Tạo field One-to-Many
+            </Link>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

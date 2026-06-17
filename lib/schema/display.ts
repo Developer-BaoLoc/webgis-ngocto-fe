@@ -46,6 +46,55 @@ export function formatCellValue(
   field?: Pick<SchemaField, "fieldType" | "dataSchema">,
   dictionaryLabels?: DictionaryLabelMap,
 ): string {
+  if (field?.fieldType === "relationship") {
+    if (value === null || value === undefined || value === "") {
+      return "Chưa liên kết";
+    }
+
+    if (Array.isArray(value)) {
+      if (value.length === 0) return "—";
+      return value
+        .map((item) => {
+          if (item && typeof item === "object") {
+            const label = (item as { label?: unknown }).label;
+            if (label !== undefined && label !== null && String(label).trim()) {
+              return `- ${String(label)}`;
+            }
+          }
+          return `- ${String(item)}`;
+        })
+        .join("\n");
+    }
+
+    if (typeof value === "object" && value !== null) {
+      const relation = value as {
+        label?: unknown;
+        status?: unknown;
+        message?: unknown;
+        rawValue?: unknown;
+        value?: unknown;
+        id?: unknown;
+        foreignKey?: unknown;
+      };
+      if (relation.status === "empty") return "Chưa liên kết";
+      if (relation.status === "not_found") {
+        return String(
+          relation.message ??
+            `Không tìm thấy bản ghi cha. Giá trị ${String(
+              relation.foreignKey ?? "relationship",
+            )} hiện tại là: ${String(relation.rawValue ?? "")}`,
+        );
+      }
+
+      const label = relation.label;
+      if (label !== undefined && label !== null && String(label).trim()) {
+        return String(label);
+      }
+      const raw = relation.value ?? relation.id;
+      if (raw !== undefined && raw !== null) return String(raw);
+    }
+  }
+
   if (value === null || value === undefined) return "—";
   if (isLatLngValue(value)) return formatLatLng(value);
   if (isAreaPolygonValue(value)) return formatAreaPolygon(value);

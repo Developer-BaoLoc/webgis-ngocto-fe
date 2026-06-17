@@ -16,6 +16,7 @@ export const FIELD_TYPE_LABELS: Record<string, string> = {
   category: "Chọn một",
   multi_category: "Chọn nhiều",
   reference: "Tham chiếu",
+  relationship: "Quan hệ",
   lat_lng: "Toạ độ",
   area_polygon: "Vùng",
   image: "Hình ảnh",

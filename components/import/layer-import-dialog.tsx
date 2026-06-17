@@ -308,6 +308,7 @@ export function LayerImportDialog({
               unknownColumns={newFieldDrafts.map((field) => field.sourceColumn)}
               suggestions={newFieldSuggestions}
               fieldTypes={fieldTypes}
+              sourceLayerId={layerId}
               value={newFieldDrafts}
               onChange={setNewFieldDrafts}
             />

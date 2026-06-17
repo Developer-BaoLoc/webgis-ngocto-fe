@@ -14,6 +14,7 @@ interface FieldFormModalContentProps {
   displayOptions: FieldDisplayOptionsCatalog;
   form: CreateFieldPayload;
   editingField: SchemaField | null;
+  sourceLayerId?: string;
   isSubmitting: boolean;
   onChange: (form: CreateFieldPayload) => void;
   onSubmit: (e: React.FormEvent) => void;
@@ -24,6 +25,7 @@ export function FieldFormModalContent({
   displayOptions,
   form,
   editingField,
+  sourceLayerId,
   isSubmitting,
   onChange,
   onSubmit,
@@ -63,6 +65,11 @@ export function FieldFormModalContent({
               if (nextType === "image" || nextType === "file") {
                 base.maxCount = 20;
               }
+              if (nextType === "relationship") {
+                base.relationType = "many-to-one";
+                base.targetPrimaryKey = "id";
+                base.notFoundAction = "error";
+              }
               onChange({
                 ...form,
                 fieldType: nextType,
@@ -83,6 +90,8 @@ export function FieldFormModalContent({
         fieldType={form.fieldType}
         dataSchema={form.dataSchema ?? {}}
         configFields={selectedType?.configFields}
+        sourceLayerId={sourceLayerId}
+        fieldCode={editingField?.code}
         onChange={(dataSchema) =>
           onChange({
             ...form,

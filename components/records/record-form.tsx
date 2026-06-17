@@ -104,6 +104,24 @@ export function RecordForm({
         }
       }
 
+      if (field.fieldType === "relationship") {
+        const raw = result[field.code];
+        if (raw === null || raw === undefined || raw === "") {
+          delete result[field.code];
+          continue;
+        }
+        if (typeof raw === "object" && raw !== null) {
+          const value =
+            (raw as { value?: unknown; id?: unknown }).value ??
+            (raw as { id?: unknown }).id;
+          if (value === null || value === undefined || value === "") {
+            delete result[field.code];
+          } else {
+            result[field.code] = String(value);
+          }
+        }
+      }
+
       if (field.fieldType === "image" || field.fieldType === "file") {
         const attachments = normalizeAttachmentList(result[field.code]);
         if (attachments.length === 0) {
