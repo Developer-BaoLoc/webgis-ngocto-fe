@@ -130,7 +130,7 @@ export function AgriIocDashboard({
             </span>
           </div>
           <div className="min-w-0">
-            <p className="ioc-eyebrow ioc-eyebrow--command">OneGis · Phường Long Bình</p>
+            <p className="ioc-eyebrow ioc-eyebrow--command">OneGis · {wardConfig.locationLabel}</p>
             <h1 className="ioc-title ioc-title--hero">{meta.title}</h1>
             <p className="ioc-location ioc-location--sm">
               {meta.ward} · {meta.city}

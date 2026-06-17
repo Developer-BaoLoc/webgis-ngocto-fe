@@ -227,7 +227,7 @@ for (const m of effectiveModels) {
 const data = {
   meta: {
     title: "Trung tâm điều hành Nông nghiệp",
-    ward: "Phường Long Bình",
+    ward: "Demo Phường Xã",
     district: "Quận Cái Răng",
     city: "Thành phố Cần Thơ",
     source: "BẢNG TỔNG HỢP SỐ LIỆU NÔNG NGHIỆP",

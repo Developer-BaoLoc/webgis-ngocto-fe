@@ -45,7 +45,7 @@ export function DashboardOverview() {
         />
         <StatCard
           label="Khu vực"
-          value={project?.ward ?? "Long Bình"}
+          value={project?.ward ?? wardConfig.name}
           hint={project?.district ?? wardConfig.district}
           accent="slate"
         />

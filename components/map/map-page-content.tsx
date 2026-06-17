@@ -61,7 +61,7 @@ export function MapPageContent({
     <>
       {error && (
         <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 shadow-sm">
-          Không tải cấu hình bản đồ từ API. Dùng tọa độ mặc định Long Bình.
+          Không tải cấu hình bản đồ từ API. Dùng tọa độ mặc định {wardConfig.locationLabel}.
         </div>
       )}
       {resolvedBoundaryError && !resolvedBoundary?.features.length && (

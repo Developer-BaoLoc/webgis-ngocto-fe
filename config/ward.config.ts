@@ -1,7 +1,7 @@
 export const wardConfig = {
   id: "long-binh",
-  name: "Phường Long Bình",
-  locationLabel: "Phường Long Bình",
+  name: "Demo Phường Xã",
+  locationLabel: "Demo Phường Xã",
   district: "Quận Cái Răng",
   city: "Thành phố Cần Thơ",
   cityShort: "TP. Cần Thơ",
