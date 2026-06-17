@@ -7,6 +7,7 @@ import {
   ImportNewFieldsPanel,
   newFieldMappingRows,
   selectedNewFields,
+  validateNewFieldDrafts,
   type ImportNewFieldDraft,
 } from "@/components/import/import-new-fields-panel";
 import type { AreaPolygonValue } from "@/lib/fields/area-polygon";
@@ -23,6 +24,7 @@ import { cn } from "@/lib/utils";
 import type { SchemaField } from "@/types/api/schema";
 import type { GeoJsonGeometry } from "@/types/gis.types";
 import type { ImportColumnSuggestion } from "@/types/api/import";
+import type { FieldTypeMeta } from "@/types/api/metadata";
 
 const GEOJSON_ACCEPT = ".geojson,.json,application/geo+json,application/json";
 const LOCAL_PARSE_LIMIT = 25 * 1024 * 1024;
@@ -47,6 +49,7 @@ interface GeoJsonImportDialogProps {
   layerId: string;
   layerName: string;
   fields: SchemaField[];
+  fieldTypes: FieldTypeMeta[];
   onClose: () => void;
   onSuccess: () => void;
 }
@@ -263,6 +266,7 @@ export function GeoJsonImportDialog({
   layerId,
   layerName,
   fields,
+  fieldTypes,
   onClose,
   onSuccess,
 }: GeoJsonImportDialogProps) {
@@ -459,6 +463,14 @@ export function GeoJsonImportDialog({
 
   async function handleExecute() {
     if (!importId || !preview) return;
+    const configError = validateNewFieldDrafts(newFieldDrafts, fieldTypes);
+    if (configError) {
+      setNotice({ kind: "error", message: configError });
+      setStep("preview");
+      return;
+    }
+
+    const newFields = selectedNewFields(newFieldDrafts);
     if (
       !confirm(
         `Import ${formatNumber(preview.accepted)} features vào lớp ${layerName}?`,
@@ -480,7 +492,7 @@ export function GeoJsonImportDialog({
           ...mappingRows,
           ...newFieldMappingRows(newFieldDrafts),
         ]),
-        newFields: selectedNewFields(newFieldDrafts),
+        newFields,
         batchSize: 1000,
       });
       const elapsed = Date.now() - startedAt;
@@ -679,6 +691,7 @@ export function GeoJsonImportDialog({
               <ImportNewFieldsPanel
                 unknownColumns={newFieldDrafts.map((field) => field.sourceColumn)}
                 suggestions={newFieldSuggestions}
+                fieldTypes={fieldTypes}
                 value={newFieldDrafts}
                 onChange={setNewFieldDrafts}
               />

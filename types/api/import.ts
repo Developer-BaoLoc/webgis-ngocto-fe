@@ -18,7 +18,7 @@ export interface ImportUploadResult {
   columnSuggestions?: ImportColumnSuggestion[];
 }
 
-export type ImportNewFieldType = "text" | "decimal" | "boolean" | "date";
+export type ImportNewFieldType = string;
 
 export interface ImportColumnSuggestion {
   code: string;
@@ -33,6 +33,8 @@ export interface ImportCreateFieldPayload {
   fieldType: ImportNewFieldType;
   required?: boolean;
   dataSchema?: Record<string, unknown>;
+  uiSchema?: Record<string, unknown>;
+  displaySchema?: Record<string, unknown>;
 }
 
 export interface LayerImportValidationError {

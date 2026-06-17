@@ -1,10 +1,17 @@
 "use client";
 
+import { FieldConfigForm } from "@/components/admin/field-config-form";
+import {
+  getConfigFieldsForType,
+  validateFieldDataSchema,
+} from "@/lib/fields/field-config";
+import { getFieldTypeLabel } from "@/lib/i18n/vi";
 import type {
   ImportColumnSuggestion,
   ImportCreateFieldPayload,
   ImportNewFieldType,
 } from "@/types/api/import";
+import type { FieldTypeMeta } from "@/types/api/metadata";
 import { cn } from "@/lib/utils";
 
 export interface ImportNewFieldDraft extends ImportCreateFieldPayload {
@@ -12,22 +19,32 @@ export interface ImportNewFieldDraft extends ImportCreateFieldPayload {
   create: boolean;
 }
 
-const FIELD_TYPE_OPTIONS: Array<{
-  value: ImportNewFieldType;
-  label: string;
-}> = [
-  { value: "text", label: "Text" },
-  { value: "decimal", label: "Number" },
-  { value: "boolean", label: "Boolean" },
-  { value: "date", label: "Date" },
-];
-
 function titleFromCode(code: string): string {
   return code
     .split("_")
     .filter(Boolean)
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
+}
+
+function defaultDataSchemaForType(
+  fieldType: string,
+  required?: boolean,
+): Record<string, unknown> {
+  return {
+    ...(required ? { required: true } : {}),
+    ...(fieldType === "image" || fieldType === "file" ? { maxCount: 20 } : {}),
+  };
+}
+
+function withRequiredFlag(
+  dataSchema: Record<string, unknown>,
+  required?: boolean,
+): Record<string, unknown> {
+  const next = { ...dataSchema };
+  if (required) next.required = true;
+  else delete next.required;
+  return next;
 }
 
 function normalizeFieldCode(value: string): string {
@@ -70,6 +87,9 @@ export function buildNewFieldDrafts(
       label: suggestion?.label ?? titleFromCode(column),
       fieldType: suggestion?.suggestedType ?? "text",
       required: false,
+      dataSchema: defaultDataSchemaForType(suggestion?.suggestedType ?? "text"),
+      uiSchema: {},
+      displaySchema: {},
     };
   });
 }
@@ -85,9 +105,10 @@ export function selectedNewFields(
       fieldType: field.fieldType,
       required: field.required,
       dataSchema: {
-        ...(field.dataSchema ?? {}),
-        ...(field.required ? { required: true } : {}),
+        ...withRequiredFlag(field.dataSchema ?? {}, field.required),
       },
+      uiSchema: field.uiSchema ?? {},
+      displaySchema: field.displaySchema ?? {},
     }));
 }
 
@@ -95,21 +116,52 @@ export function newFieldMappingRows(
   drafts: ImportNewFieldDraft[],
 ): Array<{ sourceKey: string; fieldCode: string }> {
   return drafts
-    .filter((field) => field.create && field.code.trim())
+    .filter(
+      (field) =>
+        field.create &&
+        field.code.trim() &&
+        field.fieldType !== "image" &&
+        field.fieldType !== "file",
+    )
     .map((field) => ({
       sourceKey: field.sourceColumn,
       fieldCode: normalizeFieldCode(field.code),
     }));
 }
 
+export function validateNewFieldDrafts(
+  drafts: ImportNewFieldDraft[],
+  fieldTypes: FieldTypeMeta[],
+): string | null {
+  for (const field of drafts) {
+    if (!field.create) continue;
+    if (!field.code.trim() || !field.label.trim()) {
+      return `Field "${field.sourceColumn}" cần có code và label.`;
+    }
+    const selectedType = fieldTypes.find((type) => type.type === field.fieldType);
+    const error = validateFieldDataSchema(
+      field.fieldType,
+      field.dataSchema ?? {},
+      selectedType?.configFields,
+    );
+    if (error) {
+      return `${field.label}: ${error}`;
+    }
+  }
+
+  return null;
+}
+
 export function ImportNewFieldsPanel({
   unknownColumns,
   suggestions = [],
+  fieldTypes,
   value,
   onChange,
 }: {
   unknownColumns: string[];
   suggestions?: ImportColumnSuggestion[];
+  fieldTypes: FieldTypeMeta[];
   value: ImportNewFieldDraft[];
   onChange: (value: ImportNewFieldDraft[]) => void;
 }) {
@@ -121,6 +173,24 @@ export function ImportNewFieldsPanel({
 
   function updateRow(index: number, patch: Partial<ImportNewFieldDraft>) {
     onChange(value.map((row, i) => (i === index ? { ...row, ...patch } : row)));
+  }
+
+  function updateFieldType(index: number, fieldType: ImportNewFieldType) {
+    const current = value[index];
+    if (!current) return;
+    updateRow(index, {
+      fieldType,
+      dataSchema: defaultDataSchemaForType(fieldType, current.required),
+    });
+  }
+
+  function updateRequired(index: number, required: boolean) {
+    const current = value[index];
+    if (!current) return;
+    updateRow(index, {
+      required,
+      dataSchema: withRequiredFlag(current.dataSchema ?? {}, required),
+    });
   }
 
   return (
@@ -143,8 +213,9 @@ export function ImportNewFieldsPanel({
               <th className="px-3 py-2">Tạo field mới</th>
               <th className="px-3 py-2">Field code</th>
               <th className="px-3 py-2">Label</th>
-              <th className="px-3 py-2">Field type</th>
+              <th className="px-3 py-2">Kiểu dữ liệu</th>
               <th className="px-3 py-2">Required</th>
+              <th className="px-3 py-2">Cấu hình</th>
               <th className="px-3 py-2">Gợi ý</th>
             </tr>
           </thead>
@@ -196,19 +267,15 @@ export function ImportNewFieldsPanel({
                     <select
                       value={row.fieldType}
                       disabled={!row.create}
-                      onChange={(event) =>
-                        updateRow(index, {
-                          fieldType: event.target.value as ImportNewFieldType,
-                        })
-                      }
+                      onChange={(event) => updateFieldType(index, event.target.value)}
                       className={cn(
-                        "h-9 w-32 rounded-md border border-border px-2 text-sm",
+                        "h-9 w-44 rounded-md border border-border px-2 text-sm",
                         !row.create && "bg-slate-100 text-muted",
                       )}
                     >
-                      {FIELD_TYPE_OPTIONS.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
+                      {fieldTypes.map((option) => (
+                        <option key={option.type} value={option.type}>
+                          {option.label ?? getFieldTypeLabel(option.type)}
                         </option>
                       ))}
                     </select>
@@ -218,17 +285,42 @@ export function ImportNewFieldsPanel({
                       type="checkbox"
                       checked={row.required ?? false}
                       disabled={!row.create}
-                      onChange={(event) =>
-                        updateRow(index, { required: event.target.checked })
-                      }
+                      onChange={(event) => updateRequired(index, event.target.checked)}
                     />
+                  </td>
+                  <td className="min-w-72 px-3 py-2">
+                    {row.create &&
+                    getConfigFieldsForType(
+                      row.fieldType,
+                      fieldTypes.find((type) => type.type === row.fieldType)
+                        ?.configFields,
+                    ).length > 0 ? (
+                      <FieldConfigForm
+                        fieldType={row.fieldType}
+                        dataSchema={row.dataSchema ?? {}}
+                        configFields={
+                          fieldTypes.find((type) => type.type === row.fieldType)
+                            ?.configFields
+                        }
+                        onChange={(dataSchema) =>
+                          updateRow(index, {
+                            dataSchema: withRequiredFlag(
+                              dataSchema,
+                              row.required,
+                            ),
+                          })
+                        }
+                      />
+                    ) : (
+                      <span className="text-xs text-muted">Không cần cấu hình</span>
+                    )}
                   </td>
                   <td className="px-3 py-2 text-xs text-muted">
                     {suggestion
-                      ? `${suggestion.suggestedType} (${Math.round(
+                      ? `${getFieldTypeLabel(suggestion.suggestedType)} (${Math.round(
                           suggestion.confidence * 100,
                         )}%)`
-                      : "text"}
+                      : getFieldTypeLabel("text")}
                   </td>
                 </tr>
               );

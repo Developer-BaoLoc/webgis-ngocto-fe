@@ -16,10 +16,14 @@ import {
   getLayerDetailByCode,
   getLayerSchema,
 } from "@/lib/api/layers";
+import { getFieldTypes } from "@/lib/api/metadata";
 import { downloadLayerImportTemplate } from "@/lib/api/layer-imports";
 import { deleteRecord, getLayerRecords } from "@/lib/api/records";
+import { getFieldTypesForLayerGeometry } from "@/lib/fields/field-types";
+import { enrichFieldTypes } from "@/lib/i18n/vi";
 import { toLayer } from "@/lib/layers/adapter";
 import type { LayerSchema } from "@/types/api/schema";
+import type { FieldTypeMeta } from "@/types/api/metadata";
 import type { RecordItem } from "@/types/api/records";
 import type { Layer } from "@/types/layer.types";
 import { geometryKindLabels } from "@/types/layer.types";
@@ -33,6 +37,7 @@ export function LayerDetailView({ code }: LayerDetailViewProps) {
   const [layerName, setLayerName] = useState("");
   const [layerId, setLayerId] = useState("");
   const [geometryType, setGeometryType] = useState("");
+  const [fieldTypes, setFieldTypes] = useState<FieldTypeMeta[]>([]);
   const [color, setColor] = useState("#64748b");
   const [schema, setSchema] = useState<LayerSchema | null>(null);
   const [records, setRecords] = useState<RecordItem[]>([]);
@@ -59,13 +64,20 @@ export function LayerDetailView({ code }: LayerDetailViewProps) {
     setError(null);
 
     try {
-      const detail = await getLayerDetailByCode(code);
+      const [detail, typeCatalog] = await Promise.all([
+        getLayerDetailByCode(code),
+        getFieldTypes().catch(() => []),
+      ]);
       const layerData = toLayer(detail);
+      const enrichedTypes = enrichFieldTypes(typeCatalog);
       setLayer(layerData);
       setLayerId(layerData.id);
       setLayerName(layerData.name);
       setGeometryType(layerData.geometryType);
       setColor(layerData.color);
+      setFieldTypes(
+        getFieldTypesForLayerGeometry(layerData.geometryType, enrichedTypes),
+      );
 
       const [schemaData, recordsData] = await Promise.all([
         getLayerSchema(layerData.id),
@@ -261,6 +273,7 @@ export function LayerDetailView({ code }: LayerDetailViewProps) {
           layerId={layerId}
           layerName={layerName}
           fields={schema.fields}
+          fieldTypes={fieldTypes}
           onClose={() => setImportOpen(false)}
           onSuccess={() => {
             loadData();
@@ -273,6 +286,7 @@ export function LayerDetailView({ code }: LayerDetailViewProps) {
           layerId={layerId}
           layerName={layerName}
           fields={schema.fields}
+          fieldTypes={fieldTypes}
           onClose={() => setGeoJsonImportOpen(false)}
           onSuccess={() => {
             loadData();

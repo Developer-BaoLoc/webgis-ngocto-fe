@@ -7,6 +7,7 @@ import {
   buildNewFieldDrafts,
   ImportNewFieldsPanel,
   selectedNewFields,
+  validateNewFieldDrafts,
   type ImportNewFieldDraft,
 } from "@/components/import/import-new-fields-panel";
 import { Modal } from "@/components/ui/modal";
@@ -26,15 +27,17 @@ import type {
   LayerImportExecuteResult,
   LayerImportStep,
 } from "@/types/api/import";
+import type { FieldTypeMeta } from "@/types/api/metadata";
 import type { SchemaField } from "@/types/api/schema";
 
 const EXCEL_ACCEPT =
-  ".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel";
+  ".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv";
 
 interface LayerImportDialogProps {
   layerId: string;
   layerName: string;
   fields: SchemaField[];
+  fieldTypes: FieldTypeMeta[];
   onClose: () => void;
   onSuccess: () => void;
 }
@@ -52,6 +55,7 @@ export function LayerImportDialog({
   layerId,
   layerName,
   fields,
+  fieldTypes,
   onClose,
   onSuccess,
 }: LayerImportDialogProps) {
@@ -125,8 +129,16 @@ export function LayerImportDialog({
     setStep("executing");
 
     try {
+      const newFields = selectedNewFields(newFieldDrafts);
+      const configError = validateNewFieldDrafts(newFieldDrafts, fieldTypes);
+      if (configError) {
+        setError(configError);
+        setStep("preview");
+        return;
+      }
+
       const executeResult = await executeLayerImport(layerId, importId, {
-        newFields: selectedNewFields(newFieldDrafts),
+        newFields,
       });
       setResult(executeResult);
       setStep("done");
@@ -211,10 +223,10 @@ export function LayerImportDialog({
                   className="text-center"
                 >
                   <p className="font-medium text-foreground">
-                    Chọn file Excel (.xlsx)
+                    Chọn file Excel/CSV (.xlsx, .csv)
                   </p>
                   <p className="mt-1 text-sm text-muted">
-                    File mẫu tải từ hệ thống (có sheet _meta)
+                    Ưu tiên file mẫu tải từ hệ thống; CSV dùng hàng đầu làm header.
                   </p>
                 </button>
               )}
@@ -295,6 +307,7 @@ export function LayerImportDialog({
             <ImportNewFieldsPanel
               unknownColumns={newFieldDrafts.map((field) => field.sourceColumn)}
               suggestions={newFieldSuggestions}
+              fieldTypes={fieldTypes}
               value={newFieldDrafts}
               onChange={setNewFieldDrafts}
             />
