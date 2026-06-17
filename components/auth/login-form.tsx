@@ -4,11 +4,13 @@ import { useState, type FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth, getAuthErrorMessage } from "@/providers/auth-provider";
 
+const DEFAULT_LOGIN_EMAIL = "demo@gisland.vn";
+
 export function LoginForm() {
   const { login } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [email, setEmail] = useState("admin@longbinh.local");
+  const [email, setEmail] = useState(DEFAULT_LOGIN_EMAIL);
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -46,7 +48,7 @@ export function LoginForm() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           className="mt-1.5 w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-          placeholder="admin@longbinh.local"
+          placeholder={DEFAULT_LOGIN_EMAIL}
         />
       </div>
 
