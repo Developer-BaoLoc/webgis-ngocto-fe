@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import { AreaPolygonMapPicker } from "@/components/form/area-polygon-map-picker";
 import {
+  areaPolygonToLatLngPoints,
+  areaPolygonVertexCount,
   buildAreaPolygonValue,
-  isAreaPolygonValue,
   parseAreaPolygonInput,
 } from "@/lib/fields/area-polygon";
 import { inputClass } from "./field-wrapper";
@@ -74,7 +75,7 @@ export function AreaPolygonField({
     setPickerOpen(false);
   }
 
-  const pointCount = isAreaPolygonValue(value) ? value.coordinates.length : 0;
+  const pointCount = areaPolygonVertexCount(value);
 
   return (
     <div className="mt-1.5 space-y-3">
@@ -161,7 +162,7 @@ export function AreaPolygonField({
 
       <AreaPolygonMapPicker
         open={pickerOpen}
-        initialValue={value}
+        initialValue={{ coordinates: areaPolygonToLatLngPoints(value) }}
         onClose={() => setPickerOpen(false)}
         onConfirm={applyPickedPolygon}
       />

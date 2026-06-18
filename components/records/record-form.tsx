@@ -39,6 +39,13 @@ export function RecordForm({
       const initial = { ...record.properties };
       for (const field of fields) {
         if (
+          field.fieldType === "area_polygon" &&
+          initial[field.code] === undefined
+        ) {
+          const normalized = normalizeAreaPolygonProperty(record.geometry);
+          if (normalized) initial[field.code] = normalized;
+        }
+        if (
           (field.fieldType === "line" || field.fieldType === "linestring") &&
           initial[field.code] === undefined &&
           isLineGeometryValue(record.geometry)

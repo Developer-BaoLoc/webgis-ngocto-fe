@@ -3,6 +3,7 @@
 import { LayerSymbol } from "@/components/layers/layer-symbol";
 import { useMapLayerVisibility } from "@/providers/map-layer-visibility-provider";
 import type { Layer } from "@/types/layer.types";
+import { isMapVisibleLayer } from "@/lib/layers/adapter";
 import { cn } from "@/lib/utils";
 
 interface SidebarLayerListProps {
@@ -78,15 +79,16 @@ function LayerVisibilityCheckbox({
 
 export function SidebarLayerList({ layers, collapsed }: SidebarLayerListProps) {
   const { isLayerVisible, toggleLayerVisibility } = useMapLayerVisibility();
+  const mapLayers = layers.filter(isMapVisibleLayer);
 
-  const visibleCount = layers.filter((layer) =>
+  const visibleCount = mapLayers.filter((layer) =>
     isLayerVisible(layer.id),
   ).length;
 
   if (collapsed) {
     return (
       <div className="space-y-2">
-        {layers.map((layer) => {
+        {mapLayers.map((layer) => {
           const visible = isLayerVisible(layer.id);
           return (
             <div
@@ -118,11 +120,11 @@ export function SidebarLayerList({ layers, collapsed }: SidebarLayerListProps) {
           Lớp dữ liệu
         </p>
         <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-muted">
-          {visibleCount}/{layers.length}
+          {visibleCount}/{mapLayers.length}
         </span>
       </div>
 
-      {layers.map((layer) => {
+      {mapLayers.map((layer) => {
         const visible = isLayerVisible(layer.id);
 
         return (

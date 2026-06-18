@@ -1,7 +1,7 @@
 import { getLayerGeoJson } from "@/lib/api/layers";
 import type { GeoJsonFeatureCollection } from "@/types/gis.types";
 import type { Layer } from "@/types/layer.types";
-import { hasMapGeometry } from "@/lib/layers/adapter";
+import { isMapVisibleLayer } from "@/lib/layers/adapter";
 
 export interface LayerGeoJsonEntry {
   layer: Layer;
@@ -21,13 +21,17 @@ export async function loadLayerGeoJsonEntries(
 
   const mapLayers = layers
     .filter((layer) => {
-      const accepted = hasMapGeometry(layer.geometryKind);
+      const accepted = isMapVisibleLayer(layer);
       if (layer.code === "duong") {
         console.log(
-          "[duong-render-trace][frontend:loadLayerGeoJsonEntries:hasMapGeometry]",
+          "[duong-render-trace][frontend:loadLayerGeoJsonEntries:isMapVisibleLayer]",
           {
             geometryKind: layer.geometryKind,
             geometryType: layer.geometryType,
+            layerRole: layer.layerRole,
+            showOnMap: layer.showOnMap,
+            showInMapSidebar: layer.showInMapSidebar,
+            isSpatial: layer.isSpatial,
             accepted,
           },
         );

@@ -35,6 +35,18 @@ export interface GeoJsonImportErrorItem {
   reason: string;
 }
 
+export interface GeoJsonImportWarningItem {
+  rowNumber: number;
+  message: string;
+}
+
+export interface GeoJsonPolygonStats {
+  total: number;
+  valid: number;
+  autoClosed: number;
+  invalid: number;
+}
+
 export interface GeoJsonImportSummary {
   importId: string;
   layerId: string;
@@ -43,8 +55,10 @@ export interface GeoJsonImportSummary {
   rejected: number;
   inserted?: number;
   geometryTypes: Record<string, number>;
+  polygonStats?: GeoJsonPolygonStats;
   sample: GeoJsonImportSampleItem[];
   errors: GeoJsonImportErrorItem[];
+  warnings?: GeoJsonImportWarningItem[];
   detectedColumns?: string[];
   existingFields?: string[];
   unknownColumns?: string[];

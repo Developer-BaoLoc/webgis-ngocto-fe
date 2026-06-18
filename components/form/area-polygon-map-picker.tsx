@@ -10,7 +10,7 @@ import {
   resolveMapView,
 } from "@/lib/api/map-view";
 import type { AreaPolygonValue, LatLngValue } from "@/lib/fields/area-polygon";
-import { isAreaPolygonValue } from "@/lib/fields/area-polygon";
+import { areaPolygonToLatLngPoints } from "@/lib/fields/area-polygon";
 import { DEFAULT_BASEMAP } from "@/lib/map/basemaps";
 import { padBounds } from "@/lib/map/bounds";
 import {
@@ -204,7 +204,7 @@ export function AreaPolygonMapPicker({
   const [metaError, setMetaError] = useState<string | null>(null);
   const [mapLoading, setMapLoading] = useState(true);
   const [draft, setDraft] = useState<LatLngValue[]>(() =>
-    isAreaPolygonValue(initialValue) ? initialValue.coordinates : [],
+    areaPolygonToLatLngPoints(initialValue),
   );
 
   const syncDraftToMap = useCallback((coordinates: LatLngValue[]) => {
@@ -215,9 +215,7 @@ export function AreaPolygonMapPicker({
 
   useEffect(() => {
     if (!open) return;
-    const initial = isAreaPolygonValue(initialValue)
-      ? initialValue.coordinates
-      : [];
+    const initial = areaPolygonToLatLngPoints(initialValue);
     setDraft(initial);
     setMetaError(null);
     setMapMeta(null);
@@ -249,9 +247,7 @@ export function AreaPolygonMapPicker({
   useEffect(() => {
     if (!open || !mapMeta || !containerRef.current) return;
 
-    const initial = isAreaPolygonValue(initialValue)
-      ? initialValue.coordinates
-      : [];
+    const initial = areaPolygonToLatLngPoints(initialValue);
 
     const map = new maplibregl.Map({
       container: containerRef.current,

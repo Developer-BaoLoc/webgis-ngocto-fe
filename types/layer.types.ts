@@ -12,6 +12,10 @@ export interface Layer {
   geometryRequired: boolean;
   endpoint: string;
   hasGeometry: boolean;
+  layerRole?: string;
+  isSpatial?: boolean;
+  showOnMap?: boolean;
+  showInMapSidebar?: boolean;
   color: string;
   sortOrder: number;
   style?: Record<string, unknown> | LayerStyle;

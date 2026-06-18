@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { MapPageContent } from "@/components/map/map-page-content";
 import { useLayerCatalog } from "@/providers/layer-catalog-provider";
+import { isMapVisibleLayer } from "@/lib/layers/adapter";
 import type { MapViewConfig } from "@/types/api/map-view";
 import type { GeoJsonFeatureCollection } from "@/types/gis.types";
 
@@ -39,7 +40,7 @@ export function IocMapPanel({
   boundaryError = null,
 }: IocMapPanelProps) {
   const { layers } = useLayerCatalog();
-  const mapLayers = layers.filter((layer) => layer.geometryKind !== "none");
+  const mapLayers = layers.filter(isMapVisibleLayer);
   const visibleLayers = mapLayers.slice(0, 6);
   const overflow = mapLayers.length - visibleLayers.length;
 

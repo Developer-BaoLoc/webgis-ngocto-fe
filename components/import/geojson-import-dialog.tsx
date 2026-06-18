@@ -128,6 +128,31 @@ function isLineField(field: Pick<SchemaField, "fieldType">): boolean {
   return field.fieldType === "line" || field.fieldType === "linestring";
 }
 
+function isPolygonField(field: Pick<SchemaField, "fieldType">): boolean {
+  return field.fieldType === "area_polygon";
+}
+
+function isEditableGeometryField(field: Pick<SchemaField, "fieldType">): boolean {
+  return isLineField(field) || isPolygonField(field);
+}
+
+function isLineGeometryType(type: string): boolean {
+  return type === "LineString" || type === "MultiLineString";
+}
+
+function isPolygonGeometryType(type: string): boolean {
+  return type === "Polygon" || type === "MultiPolygon";
+}
+
+function fieldMatchesGeometryTypes(
+  field: Pick<SchemaField, "fieldType">,
+  geometryTypes: string[],
+): boolean {
+  if (isLineField(field)) return geometryTypes.some(isLineGeometryType);
+  if (isPolygonField(field)) return geometryTypes.some(isPolygonGeometryType);
+  return false;
+}
+
 function buildAutoMappingRows(
   propertyKeys: string[],
   fields: SchemaField[],
@@ -140,7 +165,7 @@ function buildAutoMappingRows(
     const candidates = [
       field.code,
       field.label,
-      ...(isLineField(field) ? ["geometry", "__geometry__"] : []),
+      ...(isEditableGeometryField(field) ? ["geometry", "__geometry__"] : []),
       ...aliasesForField(field.code),
     ];
     for (const candidate of candidates) {
@@ -153,15 +178,19 @@ function buildAutoMappingRows(
   });
 }
 
-function withLineGeometryMappingRows(
+function withGeometryMappingRows(
   rows: MappingRow[],
   fields: SchemaField[],
-  hasLineGeometry: boolean,
+  geometryTypes: string[],
 ): MappingRow[] {
-  if (!hasLineGeometry) return rows;
+  if (geometryTypes.length === 0) return rows;
   const mappedFields = new Set(rows.map((row) => row.fieldCode).filter(Boolean));
   const additions = fields
-    .filter((field) => isLineField(field) && !mappedFields.has(field.code))
+    .filter(
+      (field) =>
+        fieldMatchesGeometryTypes(field, geometryTypes) &&
+        !mappedFields.has(field.code),
+    )
     .map((field) => ({ sourceKey: "geometry", fieldCode: field.code }));
   return additions.length > 0 ? [...rows, ...additions] : rows;
 }
@@ -263,8 +292,9 @@ async function inspectLocalFile(file: File): Promise<LocalFileInfo> {
   for (const feature of parsed.features) {
     if (feature.geometry?.type) geometryTypes.add(feature.geometry.type);
     if (
-      feature.geometry?.type === "LineString" ||
-      feature.geometry?.type === "MultiLineString"
+      feature.geometry?.type &&
+      (isLineGeometryType(feature.geometry.type) ||
+        isPolygonGeometryType(feature.geometry.type))
     ) {
       propertyKeys.add("geometry");
     }
@@ -331,15 +361,18 @@ export function GeoJsonImportDialog({
     [fields],
   );
   const propertyKeys = useMemo(() => {
-    const hasLineGeometry = [
+    const fileGeometryTypes = [
       ...(localInfo?.geometryTypes ?? []),
       ...Object.keys(preview?.geometryTypes ?? {}),
-    ].some((type) => type === "LineString" || type === "MultiLineString");
+    ];
+    const hasEditableGeometry = fileGeometryTypes.some(
+      (type) => isLineGeometryType(type) || isPolygonGeometryType(type),
+    );
     const keys = new Set([
       ...(localInfo?.propertyKeys ?? []),
       ...mappingRows.map((row) => row.sourceKey).filter(Boolean),
       ...COMMON_OSM_KEYS,
-      ...(hasLineGeometry ? ["geometry"] : []),
+      ...(hasEditableGeometry ? ["geometry"] : []),
     ]);
     return [...keys];
   }, [localInfo, mappingRows, preview]);
@@ -392,13 +425,10 @@ export function GeoJsonImportDialog({
     try {
       const info = await inspectLocalFile(nextFile);
       setLocalInfo(info);
-      const hasLineGeometry = info.geometryTypes.some(
-        (type) => type === "LineString" || type === "MultiLineString",
-      );
-      const rows = withLineGeometryMappingRows(
+      const rows = withGeometryMappingRows(
         buildAutoMappingRows(info.propertyKeys, importableFields),
         importableFields,
-        hasLineGeometry,
+        info.geometryTypes,
       );
       setMappingRows(rows);
       if (info.warning) setNotice({ kind: "info", message: info.warning });
@@ -462,14 +492,12 @@ export function GeoJsonImportDialog({
         sampleSize: 20,
       });
       setPreview(data);
-      const hasLineGeometry = Object.keys(data.geometryTypes ?? {}).some(
-        (type) => type === "LineString" || type === "MultiLineString",
-      );
+      const previewGeometryTypes = Object.keys(data.geometryTypes ?? {});
       setMappingRows((currentRows) =>
-        withLineGeometryMappingRows(
+        withGeometryMappingRows(
           currentRows,
           importableFields,
-          hasLineGeometry,
+          previewGeometryTypes,
         ),
       );
       setNewFieldSuggestions(data.columnSuggestions ?? []);
@@ -752,7 +780,13 @@ export function GeoJsonImportDialog({
                 rows={mappingRows}
                 onRowsChange={setMappingRows}
                 onAuto={() =>
-                  setMappingRows(buildAutoMappingRows(propertyKeys, importableFields))
+                  setMappingRows(
+                    withGeometryMappingRows(
+                      buildAutoMappingRows(propertyKeys, importableFields),
+                      importableFields,
+                      geometryTypes,
+                    ),
+                  )
                 }
               />
               <PreviewSample preview={preview} />
@@ -1010,15 +1044,35 @@ function Metric({ label, value }: { label: string; value: string }) {
 }
 
 function SummaryGrid({ preview }: { preview: GeoJsonImportSummary | null }) {
+  const polygonStats = preview?.polygonStats;
+  const showPolygonStats = Boolean(polygonStats && polygonStats.total > 0);
+
   return (
-    <div className="grid gap-3 sm:grid-cols-4">
-      <Metric label="Total" value={formatNumber(preview?.totalFeatures)} />
-      <Metric label="Accepted" value={formatNumber(preview?.accepted)} />
-      <Metric label="Rejected" value={formatNumber(preview?.rejected)} />
-      <Metric
-        label="Geometry Types"
-        value={Object.keys(preview?.geometryTypes ?? {}).join(", ") || "—"}
-      />
+    <div className="space-y-3">
+      <div className="grid gap-3 sm:grid-cols-4">
+        <Metric label="Total" value={formatNumber(preview?.totalFeatures)} />
+        <Metric label="Accepted" value={formatNumber(preview?.accepted)} />
+        <Metric label="Rejected" value={formatNumber(preview?.rejected)} />
+        <Metric
+          label="Geometry Types"
+          value={Object.keys(preview?.geometryTypes ?? {}).join(", ") || "—"}
+        />
+      </div>
+
+      {showPolygonStats && polygonStats && (
+        <div className="grid gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3 sm:grid-cols-4">
+          <Metric label="Số vùng" value={formatNumber(polygonStats.total)} />
+          <Metric
+            label="Polygon hợp lệ"
+            value={formatNumber(polygonStats.valid)}
+          />
+          <Metric
+            label="Tự đóng vòng"
+            value={formatNumber(polygonStats.autoClosed)}
+          />
+          <Metric label="Polygon lỗi" value={formatNumber(polygonStats.invalid)} />
+        </div>
+      )}
     </div>
   );
 }
@@ -1175,6 +1229,21 @@ function PreviewSample({ preview }: { preview: GeoJsonImportSummary | null }) {
           </tbody>
         </table>
       </div>
+
+      {(preview.warnings?.length ?? 0) > 0 && (
+        <details className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+          <summary className="cursor-pointer font-medium">
+            {preview.warnings?.length} cảnh báo đầu tiên
+          </summary>
+          <ul className="mt-2 max-h-32 space-y-1 overflow-y-auto">
+            {preview.warnings?.map((warning) => (
+              <li key={`${warning.rowNumber}-${warning.message}`}>
+                Dòng {warning.rowNumber}: {warning.message}
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
 
       {preview.errors.length > 0 && (
         <details className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">

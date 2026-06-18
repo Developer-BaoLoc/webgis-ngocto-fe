@@ -24,6 +24,10 @@ export interface LayerCatalogItem {
   sortOrder: number;
   endpoint: string;
   style?: Record<string, unknown>;
+  layerRole?: string;
+  isSpatial?: boolean;
+  showOnMap?: boolean;
+  showInMapSidebar?: boolean;
 }
 
 export interface LayerCatalogResponse {

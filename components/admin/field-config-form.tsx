@@ -178,6 +178,7 @@ function RelationshipConfigForm({
       return;
     }
     let cancelled = false;
+    setTargetFields([]);
     setLoadingFields(true);
     getLayerSchema(targetLayerId)
       .then((schema) => {
@@ -236,15 +237,73 @@ function RelationshipConfigForm({
     return `${normalizeCode(layer.code || layer.name)}_id`;
   }
 
+  function relationshipTargetMatchesCurrentLayer(field: SchemaField): boolean {
+    const schema = field.dataSchema ?? {};
+    const targetId = String(schema.targetLayerId ?? "").trim();
+    const targetCode = String(
+      schema.targetLayerCode ?? schema.targetTable ?? "",
+    ).trim();
+    return (
+      targetId === sourceLayerId ||
+      (!!sourceLayer?.code && targetCode === sourceLayer.code)
+    );
+  }
+
+  function reverseManyToOneField(): SchemaField | null {
+    if (relationType !== "one-to-many" || !sourceLayerId) return null;
+    return (
+      targetFields.find(
+        (field) =>
+          field.fieldType === "relationship" &&
+          String(field.dataSchema?.relationType ?? "") === "many-to-one" &&
+          relationshipTargetMatchesCurrentLayer(field),
+      ) ?? null
+    );
+  }
+
+  function foreignKeyFromRelationshipField(field: SchemaField | null): string {
+    if (!field) return "";
+    return String(field.dataSchema?.foreignKey ?? "").trim() || field.code;
+  }
+
+  function shouldAutoReplaceForeignKey(current: string): boolean {
+    if (!current) return true;
+    return [
+      suggestedForeignKey(sourceLayer),
+      suggestedForeignKey(targetLayer),
+      "entity_id",
+    ].includes(current);
+  }
+
   function handleTargetLayerChange(nextTargetLayerId: string) {
     const nextTarget = layers.find((layer) => layer.id === nextTargetLayerId);
-    const hasForeignKey = String(dataSchema.foreignKey ?? "").trim();
+    const currentForeignKey = String(dataSchema.foreignKey ?? "").trim();
     patch({
       targetLayerId: nextTargetLayerId,
       targetDisplayField: "",
       matchField: "",
-      ...(!hasForeignKey && !fieldCode
-        ? { foreignKey: suggestedForeignKey(nextTarget) }
+      ...(shouldAutoReplaceForeignKey(currentForeignKey)
+        ? {
+            foreignKey:
+              relationType === "one-to-many"
+                ? suggestedForeignKey(sourceLayer)
+                : suggestedForeignKey(nextTarget),
+          }
+        : {}),
+    });
+  }
+
+  function handleRelationTypeChange(nextRelationType: string) {
+    const currentForeignKey = String(dataSchema.foreignKey ?? "").trim();
+    patch({
+      relationType: nextRelationType,
+      ...(shouldAutoReplaceForeignKey(currentForeignKey)
+        ? {
+            foreignKey:
+              nextRelationType === "one-to-many"
+                ? suggestedForeignKey(sourceLayer)
+                : suggestedForeignKey(targetLayer),
+          }
         : {}),
     });
   }
@@ -267,6 +326,16 @@ function RelationshipConfigForm({
     patch({ popupDisplayMode: "table", popupFields: next });
   }
 
+  const reverseManyToOne = reverseManyToOneField();
+  const reverseForeignKey = foreignKeyFromRelationshipField(reverseManyToOne);
+  const effectiveForeignKey =
+    String(dataSchema.foreignKey ?? "").trim() ||
+    fieldCode ||
+    reverseForeignKey ||
+    (relationType === "one-to-many"
+      ? suggestedForeignKey(sourceLayer)
+      : suggestedForeignKey(targetLayer));
+
   const fieldOptions = [
     { code: "id", label: "ID bản ghi" },
     ...targetFields.map((field) => ({
@@ -275,13 +344,34 @@ function RelationshipConfigForm({
     })),
   ];
   const effectiveFieldCode =
-    fieldCode || String(dataSchema.foreignKey ?? "").trim();
+    fieldCode || effectiveForeignKey;
   const totalChildRecords =
     checkResult?.totalChildRecords ?? checkResult?.childWithForeignKey ?? 0;
   const linkedCount = checkResult ? checkResult.childWithForeignKey : 0;
   const missingLinkCount = checkResult
     ? Math.max(0, totalChildRecords - checkResult.childWithForeignKey)
     : 0;
+
+  useEffect(() => {
+    if (relationType !== "one-to-many" || !reverseForeignKey) return;
+    const currentForeignKey = String(dataSchema.foreignKey ?? "").trim();
+    if (!shouldAutoReplaceForeignKey(currentForeignKey)) return;
+    if (currentForeignKey === reverseForeignKey) return;
+    onChange({
+      ...dataSchema,
+      targetPrimaryKey: "id",
+      notFoundAction: dataSchema.notFoundAction ?? "error",
+      foreignKey: reverseForeignKey,
+    });
+  }, [
+    dataSchema,
+    onChange,
+    relationType,
+    reverseForeignKey,
+    sourceLayer,
+    targetLayer,
+    fieldCode,
+  ]);
 
   async function handleCheck() {
     if (!sourceLayerId) {
@@ -294,10 +384,9 @@ function RelationshipConfigForm({
     try {
       const result = await checkRelationship({
         sourceLayerId,
-        fieldCode: effectiveFieldCode || undefined,
         relationType,
         targetLayerId,
-        foreignKey: String(dataSchema.foreignKey ?? effectiveFieldCode),
+        foreignKey: effectiveForeignKey,
         targetDisplayField: String(dataSchema.targetDisplayField ?? ""),
         matchField: String(dataSchema.matchField ?? ""),
       });
@@ -382,7 +471,10 @@ function RelationshipConfigForm({
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
             <label className="block text-sm font-medium">
-              Quan hệ với lớp nào? *
+              {relationType === "one-to-many"
+                ? "Lớp này có danh sách"
+                : "Lớp này thuộc về"}{" "}
+              *
             </label>
             <select
               className={inputClass}
@@ -408,7 +500,9 @@ function RelationshipConfigForm({
               className={inputClass}
               required
               value={relationType}
-              onChange={(event) => patch({ relationType: event.target.value })}
+              onChange={(event) =>
+                handleRelationTypeChange(event.target.value)
+              }
             >
               <option value="many-to-one">
                 Nhiều {sourceLayer?.name ?? "bản ghi này"} thuộc một{" "}
@@ -424,7 +518,10 @@ function RelationshipConfigForm({
 
           <div>
             <label className="block text-sm font-medium">
-              Hiển thị theo trường nào? *
+              {relationType === "one-to-many"
+                ? "Hiển thị mỗi dòng bằng"
+                : "Trường hiển thị"}{" "}
+              *
             </label>
             <select
               className={inputClass}
@@ -447,36 +544,72 @@ function RelationshipConfigForm({
             </select>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium">
-              Khi import thì dò theo trường nào?
-            </label>
-            <select
-              className={inputClass}
-              disabled={!targetLayerId || loadingFields}
-              value={String(dataSchema.matchField ?? "")}
-              onChange={(event) => patch({ matchField: event.target.value })}
-            >
-              <option value="">
-                Theo field hiển thị
-                {dataSchema.targetDisplayField
-                  ? ` (${fieldLabel(String(dataSchema.targetDisplayField))})`
-                  : ""}
-              </option>
-              {fieldOptions.map((field) => (
-                <option key={field.code} value={field.code}>
-                  {field.label}
+          {relationType !== "one-to-many" && (
+            <div>
+              <label className="block text-sm font-medium">
+                Khi import thì dò{" "}
+                {targetLayer?.name ? targetLayer.name : "layer đích"} theo
+              </label>
+              <select
+                className={inputClass}
+                disabled={!targetLayerId || loadingFields}
+                value={String(dataSchema.matchField ?? "")}
+                onChange={(event) => patch({ matchField: event.target.value })}
+              >
+                <option value="">
+                  Theo field hiển thị
+                  {dataSchema.targetDisplayField
+                    ? ` (${fieldLabel(String(dataSchema.targetDisplayField))})`
+                    : ""}
                 </option>
-              ))}
-            </select>
-          </div>
+                {fieldOptions.map((field) => (
+                  <option key={field.code} value={field.code}>
+                    {field.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-900 sm:col-span-2">
-            ID bản ghi liên kết sẽ được lưu trong field{" "}
-            <strong className="font-mono">
-              {String(dataSchema.foreignKey ?? suggestedForeignKey(targetLayer))}
-            </strong>
-            . Người dùng chỉ nhìn thấy label đã resolve, không phải ID thô.
+            {relationType === "one-to-many" ? (
+              reverseManyToOne ? (
+                <div className="space-y-1">
+                  <p>
+                    Hệ thống đã tìm thấy liên kết:{" "}
+                    <strong>
+                      {targetLayer?.name ?? "Layer con"}.
+                      {reverseManyToOne.label}
+                    </strong>{" "}
+                    → <strong>{sourceLayer?.name ?? "layer hiện tại"}</strong>
+                  </p>
+                  <p>
+                    Khóa liên kết dùng chung:{" "}
+                    <strong className="font-mono">{effectiveForeignKey}</strong>
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-1 text-amber-900">
+                  <p>
+                    Chưa tìm thấy liên kết ngược từ{" "}
+                    <strong>{targetLayer?.name ?? "layer con"}</strong> về{" "}
+                    <strong>{sourceLayer?.name ?? "layer hiện tại"}</strong>.
+                  </p>
+                  <p>
+                    Vui lòng tạo field Many-to-One ở{" "}
+                    <strong>{targetLayer?.name ?? "lớp phụ"}</strong> trước.
+                    Khóa gợi ý theo lớp chính là{" "}
+                    <strong className="font-mono">{effectiveForeignKey}</strong>.
+                  </p>
+                </div>
+              )
+            ) : (
+              <>
+                Khóa liên kết sẽ được lưu tự động vào:{" "}
+                <strong className="font-mono">{effectiveForeignKey}</strong>.
+                Người dùng chỉ nhìn thấy label đã resolve, không phải ID thô.
+              </>
+            )}
           </div>
         </div>
       ) : (
@@ -488,7 +621,7 @@ function RelationshipConfigForm({
             required
             value={relationType}
             onChange={(event) =>
-              patch({ relationType: event.target.value })
+              handleRelationTypeChange(event.target.value)
             }
           >
             <option value="many-to-one">Many-to-One</option>
@@ -521,7 +654,7 @@ function RelationshipConfigForm({
             className={inputClass}
             value={String(dataSchema.foreignKey ?? "")}
             onChange={(event) => patch({ foreignKey: event.target.value })}
-            placeholder={relationType === "one-to-many" ? "entity_id" : "entity_id"}
+            placeholder={effectiveForeignKey}
           />
           <p className="mt-1 text-xs text-muted">
             Tên field ẩn dùng để lưu ID bản ghi được liên kết. Người dùng thường không cần chỉnh.
@@ -621,7 +754,7 @@ function RelationshipConfigForm({
               <p className="mb-2 text-sm font-medium">Field hiển thị</p>
               <div className="grid max-h-40 gap-2 overflow-y-auto rounded-lg border border-border bg-slate-50 p-2 sm:grid-cols-2">
                 {targetFields
-                  .filter((field) => field.code !== dataSchema.foreignKey)
+                  .filter((field) => field.code !== effectiveForeignKey)
                   .map((field) => {
                     const selected = selectedPopupFields().includes(field.code);
                     return (
