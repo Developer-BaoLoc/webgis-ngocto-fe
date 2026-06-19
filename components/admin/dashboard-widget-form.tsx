@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import Link from "next/link";
+import { useMemo } from "react";
 import { inputClass } from "@/components/form/field-wrapper";
 import {
   AGGREGATION_LABELS,
@@ -14,14 +15,16 @@ import type {
   DataSourceLayer,
   WidgetType,
 } from "@/types/api/dashboard";
+import type { SavedView } from "@/types/api/saved-view";
 
 export interface WidgetFormState {
   widgetType: WidgetType;
   title: string;
+  viewId: string;
   layerId: string;
   aggregation: AggregationType;
-  fieldCode: string;
-  groupByFieldCode: string;
+  metricField: string;
+  dimensionField: string;
   limit: number;
   suffix: string;
   content: string;
@@ -33,10 +36,11 @@ export function emptyWidgetForm(): WidgetFormState {
   return {
     widgetType: "stat",
     title: "",
+    viewId: "",
     layerId: "",
     aggregation: "count",
-    fieldCode: "",
-    groupByFieldCode: "",
+    metricField: "",
+    dimensionField: "",
     limit: 20,
     suffix: "",
     content: "",
@@ -49,10 +53,17 @@ export function widgetToForm(widget: DashboardWidget): WidgetFormState {
   return {
     widgetType: widget.widgetType,
     title: widget.title,
+    viewId: widget.dataSourceConfig?.viewId ?? "",
     layerId: widget.dataSourceConfig?.layerId ?? "",
     aggregation: widget.dataSourceConfig?.aggregation ?? "count",
-    fieldCode: widget.dataSourceConfig?.fieldCode ?? "",
-    groupByFieldCode: widget.dataSourceConfig?.groupByFieldCode ?? "",
+    metricField:
+      widget.dataSourceConfig?.metricField ??
+      widget.dataSourceConfig?.fieldCode ??
+      "",
+    dimensionField:
+      widget.dataSourceConfig?.dimensionField ??
+      widget.dataSourceConfig?.groupByFieldCode ??
+      "",
     limit: widget.dataSourceConfig?.limit ?? 20,
     suffix: String(widget.displayConfig?.suffix ?? ""),
     content: String(widget.displayConfig?.content ?? ""),
@@ -66,7 +77,7 @@ export function formToWidget(
   index: number,
   existingId?: string,
 ): DashboardWidget {
-  const needsGroup =
+  const needsDimension =
     form.widgetType === "bar" ||
     form.widgetType === "pie" ||
     form.widgetType === "donut" ||
@@ -77,16 +88,17 @@ export function formToWidget(
     form.widgetType === "text"
       ? undefined
       : {
-          layerId: form.layerId,
+          ...(form.viewId ? { viewId: form.viewId } : {}),
+          ...(!form.viewId && form.layerId ? { layerId: form.layerId } : {}),
           aggregation: form.aggregation,
-          ...(form.fieldCode &&
+          ...(form.metricField &&
           (form.aggregation === "sum" || form.aggregation === "avg")
-            ? { fieldCode: form.fieldCode }
+            ? { metricField: form.metricField }
             : {}),
-          ...(needsGroup && form.groupByFieldCode
-            ? { groupByFieldCode: form.groupByFieldCode }
+          ...(needsDimension && form.dimensionField
+            ? { dimensionField: form.dimensionField }
             : {}),
-          ...(needsGroup ? { limit: form.limit } : {}),
+          ...(needsDimension ? { limit: form.limit } : {}),
         };
 
   const displayConfig =
@@ -114,24 +126,33 @@ export function formToWidget(
 interface WidgetFormFieldsProps {
   form: WidgetFormState;
   dataSources: DataSourceLayer[];
+  savedViews: SavedView[];
   onChange: (form: WidgetFormState) => void;
 }
 
 export function WidgetFormFields({
   form,
   dataSources,
+  savedViews,
   onChange,
 }: WidgetFormFieldsProps) {
+  const selectedView = useMemo(
+    () => savedViews.find((view) => view.id === form.viewId),
+    [savedViews, form.viewId],
+  );
   const selectedLayer = useMemo(
-    () => dataSources.find((source) => source.layerId === form.layerId),
-    [dataSources, form.layerId],
+    () =>
+      dataSources.find(
+        (source) =>
+          source.layerId === (selectedView?.layerId ?? form.layerId),
+      ),
+    [dataSources, form.layerId, selectedView],
   );
 
   const numericFields =
     selectedLayer?.fields.filter((field) =>
       NUMERIC_FIELD_TYPES.has(field.fieldType),
     ) ?? [];
-
   const groupableFields =
     selectedLayer?.fields.filter((field) =>
       GROUPABLE_FIELD_TYPES.has(field.fieldType),
@@ -139,14 +160,18 @@ export function WidgetFormFields({
 
   const needsNumericField =
     form.aggregation === "sum" || form.aggregation === "avg";
-  const needsGroupBy =
+  const needsDimension =
     form.widgetType === "bar" ||
     form.widgetType === "pie" ||
     form.widgetType === "donut" ||
     form.widgetType === "line" ||
     form.widgetType === "table";
   const isText = form.widgetType === "text";
-  const isMap = form.widgetType === "map";
+  const sourceValue = form.viewId
+    ? `view:${form.viewId}`
+    : form.layerId
+      ? `legacy:${form.layerId}`
+      : "";
 
   return (
     <div className="space-y-4">
@@ -195,27 +220,55 @@ export function WidgetFormFields({
       ) : (
         <>
           <div>
-            <label className="block text-sm font-medium">Lớp dữ liệu</label>
+            <div className="flex items-center justify-between gap-3">
+              <label className="block text-sm font-medium">
+                Nguồn dữ liệu (Saved View)
+              </label>
+              <Link
+                href="/quan-tri/saved-views"
+                target="_blank"
+                className="text-xs text-primary hover:underline"
+              >
+                + Tạo View mới
+              </Link>
+            </div>
             <select
               className={inputClass}
               required
-              value={form.layerId}
-              onChange={(e) =>
+              value={sourceValue}
+              onChange={(e) => {
+                const [kind, id] = e.target.value.split(":");
                 onChange({
                   ...form,
-                  layerId: e.target.value,
-                  fieldCode: "",
-                  groupByFieldCode: "",
-                })
-              }
+                  viewId: kind === "view" ? id : "",
+                  layerId: kind === "legacy" ? id : "",
+                  metricField: "",
+                  dimensionField: "",
+                });
+              }}
             >
-              <option value="">— Chọn lớp —</option>
-              {dataSources.map((source) => (
-                <option key={source.layerId} value={source.layerId}>
-                  {source.layerName}
+              <option value="">— Chọn Saved View —</option>
+              {form.layerId && (
+                <option value={`legacy:${form.layerId}`}>
+                  {selectedLayer?.layerName ?? "Layer"} / Nguồn cũ (tương thích)
+                </option>
+              )}
+              {savedViews.map((view) => (
+                <option key={view.id} value={`view:${view.id}`}>
+                  {view.layerName} / {view.name}
                 </option>
               ))}
             </select>
+            {selectedLayer && (
+              <p className="mt-1 text-xs text-muted">
+                Layer: {selectedLayer.layerName} · {selectedLayer.fields.length} trường
+              </p>
+            )}
+            {savedViews.length === 0 && !form.layerId && (
+              <p className="mt-1 text-xs text-amber-700">
+                Chưa có Saved View. Hãy tạo một view trước khi thêm widget dữ liệu.
+              </p>
+            )}
           </div>
 
           {form.widgetType !== "map" && (
@@ -240,15 +293,15 @@ export function WidgetFormFields({
             </div>
           )}
 
-          {needsNumericField && (
+          {needsNumericField && form.widgetType !== "map" && (
             <div>
-              <label className="block text-sm font-medium">Trường số</label>
+              <label className="block text-sm font-medium">Metric field</label>
               <select
                 className={inputClass}
                 required
-                value={form.fieldCode}
+                value={form.metricField}
                 onChange={(e) =>
-                  onChange({ ...form, fieldCode: e.target.value })
+                  onChange({ ...form, metricField: e.target.value })
                 }
               >
                 <option value="">— Chọn trường —</option>
@@ -261,18 +314,18 @@ export function WidgetFormFields({
             </div>
           )}
 
-          {needsGroupBy && (
+          {needsDimension && (
             <>
               <div>
                 <label className="block text-sm font-medium">
-                  Nhóm theo trường
+                  Dimension field
                 </label>
                 <select
                   className={inputClass}
                   required
-                  value={form.groupByFieldCode}
+                  value={form.dimensionField}
                   onChange={(e) =>
-                    onChange({ ...form, groupByFieldCode: e.target.value })
+                    onChange({ ...form, dimensionField: e.target.value })
                   }
                 >
                   <option value="">— Chọn trường —</option>

@@ -22,13 +22,26 @@ export interface WidgetLayoutConfig {
 
 export interface AnalyticsFilter {
   fieldCode: string;
-  operator?: "eq" | "neq" | "in";
+  operator?:
+    | "eq"
+    | "neq"
+    | "in"
+    | "contains"
+    | "gt"
+    | "gte"
+    | "lt"
+    | "lte"
+    | "empty"
+    | "not_empty";
   value: unknown;
 }
 
 export interface DataSourceConfig {
-  layerId: string;
+  viewId?: string;
+  layerId?: string;
   aggregation: AggregationType;
+  metricField?: string;
+  dimensionField?: string;
   fieldCode?: string;
   groupByFieldCode?: string;
   filters?: AnalyticsFilter[];
@@ -85,6 +98,7 @@ export interface DataSourceField {
   code: string;
   label: string;
   fieldType: string;
+  dataSchema?: Record<string, unknown>;
 }
 
 export interface DataSourceLayer {
@@ -95,6 +109,7 @@ export interface DataSourceLayer {
 }
 
 export interface AnalyticsScalarResult {
+  viewId?: string;
   layerId: string;
   aggregation: string;
   value: number;
@@ -108,6 +123,7 @@ export interface AnalyticsGroupRow {
 }
 
 export interface AnalyticsGroupedResult {
+  viewId?: string;
   layerId: string;
   aggregation: string;
   groupByFieldCode?: string;

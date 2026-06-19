@@ -49,10 +49,33 @@ const sections = [
     ),
   },
   {
+    href: "/quan-tri/saved-views",
+    title: "Saved Views",
+    description:
+      "Tạo nguồn dữ liệu đã lọc, sắp xếp và chọn trường để dùng lại trong dashboard widget.",
+    accent: "emerald" as const,
+    icon: (
+      <svg
+        className="h-5 w-5"
+        fill="none"
+        viewBox="0 0 24 24"
+        strokeWidth={1.75}
+        stroke="currentColor"
+        aria-hidden
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M3.75 5.25h16.5m-15 4.5h13.5m-12 4.5h10.5m-9 4.5h7.5"
+        />
+      </svg>
+    ),
+  },
+  {
     href: "/quan-tri/dashboard",
     title: "Dashboard",
     description:
-      "Tạo bảng điều khiển với widget thống kê, biểu đồ và bảng tổng hợp từ dữ liệu lớp.",
+      "Tạo bảng điều khiển với widget thống kê, biểu đồ và bảng tổng hợp từ Saved View.",
     accent: "violet" as const,
     icon: (
       <svg

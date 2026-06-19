@@ -44,8 +44,16 @@ export async function apiFetch<T>(
   if (!res.ok) {
     let message = `API ${res.status}: ${path}`;
     try {
-      const body = (await res.json()) as ApiErrorBody;
-      if (body.error?.message) message = body.error.message;
+      const body = (await res.json()) as ApiErrorBody & {
+        message?: string | string[];
+      };
+      if (body.error?.message) {
+        message = body.error.message;
+      } else if (typeof body.message === "string") {
+        message = body.message;
+      } else if (Array.isArray(body.message)) {
+        message = body.message.join("; ");
+      }
     } catch {
       // ignore parse error
     }

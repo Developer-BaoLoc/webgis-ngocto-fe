@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { Modal } from "@/components/ui/modal";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { previewAnalytics } from "@/lib/api/analytics";
+import { getSavedViews } from "@/lib/api/saved-views";
 import {
   createDashboardDraftFromPublished,
   getDashboardDataSources,
@@ -38,6 +39,7 @@ import {
 } from "@/components/ui/data-table";
 import { isGroupedAnalyticsResult } from "@/types/api/dashboard";
 import type { DashboardDetail, DataSourceLayer } from "@/types/api/dashboard";
+import type { SavedView } from "@/types/api/saved-view";
 import { formatAnalyticsNumber } from "@/lib/dashboard/utils";
 
 interface DashboardBuilderPageProps {
@@ -60,6 +62,7 @@ async function resolveDraft(dashboardId: string): Promise<DashboardDetail> {
 export function DashboardBuilderPage({ dashboardId }: DashboardBuilderPageProps) {
   const [draft, setDraft] = useState<DashboardDetail | null>(null);
   const [dataSources, setDataSources] = useState<DataSourceLayer[]>([]);
+  const [savedViews, setSavedViews] = useState<SavedView[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -72,15 +75,17 @@ export function DashboardBuilderPage({ dashboardId }: DashboardBuilderPageProps)
     setIsLoading(true);
     setError(null);
     try {
-      const [draftData, sources] = await Promise.all([
+      const [draftData, sources, views] = await Promise.all([
         resolveDraft(dashboardId),
         getDashboardDataSources().catch(() => []),
+        getSavedViews().catch(() => []),
       ]);
       setDraft({
         ...draftData,
         widgets: sortWidgets(draftData.widgets),
       });
       setDataSources(sources);
+      setSavedViews(views);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Không tải được dashboard");
     } finally {
@@ -174,8 +179,11 @@ export function DashboardBuilderPage({ dashboardId }: DashboardBuilderPageProps)
 
   async function handlePreviewWidget() {
     const widget = formToWidget(widgetForm, 0);
-    if (!widget.dataSourceConfig?.layerId) {
-      setPreviewText("Chọn lớp dữ liệu để xem trước");
+    if (
+      !widget.dataSourceConfig?.viewId &&
+      !widget.dataSourceConfig?.layerId
+    ) {
+      setPreviewText("Chọn Saved View để xem trước");
       return;
     }
     try {
@@ -200,7 +208,7 @@ export function DashboardBuilderPage({ dashboardId }: DashboardBuilderPageProps)
   async function handlePublish() {
     if (
       !draft ||
-      !confirm("Xuất bản dashboard? Trang Tổng quan sẽ dùng bản mới.")
+      !confirm("Xuất bản dashboard? Route /dashboards/:id sẽ dùng bản mới.")
     ) {
       return;
     }
@@ -245,7 +253,7 @@ export function DashboardBuilderPage({ dashboardId }: DashboardBuilderPageProps)
               <div>
                 <h2 className="text-lg font-semibold">Widget</h2>
                 <p className="text-sm text-muted">
-                  Thêm widget thống kê, biểu đồ hoặc bảng từ dữ liệu lớp
+                  Thêm widget từ Saved View; widget cũ dùng Layer vẫn hoạt động
                 </p>
               </div>
               <div className="flex gap-2">
@@ -356,6 +364,7 @@ export function DashboardBuilderPage({ dashboardId }: DashboardBuilderPageProps)
             <WidgetFormFields
               form={widgetForm}
               dataSources={dataSources}
+              savedViews={savedViews}
               onChange={setWidgetForm}
             />
 

@@ -15,7 +15,6 @@ import {
   DataTableHead,
   DataTableHeaderCell,
   DataTableRow,
-  TableActionButton,
   TableActionLink,
   TableActions,
   TableBadge,
@@ -82,13 +81,21 @@ export function DashboardAdminPage() {
         backHref="/quan-tri"
         backLabel="Quản trị"
         action={
-          <button
-            type="button"
-            onClick={() => setShowCreate(true)}
-            className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white"
-          >
-            + Tạo dashboard
-          </button>
+          <div className="flex gap-2">
+            <Link
+              href="/quan-tri/saved-views"
+              className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-primary"
+            >
+              Saved Views
+            </Link>
+            <button
+              type="button"
+              onClick={() => setShowCreate(true)}
+              className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white"
+            >
+              + Tạo dashboard
+            </button>
+          </div>
         }
       />
 
@@ -100,7 +107,7 @@ export function DashboardAdminPage() {
 
       <AdminListPanel
         title="Danh sách dashboard"
-        description="Thiết kế widget và xuất bản để hiển thị trên trang Tổng quan."
+        description="Thiết kế widget và xuất bản tại route dashboard riêng."
         isLoading={isLoading}
         isEmpty={!isLoading && dashboards.length === 0}
         emptyTitle="Chưa có dashboard"
@@ -154,7 +161,10 @@ export function DashboardAdminPage() {
                         >
                           Thiết kế
                         </TableActionLink>
-                        <TableActionLink href="/" variant="neutral">
+                        <TableActionLink
+                          href={`/dashboards/${dashboard.id}`}
+                          variant="neutral"
+                        >
                           Xem
                         </TableActionLink>
                       </TableActions>

@@ -55,7 +55,12 @@ function TextWidget({ widget }: { widget: DashboardWidget }) {
 
 function MapWidget({ widget }: { widget: DashboardWidget }) {
   const layerId = widget.dataSourceConfig?.layerId;
-  const href = layerId ? `/ban-do?layerId=${layerId}` : "/ban-do";
+  const viewId = widget.dataSourceConfig?.viewId;
+  const href = layerId
+    ? `/ban-do?layerId=${layerId}`
+    : viewId
+      ? `/ban-do?viewId=${viewId}`
+      : "/ban-do";
 
   return (
     <Card className="h-full">
@@ -83,7 +88,10 @@ function AnalyticsWidget({ widget }: { widget: DashboardWidget }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!widget.dataSourceConfig?.layerId) {
+    if (
+      !widget.dataSourceConfig?.viewId &&
+      !widget.dataSourceConfig?.layerId
+    ) {
       setLoading(false);
       setError("Chưa cấu hình nguồn dữ liệu");
       return;
