@@ -2,11 +2,11 @@
 /**
  * Sinh data/agri-dashboard.json từ file Excel tổng hợp nông nghiệp (backend repo).
  *
- * Usage (từ gis_longbinh_web):
+ * Usage (từ gis_ngocto_web):
  *   node scripts/generate-agri-dashboard-data.mjs
  *
  * Hoặc chỉ định đường dẫn Excel:
- *   node scripts/generate-agri-dashboard-data.mjs ../gis_longbinh/BẢNG....xlsx
+ *   node scripts/generate-agri-dashboard-data.mjs ../gis_be/BẢNG....xlsx
  */
 
 import fs from "fs";
@@ -16,10 +16,10 @@ import { createRequire } from "module";
 
 const require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const XLSX = require(path.resolve(__dirname, "../../gis_longbinh/node_modules/xlsx"));
+const XLSX = require(path.resolve(__dirname, "../../gis_be/node_modules/xlsx"));
 const defaultExcel = path.resolve(
   __dirname,
-  "../../gis_longbinh/BẢNG TỔNG HỢP SỐ LIỆU NÔNG NGHIỆPBảng tính không có tiêu đề.xlsx",
+  "../../gis_be/BẢNG TỔNG HỢP SỐ LIỆU NÔNG NGHIỆPBảng tính không có tiêu đề.xlsx",
 );
 const excelPath = process.argv[2] ? path.resolve(process.argv[2]) : defaultExcel;
 const outPath = path.resolve(__dirname, "../data/agri-dashboard.json");
@@ -227,8 +227,8 @@ for (const m of effectiveModels) {
 const data = {
   meta: {
     title: "Trung tâm điều hành Nông nghiệp",
-    ward: "Demo Phường Xã",
-    district: "Quận Cái Răng",
+    ward: "Ngọc Tố",
+    district: "Huyện Mỹ Xuyên",
     city: "Thành phố Cần Thơ",
     source: "BẢNG TỔNG HỢP SỐ LIỆU NÔNG NGHIỆP",
   },

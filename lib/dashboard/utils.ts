@@ -38,11 +38,16 @@ export const AGGREGATION_LABELS: Record<string, string> = {
   count: "Đếm",
   sum: "Tổng",
   avg: "Trung bình",
+  min: "Nhỏ nhất",
+  max: "Lớn nhất",
+  top: "Top N",
 };
 
 export const NUMERIC_FIELD_TYPES = new Set([
   "integer",
   "decimal",
+  "number",
+  "currency",
   "money",
   "measurement",
   "quantity",
@@ -54,4 +59,5 @@ export const GROUPABLE_FIELD_TYPES = new Set([
   "multi_category",
   "boolean",
   "date",
+  "select",
 ]);

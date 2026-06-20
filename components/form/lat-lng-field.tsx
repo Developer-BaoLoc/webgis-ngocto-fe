@@ -74,7 +74,7 @@ export function LatLngField({ value, onChange, required }: LatLngFieldProps) {
             className={inputClass}
             value={lat}
             required={required}
-            placeholder="10.0125"
+            placeholder="9.4466"
             onChange={(e) => {
               setLat(e.target.value);
               emit(e.target.value, lng);
@@ -93,7 +93,7 @@ export function LatLngField({ value, onChange, required }: LatLngFieldProps) {
             className={inputClass}
             value={lng}
             required={required}
-            placeholder="105.785"
+            placeholder="105.9342"
             onChange={(e) => {
               setLng(e.target.value);
               emit(lat, e.target.value);

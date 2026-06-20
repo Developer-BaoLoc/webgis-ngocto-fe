@@ -13,18 +13,11 @@ import type {
 } from "@/types/api/import";
 import type { FieldTypeMeta } from "@/types/api/metadata";
 import { cn } from "@/lib/utils";
+import { getFieldLabel } from "@/lib/fields/field-label";
 
 export interface ImportNewFieldDraft extends ImportCreateFieldPayload {
   sourceColumn: string;
   create: boolean;
-}
-
-function titleFromCode(code: string): string {
-  return code
-    .split("_")
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
 }
 
 function defaultDataSchemaForType(
@@ -91,7 +84,7 @@ export function buildNewFieldDrafts(
       sourceColumn: column,
       create: false,
       code: suggestion?.code ?? column,
-      label: suggestion?.label ?? titleFromCode(column),
+      label: suggestion?.label ?? getFieldLabel(column),
       fieldType: suggestion?.suggestedType ?? "text",
       required: false,
       dataSchema: defaultDataSchemaForType(suggestion?.suggestedType ?? "text"),
@@ -145,7 +138,9 @@ export function validateNewFieldDrafts(
     if (!field.code.trim() || !field.label.trim()) {
       return `Field "${field.sourceColumn}" cần có code và label.`;
     }
-    const selectedType = fieldTypes.find((type) => type.type === field.fieldType);
+    const selectedType = fieldTypes.find(
+      (type) => type.type === field.fieldType,
+    );
     const error = validateFieldDataSchema(
       field.fieldType,
       field.dataSchema ?? {},
@@ -307,7 +302,9 @@ export function ImportNewFieldsPanel({
                     <select
                       value={row.fieldType}
                       disabled={!row.create}
-                      onChange={(event) => updateFieldType(index, event.target.value)}
+                      onChange={(event) =>
+                        updateFieldType(index, event.target.value)
+                      }
                       className={cn(
                         "h-9 w-44 rounded-md border border-border px-2 text-sm",
                         !row.create && "bg-slate-100 text-muted",
@@ -325,7 +322,9 @@ export function ImportNewFieldsPanel({
                       type="checkbox"
                       checked={row.required ?? false}
                       disabled={!row.create}
-                      onChange={(event) => updateRequired(index, event.target.checked)}
+                      onChange={(event) =>
+                        updateRequired(index, event.target.checked)
+                      }
                     />
                   </td>
                   <td className="min-w-72 px-3 py-2">
@@ -354,7 +353,9 @@ export function ImportNewFieldsPanel({
                         }
                       />
                     ) : (
-                      <span className="text-xs text-muted">Không cần cấu hình</span>
+                      <span className="text-xs text-muted">
+                        Không cần cấu hình
+                      </span>
                     )}
                   </td>
                   <td className="px-3 py-2 text-xs text-muted">

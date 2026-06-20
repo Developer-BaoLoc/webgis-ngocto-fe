@@ -122,7 +122,7 @@ export function LineStringField({
                 className={inputClass}
                 value={point.lat}
                 required={required}
-                placeholder="10.0125"
+                placeholder="9.4466"
                 onChange={(e) => updatePoint(index, "lat", e.target.value)}
               />
             </div>
@@ -138,7 +138,7 @@ export function LineStringField({
                 className={inputClass}
                 value={point.lng}
                 required={required}
-                placeholder="105.785"
+                placeholder="105.9342"
                 onChange={(e) => updatePoint(index, "lng", e.target.value)}
               />
             </div>

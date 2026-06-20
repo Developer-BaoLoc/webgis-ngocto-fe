@@ -72,6 +72,29 @@ const sections = [
     ),
   },
   {
+    href: "/quan-tri/datasets",
+    title: "Datasets",
+    description:
+      "Chuẩn hóa nhiều Saved View thành schema chung cho analytics và dashboard widget.",
+    accent: "blue" as const,
+    icon: (
+      <svg
+        className="h-5 w-5"
+        fill="none"
+        viewBox="0 0 24 24"
+        strokeWidth={1.75}
+        stroke="currentColor"
+        aria-hidden
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M4 6c0-1.1 3.6-2 8-2s8 .9 8 2-3.6 2-8 2-8-.9-8-2Zm0 0v6c0 1.1 3.6 2 8 2s8-.9 8-2V6m-16 6v6c0 1.1 3.6 2 8 2s8-.9 8-2v-6"
+        />
+      </svg>
+    ),
+  },
+  {
     href: "/quan-tri/dashboard",
     title: "Dashboard",
     description:

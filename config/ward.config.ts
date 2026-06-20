@@ -1,12 +1,12 @@
 export const wardConfig = {
-  id: "long-binh",
-  name: "Demo Phường Xã",
-  locationLabel: "Demo Phường Xã",
-  district: "Quận Cái Răng",
+  id: "ngoc-to",
+  name: "Ngọc Tố",
+  locationLabel: "Xã Ngọc Tố",
+  district: "Huyện Mỹ Xuyên",
   city: "Thành phố Cần Thơ",
   cityShort: "TP. Cần Thơ",
   country: "Việt Nam",
   /** Fallback — ưu tiên lấy từ GET /api/layers → project.center */
-  center: { lat: 10.3489, lng: 105.8342 },
+  center: { lat: 9.4466, lng: 105.9342 },
   defaultZoom: 15,
 } as const;

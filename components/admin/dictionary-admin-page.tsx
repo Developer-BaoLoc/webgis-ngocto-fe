@@ -8,7 +8,11 @@ import { PageHeader } from "@/components/layout/page-header";
 import { Modal } from "@/components/ui/modal";
 import { AdminListPanel } from "@/components/ui/admin-list-panel";
 import { inputClass } from "@/components/form/field-wrapper";
-import { uniqueLabels } from "@/lib/dictionaries/utils";
+import {
+  cleanDictionaryText,
+  normalizeDictionaryName,
+  uniqueLabels,
+} from "@/lib/dictionaries/utils";
 import {
   createDictionary,
   deleteDictionary,
@@ -83,12 +87,23 @@ export function DictionaryAdminPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    const name = cleanDictionaryText(form.name);
+    const duplicate = dictionaries.some(
+      (dictionary) =>
+        dictionary.id !== editing?.id &&
+        normalizeDictionaryName(dictionary.name) ===
+          normalizeDictionaryName(name),
+    );
+    if (duplicate) {
+      setError("Danh mục này đã tồn tại");
+      return;
+    }
     setIsSubmitting(true);
     setError(null);
     try {
       if (editing) {
         await updateDictionary(editing.code, {
-          name: form.name,
+          name,
           description: form.description || null,
         });
         setShowForm(false);
@@ -96,7 +111,7 @@ export function DictionaryAdminPage() {
       } else {
         const labels = uniqueLabels(form.valueLabels);
         const created = await createDictionary({
-          name: form.name,
+          name,
           description: form.description || undefined,
           isHierarchical: false,
           values: labels.map((label) => ({ label })),
@@ -168,45 +183,41 @@ export function DictionaryAdminPage() {
         }
       >
         <DataTable minWidth="480px">
-              <DataTableHead>
-                <tr>
-                  <DataTableHeaderCell>Tên danh mục</DataTableHeaderCell>
-                  <DataTableHeaderCell align="center">
-                    Số giá trị
-                  </DataTableHeaderCell>
-                  <DataTableHeaderCell align="right">
-                    Thao tác
-                  </DataTableHeaderCell>
-                </tr>
-              </DataTableHead>
-              <DataTableBody>
-                {dictionaries.map((dict) => (
-                  <DataTableRow key={dict.id}>
-                    <DataTableCell variant="primary">{dict.name}</DataTableCell>
-                    <DataTableCell align="center">
-                      <DataTableCountBadge count={dict.itemCount ?? 0} />
-                    </DataTableCell>
-                    <DataTableCell variant="actions" align="right">
-                      <TableActions>
-                        <TableActionLink
-                          href={`/quan-tri/danh-muc/${dict.code}`}
-                        >
-                          Quản lý giá trị
-                        </TableActionLink>
-                        <TableActionButton onClick={() => openEdit(dict)}>
-                          Sửa
-                        </TableActionButton>
-                        <TableActionButton
-                          variant="danger"
-                          onClick={() => handleDelete(dict)}
-                        >
-                          Xóa
-                        </TableActionButton>
-                      </TableActions>
-                    </DataTableCell>
-                  </DataTableRow>
-                ))}
-              </DataTableBody>
+          <DataTableHead>
+            <tr>
+              <DataTableHeaderCell>Tên danh mục</DataTableHeaderCell>
+              <DataTableHeaderCell align="center">
+                Số giá trị
+              </DataTableHeaderCell>
+              <DataTableHeaderCell align="right">Thao tác</DataTableHeaderCell>
+            </tr>
+          </DataTableHead>
+          <DataTableBody>
+            {dictionaries.map((dict) => (
+              <DataTableRow key={dict.id}>
+                <DataTableCell variant="primary">{dict.name}</DataTableCell>
+                <DataTableCell align="center">
+                  <DataTableCountBadge count={dict.itemCount ?? 0} />
+                </DataTableCell>
+                <DataTableCell variant="actions" align="right">
+                  <TableActions>
+                    <TableActionLink href={`/quan-tri/danh-muc/${dict.code}`}>
+                      Quản lý giá trị
+                    </TableActionLink>
+                    <TableActionButton onClick={() => openEdit(dict)}>
+                      Sửa
+                    </TableActionButton>
+                    <TableActionButton
+                      variant="danger"
+                      onClick={() => handleDelete(dict)}
+                    >
+                      Xóa
+                    </TableActionButton>
+                  </TableActions>
+                </DataTableCell>
+              </DataTableRow>
+            ))}
+          </DataTableBody>
         </DataTable>
       </AdminListPanel>
 

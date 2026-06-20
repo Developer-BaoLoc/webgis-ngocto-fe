@@ -11,7 +11,7 @@ function getInitials(name: string): string {
 }
 
 function getDisplayName(fullName: string): string {
-  const suffix = " Long Bình";
+  const suffix = " Ngọc Tố";
   if (fullName.endsWith(suffix)) {
     return fullName.slice(0, -suffix.length);
   }

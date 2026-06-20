@@ -138,7 +138,7 @@ export function getAgriAlerts(): AgriAlert[] {
 /** Phản ánh người dân — nội dung gắn với khu vực thật trong dữ liệu. */
 export function getCitizenFeedback(): CitizenFeedback[] {
   const areas = agriDashboardData.charts.areaDistribution.map((a) => a.name);
-  const pick = (i: number) => areas[i % areas.length] ?? "Long Bình";
+  const pick = (i: number) => areas[i % areas.length] ?? "Ngọc Tố";
 
   return [
     {

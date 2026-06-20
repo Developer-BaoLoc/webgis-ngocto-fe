@@ -108,3 +108,35 @@ export function KpiIconModel({ className }: KpiIconProps) {
     </IconBase>
   );
 }
+
+export function KpiIconAgriculture({ className }: KpiIconProps) {
+  return (
+    <IconBase className={className}>
+      <path d="M12 22V8" />
+      <path d="M12 12c-4 0-7-2.5-7-6 4 0 7 2.5 7 6Z" />
+      <path d="M12 17c4 0 7-2.5 7-6-4 0-7 2.5-7 6Z" />
+      <path d="M8 22h8" />
+    </IconBase>
+  );
+}
+
+export function KpiIconWarning({ className }: KpiIconProps) {
+  return (
+    <IconBase className={className}>
+      <path d="M10.3 3.7 2.2 18a2 2 0 0 0 1.8 3h16a2 2 0 0 0 1.8-3L13.7 3.7a2 2 0 0 0-3.4 0Z" />
+      <path d="M12 9v4" />
+      <path d="M12 17h.01" />
+    </IconBase>
+  );
+}
+
+export function KpiIconCount({ className }: KpiIconProps) {
+  return (
+    <IconBase className={className}>
+      <rect x="3" y="3" width="7" height="7" rx="2" />
+      <rect x="14" y="3" width="7" height="7" rx="2" />
+      <rect x="3" y="14" width="7" height="7" rx="2" />
+      <rect x="14" y="14" width="7" height="7" rx="2" />
+    </IconBase>
+  );
+}

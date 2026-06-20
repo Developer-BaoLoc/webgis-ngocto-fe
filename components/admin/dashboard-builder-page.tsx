@@ -6,6 +6,7 @@ import { Modal } from "@/components/ui/modal";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { previewAnalytics } from "@/lib/api/analytics";
 import { getSavedViews } from "@/lib/api/saved-views";
+import { getDatasets } from "@/lib/api/datasets";
 import {
   createDashboardDraftFromPublished,
   getDashboardDataSources,
@@ -15,10 +16,7 @@ import {
   updateDashboardDraft,
 } from "@/lib/api/dashboards";
 import { DynamicDashboardView } from "@/components/dashboard/dynamic-dashboard-view";
-import {
-  WIDGET_TYPE_LABELS,
-  sortWidgets,
-} from "@/lib/dashboard/utils";
+import { WIDGET_TYPE_LABELS, sortWidgets } from "@/lib/dashboard/utils";
 import {
   WidgetFormFields,
   emptyWidgetForm,
@@ -37,9 +35,13 @@ import {
   TableActions,
   TableBadge,
 } from "@/components/ui/data-table";
-import { isGroupedAnalyticsResult } from "@/types/api/dashboard";
+import {
+  isGroupedAnalyticsResult,
+  isTopAnalyticsResult,
+} from "@/types/api/dashboard";
 import type { DashboardDetail, DataSourceLayer } from "@/types/api/dashboard";
 import type { SavedView } from "@/types/api/saved-view";
+import type { Dataset } from "@/types/api/dataset";
 import { formatAnalyticsNumber } from "@/lib/dashboard/utils";
 
 interface DashboardBuilderPageProps {
@@ -59,26 +61,31 @@ async function resolveDraft(dashboardId: string): Promise<DashboardDetail> {
   }
 }
 
-export function DashboardBuilderPage({ dashboardId }: DashboardBuilderPageProps) {
+export function DashboardBuilderPage({
+  dashboardId,
+}: DashboardBuilderPageProps) {
   const [draft, setDraft] = useState<DashboardDetail | null>(null);
   const [dataSources, setDataSources] = useState<DataSourceLayer[]>([]);
   const [savedViews, setSavedViews] = useState<SavedView[]>([]);
+  const [datasets, setDatasets] = useState<Dataset[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showWidgetModal, setShowWidgetModal] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
-  const [widgetForm, setWidgetForm] = useState<WidgetFormState>(emptyWidgetForm());
+  const [widgetForm, setWidgetForm] =
+    useState<WidgetFormState>(emptyWidgetForm());
   const [previewText, setPreviewText] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const [draftData, sources, views] = await Promise.all([
+      const [draftData, sources, views, datasetRows] = await Promise.all([
         resolveDraft(dashboardId),
         getDashboardDataSources().catch(() => []),
         getSavedViews().catch(() => []),
+        getDatasets().catch(() => []),
       ]);
       setDraft({
         ...draftData,
@@ -86,6 +93,7 @@ export function DashboardBuilderPage({ dashboardId }: DashboardBuilderPageProps)
       });
       setDataSources(sources);
       setSavedViews(views);
+      setDatasets(datasetRows);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Không tải được dashboard");
     } finally {
@@ -94,6 +102,7 @@ export function DashboardBuilderPage({ dashboardId }: DashboardBuilderPageProps)
   }, [dashboardId]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- initial client-side API load
     void load();
   }, [load]);
 
@@ -180,6 +189,7 @@ export function DashboardBuilderPage({ dashboardId }: DashboardBuilderPageProps)
   async function handlePreviewWidget() {
     const widget = formToWidget(widgetForm, 0);
     if (
+      !widget.dataSourceConfig?.datasetId &&
       !widget.dataSourceConfig?.viewId &&
       !widget.dataSourceConfig?.layerId
     ) {
@@ -190,7 +200,9 @@ export function DashboardBuilderPage({ dashboardId }: DashboardBuilderPageProps)
       const result = await previewAnalytics({
         dataSourceConfig: widget.dataSourceConfig,
       });
-      if (isGroupedAnalyticsResult(result)) {
+      if (isTopAnalyticsResult(result)) {
+        setPreviewText(`${result.records.length} dòng xếp hạng`);
+      } else if (isGroupedAnalyticsResult(result)) {
         setPreviewText(
           result.rows
             .slice(0, 5)
@@ -283,18 +295,28 @@ export function DashboardBuilderPage({ dashboardId }: DashboardBuilderPageProps)
                 <DataTable minWidth="640px">
                   <DataTableHead>
                     <tr>
-                      <DataTableHeaderCell className="w-14">#</DataTableHeaderCell>
+                      <DataTableHeaderCell className="w-14">
+                        #
+                      </DataTableHeaderCell>
                       <DataTableHeaderCell>Tiêu đề</DataTableHeaderCell>
                       <DataTableHeaderCell>Kiểu</DataTableHeaderCell>
                       <DataTableHeaderCell>Kích thước</DataTableHeaderCell>
-                      <DataTableHeaderCell align="right">Thao tác</DataTableHeaderCell>
+                      <DataTableHeaderCell align="right">
+                        Thao tác
+                      </DataTableHeaderCell>
                     </tr>
                   </DataTableHead>
                   <DataTableBody>
                     {widgets.map((widget, index) => (
-                      <DataTableRow key={widget.id ?? `${widget.title}-${index}`}>
-                        <DataTableCell variant="index">{index + 1}</DataTableCell>
-                        <DataTableCell variant="primary">{widget.title}</DataTableCell>
+                      <DataTableRow
+                        key={widget.id ?? `${widget.title}-${index}`}
+                      >
+                        <DataTableCell variant="index">
+                          {index + 1}
+                        </DataTableCell>
+                        <DataTableCell variant="primary">
+                          {widget.title}
+                        </DataTableCell>
                         <DataTableCell>
                           <TableBadge variant="default">
                             {WIDGET_TYPE_LABELS[widget.widgetType] ??
@@ -365,19 +387,20 @@ export function DashboardBuilderPage({ dashboardId }: DashboardBuilderPageProps)
               form={widgetForm}
               dataSources={dataSources}
               savedViews={savedViews}
+              datasets={datasets}
               onChange={setWidgetForm}
             />
 
             {widgetForm.widgetType !== "text" &&
               widgetForm.widgetType !== "map" && (
-              <button
-                type="button"
-                onClick={() => void handlePreviewWidget()}
-                className="text-sm text-primary hover:underline"
-              >
-                Xem trước dữ liệu
-              </button>
-            )}
+                <button
+                  type="button"
+                  onClick={() => void handlePreviewWidget()}
+                  className="text-sm text-primary hover:underline"
+                >
+                  Xem trước dữ liệu
+                </button>
+              )}
 
             {previewText && (
               <p className="rounded-lg border border-border bg-slate-50 px-3 py-2 text-sm">

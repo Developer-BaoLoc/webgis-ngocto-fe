@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { inputClass } from "@/components/form/field-wrapper";
 import {
   getDictionaryValues,
+  normalizeDictionaryName,
   parseValueLabels,
   uniqueLabels,
 } from "@/lib/dictionaries/utils";
@@ -73,10 +74,9 @@ export function DictionaryDetailPage({ code }: DictionaryDetailPageProps) {
     load();
   }, [load]);
 
-  const activeValues =
-    dictionary
-      ? getDictionaryValues(dictionary).filter((item) => item.isActive !== false)
-      : [];
+  const activeValues = dictionary
+    ? getDictionaryValues(dictionary).filter((item) => item.isActive !== false)
+    : [];
 
   const sortedValues = [...activeValues].sort(
     (a, b) =>
@@ -97,6 +97,16 @@ export function DictionaryDetailPage({ code }: DictionaryDetailPageProps) {
     e.preventDefault();
     const label = quickLabel.trim();
     if (!label) return;
+    if (
+      activeValues.some(
+        (item) =>
+          normalizeDictionaryName(item.label) ===
+          normalizeDictionaryName(label),
+      )
+    ) {
+      setError("Giá trị danh mục đã tồn tại trong nhóm này");
+      return;
+    }
     setIsSubmitting(true);
     setError(null);
     try {
@@ -116,6 +126,17 @@ export function DictionaryDetailPage({ code }: DictionaryDetailPageProps) {
   async function handleEditSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!editing) return;
+    if (
+      activeValues.some(
+        (item) =>
+          item.id !== editing.id &&
+          normalizeDictionaryName(item.label) ===
+            normalizeDictionaryName(form.label),
+      )
+    ) {
+      setError("Giá trị danh mục đã tồn tại trong nhóm này");
+      return;
+    }
     setIsSubmitting(true);
     setError(null);
     try {
@@ -138,6 +159,15 @@ export function DictionaryDetailPage({ code }: DictionaryDetailPageProps) {
     const labels = uniqueLabels(parseValueLabels(batchText));
     if (labels.length === 0) {
       setError("Nhập ít nhất một giá trị");
+      return;
+    }
+    const existingLabels = new Set(
+      activeValues.map((item) => normalizeDictionaryName(item.label)),
+    );
+    if (
+      labels.some((label) => existingLabels.has(normalizeDictionaryName(label)))
+    ) {
+      setError("Giá trị danh mục đã tồn tại trong nhóm này");
       return;
     }
     setIsSubmitting(true);
@@ -180,9 +210,7 @@ export function DictionaryDetailPage({ code }: DictionaryDetailPageProps) {
               : "Danh mục không tồn tại"
         }
         description={
-          dictionary
-            ? `${activeValues.length} giá trị lựa chọn`
-            : undefined
+          dictionary ? `${activeValues.length} giá trị lựa chọn` : undefined
         }
         backHref="/quan-tri/danh-muc"
         backLabel="Danh mục dùng chung"
@@ -278,8 +306,8 @@ export function DictionaryDetailPage({ code }: DictionaryDetailPageProps) {
             </p>
           ) : sortedValues.length === 0 ? (
             <p className="text-sm text-muted">
-              Chưa có giá trị nào. Nhập ở ô phía trên hoặc dùng &quot;Thêm
-              nhiều giá trị&quot;.
+              Chưa có giá trị nào. Nhập ở ô phía trên hoặc dùng &quot;Thêm nhiều
+              giá trị&quot;.
             </p>
           ) : (
             <DataTable minWidth="400px">
@@ -289,7 +317,9 @@ export function DictionaryDetailPage({ code }: DictionaryDetailPageProps) {
                     STT
                   </DataTableHeaderCell>
                   <DataTableHeaderCell>Tên giá trị</DataTableHeaderCell>
-                  <DataTableHeaderCell align="right">Thao tác</DataTableHeaderCell>
+                  <DataTableHeaderCell align="right">
+                    Thao tác
+                  </DataTableHeaderCell>
                 </tr>
               </DataTableHead>
               <DataTableBody>
@@ -298,7 +328,9 @@ export function DictionaryDetailPage({ code }: DictionaryDetailPageProps) {
                     <DataTableCell variant="index">
                       {item.sortOrder ?? index + 1}
                     </DataTableCell>
-                    <DataTableCell variant="primary">{item.label}</DataTableCell>
+                    <DataTableCell variant="primary">
+                      {item.label}
+                    </DataTableCell>
                     <DataTableCell variant="actions" align="right">
                       <TableActions>
                         <TableActionButton onClick={() => openEdit(item)}>

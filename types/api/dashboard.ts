@@ -11,7 +11,7 @@ export type WidgetType =
   | "text"
   | "global_filter";
 
-export type AggregationType = "count" | "sum" | "avg";
+export type AggregationType = "count" | "sum" | "avg" | "min" | "max" | "top";
 
 export interface WidgetLayoutConfig {
   x: number;
@@ -37,6 +37,7 @@ export interface AnalyticsFilter {
 }
 
 export interface DataSourceConfig {
+  datasetId?: string;
   viewId?: string;
   layerId?: string;
   aggregation: AggregationType;
@@ -46,6 +47,8 @@ export interface DataSourceConfig {
   groupByFieldCode?: string;
   filters?: AnalyticsFilter[];
   limit?: number;
+  displayFields?: string[];
+  sort?: { field: string; direction: "asc" | "desc" };
 }
 
 export interface DashboardWidget {
@@ -109,8 +112,9 @@ export interface DataSourceLayer {
 }
 
 export interface AnalyticsScalarResult {
+  datasetId?: string;
   viewId?: string;
-  layerId: string;
+  layerId?: string;
   aggregation: string;
   value: number;
   fieldCode?: string;
@@ -123,15 +127,26 @@ export interface AnalyticsGroupRow {
 }
 
 export interface AnalyticsGroupedResult {
+  datasetId?: string;
   viewId?: string;
-  layerId: string;
+  layerId?: string;
   aggregation: string;
   groupByFieldCode?: string;
   fieldCode?: string;
   rows: AnalyticsGroupRow[];
 }
 
-export type AnalyticsResult = AnalyticsScalarResult | AnalyticsGroupedResult;
+export interface AnalyticsTopResult {
+  datasetId: string;
+  aggregation: "top";
+  fieldCode?: string;
+  records: Array<Record<string, unknown>>;
+}
+
+export type AnalyticsResult =
+  | AnalyticsScalarResult
+  | AnalyticsGroupedResult
+  | AnalyticsTopResult;
 
 export interface AnalyticsPreviewPayload {
   dataSourceConfig: DataSourceConfig;
@@ -142,4 +157,10 @@ export function isGroupedAnalyticsResult(
   result: AnalyticsResult,
 ): result is AnalyticsGroupedResult {
   return "rows" in result && Array.isArray(result.rows);
+}
+
+export function isTopAnalyticsResult(
+  result: AnalyticsResult,
+): result is AnalyticsTopResult {
+  return "records" in result && Array.isArray(result.records);
 }

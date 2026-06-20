@@ -20,10 +20,7 @@ function getDataLayerIds(layerId: string, geometryType: string) {
     case "multipolygon":
       return {
         sourceId,
-        layerIds: [
-          `${sourceId}-fill`,
-          `${sourceId}-line`,
-        ],
+        layerIds: [`${sourceId}-fill`, `${sourceId}-line`],
       };
     case "line":
     case "linestring":
@@ -353,6 +350,17 @@ export async function restoreDataLayers(
 ) {
   if (!entries.length) return;
   await syncDataLayers(map, entries);
+}
+
+export function updateDataLayerSourceData(
+  map: MapLibreMap,
+  entry: LayerGeoJsonEntry,
+) {
+  const sourceId = getDataLayerSourceId(entry.layer.id);
+  const source = map.getSource(sourceId);
+  if (!source || source.type !== "geojson") return false;
+  (source as GeoJSONSource).setData(entry.geojson as FeatureCollection);
+  return true;
 }
 
 export function setDataLayerVisibility(

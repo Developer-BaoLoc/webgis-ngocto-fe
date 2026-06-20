@@ -1,41 +1,42 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import Link from "next/link";
+import { Component, useEffect, useState } from "react";
+import type { ErrorInfo, ReactNode } from "react";
 import { previewAnalytics } from "@/lib/api/analytics";
-import { formatAnalyticsNumber } from "@/lib/dashboard/utils";
-import { isGroupedAnalyticsResult } from "@/types/api/dashboard";
-import type {
-  AnalyticsResult,
-  DashboardWidget,
+import {
+  isTopAnalyticsResult,
+  type AnalyticsResult,
+  type DashboardWidget,
 } from "@/types/api/dashboard";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
-  DataTable,
-  DataTableBody,
-  DataTableCell,
-  DataTableHead,
-  DataTableHeaderCell,
-  DataTableRow,
-} from "@/components/ui/data-table";
-import Link from "next/link";
+  BarChartWidgetRenderer,
+  KpiWidgetRenderer,
+  LineChartWidgetRenderer,
+  PieChartWidgetRenderer,
+  RankingWidgetRenderer,
+  TableWidgetRenderer,
+  WidgetEmptyState,
+  WidgetPanel,
+} from "./widget-renderers";
 
 interface DashboardWidgetCardProps {
   widget: DashboardWidget;
 }
 
 export function DashboardWidgetCard({ widget }: DashboardWidgetCardProps) {
-  if (widget.widgetType === "text") {
-    return <TextWidget widget={widget} />;
-  }
+  return (
+    <WidgetErrorBoundary widget={widget}>
+      <DashboardWidgetContent widget={widget} />
+    </WidgetErrorBoundary>
+  );
+}
 
-  if (widget.widgetType === "map") {
-    return <MapWidget widget={widget} />;
-  }
-
-  if (widget.widgetType === "global_filter") {
-    return null;
-  }
-
+function DashboardWidgetContent({ widget }: DashboardWidgetCardProps) {
+  if (widget.widgetType === "text") return <TextWidget widget={widget} />;
+  if (widget.widgetType === "map") return <MapWidget widget={widget} />;
+  if (widget.widgetType === "global_filter") return null;
   return <AnalyticsWidget widget={widget} />;
 }
 
@@ -47,7 +48,13 @@ function TextWidget({ widget }: { widget: DashboardWidget }) {
         <h3 className="text-base font-semibold">{widget.title}</h3>
       </CardHeader>
       <CardContent>
-        <p className="whitespace-pre-wrap text-sm text-foreground">{content || "—"}</p>
+        {content ? (
+          <p className="whitespace-pre-wrap text-sm text-foreground">
+            {content}
+          </p>
+        ) : (
+          <WidgetEmptyState detail="Hãy thêm nội dung trong trình thiết kế widget" />
+        )}
       </CardContent>
     </Card>
   );
@@ -63,22 +70,15 @@ function MapWidget({ widget }: { widget: DashboardWidget }) {
       : "/ban-do";
 
   return (
-    <Card className="h-full">
-      <CardHeader>
-        <h3 className="text-base font-semibold">{widget.title}</h3>
-      </CardHeader>
-      <CardContent>
-        <p className="text-sm text-muted">
-          Xem dữ liệu trên bản đồ tương tác.
-        </p>
-        <Link
-          href={href}
-          className="mt-3 inline-flex rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-dark"
-        >
-          Mở bản đồ
-        </Link>
-      </CardContent>
-    </Card>
+    <WidgetPanel widget={widget}>
+      <p className="text-sm text-muted">Xem dữ liệu trên bản đồ tương tác.</p>
+      <Link
+        href={href}
+        className="mt-3 inline-flex rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-dark"
+      >
+        Mở bản đồ
+      </Link>
+    </WidgetPanel>
   );
 }
 
@@ -89,9 +89,11 @@ function AnalyticsWidget({ widget }: { widget: DashboardWidget }) {
 
   useEffect(() => {
     if (
+      !widget.dataSourceConfig?.datasetId &&
       !widget.dataSourceConfig?.viewId &&
       !widget.dataSourceConfig?.layerId
     ) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- render immediate configuration feedback
       setLoading(false);
       setError("Chưa cấu hình nguồn dữ liệu");
       return;
@@ -100,14 +102,19 @@ function AnalyticsWidget({ widget }: { widget: DashboardWidget }) {
     let cancelled = false;
     setLoading(true);
     setError(null);
+    setData(null);
 
     previewAnalytics({ dataSourceConfig: widget.dataSourceConfig })
       .then((result) => {
         if (!cancelled) setData(result);
       })
-      .catch((err) => {
+      .catch((requestError) => {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Không tải được dữ liệu");
+          setError(
+            requestError instanceof Error
+              ? requestError.message
+              : "Không tải được dữ liệu",
+          );
         }
       })
       .finally(() => {
@@ -119,22 +126,17 @@ function AnalyticsWidget({ widget }: { widget: DashboardWidget }) {
     };
   }, [widget.dataSourceConfig]);
 
-  return (
-    <Card className="h-full">
-      <CardHeader>
-        <h3 className="text-base font-semibold">{widget.title}</h3>
-      </CardHeader>
-      <CardContent>
-        {loading && <p className="text-sm text-muted">Đang tải...</p>}
-        {error && (
-          <p className="text-sm text-red-600">{error}</p>
-        )}
-        {!loading && !error && data && (
-          <WidgetDataContent widget={widget} data={data} />
-        )}
-      </CardContent>
-    </Card>
-  );
+  if (loading) return <WidgetLoading widget={widget} />;
+  if (error) return <WidgetError widget={widget} message={error} />;
+  if (!data) {
+    return (
+      <WidgetPanel widget={widget}>
+        <WidgetEmptyState />
+      </WidgetPanel>
+    );
+  }
+
+  return <WidgetDataContent widget={widget} data={data} />;
 }
 
 function WidgetDataContent({
@@ -145,118 +147,134 @@ function WidgetDataContent({
   data: AnalyticsResult;
 }) {
   if (widget.widgetType === "stat") {
-    if (isGroupedAnalyticsResult(data)) {
-      const total = data.rows.reduce((sum, row) => sum + row.value, 0);
-      return <StatValue value={total} widget={widget} />;
-    }
-    return <StatValue value={data.value} widget={widget} />;
+    return <KpiWidgetRenderer widget={widget} data={data} />;
   }
 
   if (
-    widget.widgetType === "bar" ||
-    widget.widgetType === "line" ||
-    widget.widgetType === "pie" ||
-    widget.widgetType === "donut"
+    widget.dataSourceConfig?.aggregation === "top" ||
+    isTopAnalyticsResult(data) ||
+    widget.displayConfig?.variant === "ranking"
   ) {
-    if (!isGroupedAnalyticsResult(data)) {
-      return (
-        <p className="text-sm text-muted">
-          Cần cấu hình nhóm theo trường để hiển thị biểu đồ.
-        </p>
-      );
-    }
-    return <BarChart rows={data.rows} />;
+    return (
+      <WidgetPanel widget={widget}>
+        <RankingWidgetRenderer widget={widget} data={data} />
+      </WidgetPanel>
+    );
+  }
+
+  if (widget.widgetType === "bar") {
+    return (
+      <WidgetPanel widget={widget}>
+        <BarChartWidgetRenderer widget={widget} data={data} />
+      </WidgetPanel>
+    );
+  }
+
+  if (widget.widgetType === "line") {
+    return (
+      <WidgetPanel widget={widget}>
+        <LineChartWidgetRenderer widget={widget} data={data} />
+      </WidgetPanel>
+    );
+  }
+
+  if (widget.widgetType === "pie" || widget.widgetType === "donut") {
+    return (
+      <WidgetPanel widget={widget}>
+        <PieChartWidgetRenderer
+          widget={widget}
+          data={data}
+          donut={widget.widgetType === "donut"}
+        />
+      </WidgetPanel>
+    );
   }
 
   if (widget.widgetType === "table") {
-    if (!isGroupedAnalyticsResult(data)) {
-      return (
-        <p className="text-sm text-muted">
-          Cần cấu hình nhóm theo trường để hiển thị bảng.
-        </p>
-      );
-    }
-    return <GroupTable rows={data.rows} />;
+    return (
+      <WidgetPanel widget={widget}>
+        <TableWidgetRenderer widget={widget} data={data} />
+      </WidgetPanel>
+    );
   }
 
-  return <p className="text-sm text-muted">Kiểu widget chưa hỗ trợ hiển thị.</p>;
-}
-
-function StatValue({
-  value,
-  widget,
-}: {
-  value: number;
-  widget: DashboardWidget;
-}) {
-  const suffix = widget.displayConfig?.suffix
-    ? String(widget.displayConfig.suffix)
-    : "";
-
   return (
-    <div>
-      <p className="text-4xl font-semibold text-foreground">
-        {formatAnalyticsNumber(value)}
-        {suffix ? (
-          <span className="ml-2 text-lg font-medium text-muted">{suffix}</span>
-        ) : null}
-      </p>
-    </div>
+    <WidgetPanel widget={widget}>
+      <WidgetEmptyState detail="Kiểu widget này chưa hỗ trợ hiển thị" />
+    </WidgetPanel>
   );
 }
 
-function BarChart({
-  rows,
-}: {
-  rows: Array<{ label: string; value: number }>;
-}) {
-  const max = Math.max(...rows.map((row) => row.value), 1);
-
-  return (
-    <div className="space-y-3">
-      {rows.map((row) => (
-        <div key={`${row.label}-${row.value}`}>
-          <div className="mb-1 flex items-center justify-between gap-2 text-sm">
-            <span className="truncate text-foreground">{row.label}</span>
-            <span className="shrink-0 font-medium tabular-nums">
-              {formatAnalyticsNumber(row.value)}
-            </span>
-          </div>
-          <div className="h-2.5 overflow-hidden rounded-full bg-slate-100">
-            <div
-              className="h-full rounded-full bg-primary transition-all"
-              style={{ width: `${(row.value / max) * 100}%` }}
-            />
-          </div>
+function WidgetLoading({ widget }: { widget: DashboardWidget }) {
+  if (widget.widgetType === "stat") {
+    return (
+      <article className="ioc-kpi ioc-kpi--slate ioc-kpi--dashboard h-full">
+        <div className="ioc-kpi-icon-wrap ioc-skeleton" />
+        <div className="ioc-kpi-body space-y-2">
+          <div className="ioc-skeleton h-3 w-24 rounded" />
+          <div className="ioc-skeleton h-8 w-32 rounded" />
+          <div className="ioc-skeleton h-3 w-40 max-w-full rounded" />
         </div>
-      ))}
-    </div>
+      </article>
+    );
+  }
+  return (
+    <WidgetPanel widget={widget}>
+      <div className="space-y-3" aria-label="Đang tải dữ liệu">
+        <div className="ioc-skeleton h-4 w-2/3 rounded" />
+        <div className="ioc-skeleton h-24 w-full rounded-lg" />
+        <div className="ioc-skeleton h-4 w-1/2 rounded" />
+      </div>
+    </WidgetPanel>
   );
 }
 
-function GroupTable({
-  rows,
+function WidgetError({
+  widget,
+  message,
 }: {
-  rows: Array<{ label: string; value: number }>;
+  widget: DashboardWidget;
+  message: string;
 }) {
   return (
-    <DataTable minWidth="280px">
-      <DataTableHead>
-        <tr>
-          <DataTableHeaderCell>Nhóm</DataTableHeaderCell>
-          <DataTableHeaderCell align="right">Giá trị</DataTableHeaderCell>
-        </tr>
-      </DataTableHead>
-      <DataTableBody>
-        {rows.map((row) => (
-          <DataTableRow key={`${row.label}-${row.value}`}>
-            <DataTableCell variant="primary">{row.label}</DataTableCell>
-            <DataTableCell align="right">
-              {formatAnalyticsNumber(row.value)}
-            </DataTableCell>
-          </DataTableRow>
-        ))}
-      </DataTableBody>
-    </DataTable>
+    <WidgetPanel widget={widget}>
+      <div className="ioc-widget-state ioc-widget-state--error" role="alert">
+        <span className="ioc-widget-state-icon" aria-hidden>
+          !
+        </span>
+        <p className="ioc-widget-state-title">Không thể tải widget</p>
+        <p className="ioc-widget-state-detail">{message}</p>
+        <p className="ioc-widget-state-hint">
+          Hãy kiểm tra nguồn dữ liệu hoặc bộ lọc
+        </p>
+      </div>
+    </WidgetPanel>
   );
+}
+
+class WidgetErrorBoundary extends Component<
+  { widget: DashboardWidget; children: ReactNode },
+  { hasError: boolean }
+> {
+  state = { hasError: false };
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error("Dashboard widget render error", error, info);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <WidgetError
+          widget={this.props.widget}
+          message="Dữ liệu trả về không đúng định dạng mong đợi."
+        />
+      );
+    }
+    return this.props.children;
+  }
 }

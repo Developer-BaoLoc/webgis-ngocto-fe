@@ -1,8 +1,8 @@
 {
   "meta": {
     "title": "Trung tâm điều hành Nông nghiệp",
-    "ward": "Demo Phường Xã",
-    "district": "Quận Cái Răng",
+    "ward": "Ngọc Tố",
+    "district": "Huyện Mỹ Xuyên",
     "city": "Thành phố Cần Thơ",
     "source": "BẢNG TỔNG HỢP SỐ LIỆU NÔNG NGHIỆP"
   },
@@ -137,12 +137,12 @@
         "type": "HTX"
       },
       {
-        "name": "THT Nuôi lươn Long Bình",
+        "name": "THT Nuôi lươn Ngọc Tố",
         "value": 3570,
         "type": "THT"
       },
       {
-        "name": "THT Mít Thái VietGAP Long Bình",
+        "name": "THT Mít Thái VietGAP Ngọc Tố",
         "value": 2500,
         "type": "THT"
       },
@@ -152,7 +152,7 @@
         "type": "HTX"
       },
       {
-        "name": "THT Nông nghiệp Long Bình",
+        "name": "THT Nông nghiệp Ngọc Tố",
         "value": 1260,
         "type": "THT"
       },
@@ -361,7 +361,7 @@
       },
       {
         "type": "THT",
-        "name": "THT Mít Thái VietGAP Long Bình",
+        "name": "THT Mít Thái VietGAP Ngọc Tố",
         "representative": "Phạm Thị Kim Ba",
         "area": "Bình Trung",
         "sector": "Sản xuất Mít Thái",
@@ -379,7 +379,7 @@
       },
       {
         "type": "THT",
-        "name": "THT Nông nghiệp Long Bình",
+        "name": "THT Nông nghiệp Ngọc Tố",
         "representative": "Trần Văn Trường",
         "area": "Bình Trung",
         "sector": "Mua bán lúa hàng hóa",
@@ -397,7 +397,7 @@
       },
       {
         "type": "THT",
-        "name": "THT Nuôi lươn Long Bình",
+        "name": "THT Nuôi lươn Ngọc Tố",
         "representative": "Ngô Văn Tâm",
         "area": "Bình Trung",
         "sector": "Nuôi lươn thương phẩm",

@@ -1,11 +1,11 @@
 import { wardConfig } from "@/config/ward.config";
 
-/** Trung tâm Phường Long Bình, Quận Cái Răng, Cần Thơ */
-export const LONG_BINH_CENTER = wardConfig.center;
+/** Trung tâm Xã Ngọc Tố, Huyện Mỹ Xuyên, Cần Thơ */
+export const WARD_DEFAULT_CENTER = wardConfig.center;
 
 /** Giới hạn pan — ĐBSCL / Cần Thơ (tránh kéo ra nước ngoài) */
 export const CAN_THO_BOUNDS: [[number, number], [number, number]] = [
-  [105.45, 9.85],
+  [105.45, 9.35],
   [106.15, 10.45],
 ];
 
@@ -20,7 +20,7 @@ export function normalizeMapCenter(center: MapCenter): MapCenter {
   let lng = Number(center.lng);
 
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-    return LONG_BINH_CENTER;
+    return WARD_DEFAULT_CENTER;
   }
 
   // Lat/lng bị đảo (lat > 90)
@@ -28,9 +28,9 @@ export function normalizeMapCenter(center: MapCenter): MapCenter {
     [lat, lng] = [lng, lat];
   }
 
-  // Ngoài phạm vi Việt Nam → fallback Long Bình
+  // Ngoài phạm vi Việt Nam → fallback Ngọc Tố
   if (lng < 102 || lng > 110 || lat < 8 || lat > 24) {
-    return LONG_BINH_CENTER;
+    return WARD_DEFAULT_CENTER;
   }
 
   return { lat, lng };

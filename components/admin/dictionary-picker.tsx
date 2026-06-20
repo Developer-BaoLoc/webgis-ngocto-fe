@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import {
-  createDictionary,
-  getDictionaries,
-} from "@/lib/api/dictionaries";
+import { createDictionary, getDictionaries } from "@/lib/api/dictionaries";
 import { inputClass } from "@/components/form/field-wrapper";
 import type { Dictionary } from "@/types/api/dictionary";
+import {
+  cleanDictionaryText,
+  normalizeDictionaryName,
+} from "@/lib/dictionaries/utils";
 
 interface DictionaryPickerProps {
   value?: string;
@@ -45,11 +46,22 @@ export function DictionaryPicker({
 
   async function handleCreate() {
     if (!newName.trim() || creating) return;
+    const name = cleanDictionaryText(newName);
+    const existing = dictionaries.find(
+      (dictionary) =>
+        normalizeDictionaryName(dictionary.name) ===
+        normalizeDictionaryName(name),
+    );
+    if (existing) {
+      onChange(existing.code);
+      setError("Danh mục này đã tồn tại; hệ thống đã chọn danh mục có sẵn.");
+      return;
+    }
     setCreating(true);
     setError(null);
     try {
       const created = await createDictionary({
-        name: newName.trim(),
+        name,
         description: newDescription.trim() || undefined,
         isHierarchical: false,
       });
@@ -112,7 +124,9 @@ export function DictionaryPicker({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium">Mô tả (tuỳ chọn)</label>
+            <label className="block text-sm font-medium">
+              Mô tả (tuỳ chọn)
+            </label>
             <input
               className={inputClass}
               value={newDescription}

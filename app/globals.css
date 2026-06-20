@@ -60,7 +60,9 @@ body {
   font-size: 1.125rem;
   line-height: 1;
   box-shadow: 0 1px 4px rgb(15 23 42 / 0.18);
-  transition: background 0.15s ease, transform 0.1s ease;
+  transition:
+    background 0.15s ease,
+    transform 0.1s ease;
   z-index: 3;
 }
 
@@ -163,7 +165,9 @@ body {
   background: rgb(255 255 255 / 0.55);
   padding: 0;
   cursor: pointer;
-  transition: background 0.15s ease, transform 0.15s ease;
+  transition:
+    background 0.15s ease,
+    transform 0.15s ease;
 }
 
 .map-popup-dot.is-active {
@@ -368,7 +372,9 @@ body {
   font-weight: 600;
   padding: 0.5rem 0.65rem;
   cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
 }
 
 .map-popup-directions-btn {
@@ -420,8 +426,16 @@ body {
   position: relative;
   color: #1e293b;
   background:
-    radial-gradient(ellipse 90% 55% at 50% -5%, rgb(34 197 94 / 0.12), transparent 55%),
-    radial-gradient(ellipse 50% 35% at 100% 0%, rgb(251 191 36 / 0.08), transparent 45%),
+    radial-gradient(
+      ellipse 90% 55% at 50% -5%,
+      rgb(34 197 94 / 0.12),
+      transparent 55%
+    ),
+    radial-gradient(
+      ellipse 50% 35% at 100% 0%,
+      rgb(251 191 36 / 0.08),
+      transparent 45%
+    ),
     linear-gradient(180deg, #f0fdf4 0%, #f8fafc 45%, #ffffff 100%);
   overflow-x: hidden;
 }
@@ -577,7 +591,9 @@ body {
   color: #fff;
   background: linear-gradient(135deg, #16a34a, #15803d);
   box-shadow: 0 4px 12px rgb(22 163 74 / 0.25);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 .ioc-link-btn:hover {
@@ -617,7 +633,9 @@ body {
   background: #fff;
   box-shadow: 0 2px 10px rgb(15 23 42 / 0.06);
   overflow: hidden;
-  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  transition:
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
 }
 
 .ioc-kpi::before {
@@ -668,7 +686,9 @@ body {
   flex-shrink: 0;
   border-radius: 0.75rem;
   background: rgb(255 255 255 / 0.85);
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.6), 0 2px 8px rgb(15 23 42 / 0.08);
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 0.6),
+    0 2px 8px rgb(15 23 42 / 0.08);
   color: var(--ioc-kpi-accent, #15803d);
 }
 
@@ -1939,7 +1959,11 @@ body {
   padding: 0.375rem 0.5rem 0.5rem;
   color: #1e293b;
   background:
-    radial-gradient(ellipse 90% 50% at 50% -5%, rgb(34 197 94 / 0.08), transparent 55%),
+    radial-gradient(
+      ellipse 90% 50% at 50% -5%,
+      rgb(34 197 94 / 0.08),
+      transparent 55%
+    ),
     linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
   container-type: inline-size;
   container-name: ioc-dashboard;
@@ -2571,7 +2595,9 @@ body {
   height: 1.625rem;
   border-radius: 0.375rem;
   color: #15803d;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
 }
 
 .ioc-map-icon-btn:hover {
@@ -3089,6 +3115,427 @@ body {
   .ioc-map-layer-dots {
     flex-wrap: wrap;
     max-width: 5rem;
+  }
+}
+
+/* ── Dynamic dashboard widget renderers ── */
+.ioc-kpi--amber {
+  --ioc-kpi-accent: #f59e0b;
+  border-color: #fcd34d;
+  background: linear-gradient(135deg, #fff 0%, #fffbeb 100%);
+}
+
+.ioc-kpi--rose {
+  --ioc-kpi-accent: #f43f5e;
+  border-color: #fda4af;
+  background: linear-gradient(135deg, #fff 0%, #fff1f2 100%);
+}
+
+.ioc-kpi--violet {
+  --ioc-kpi-accent: #8b5cf6;
+  border-color: #c4b5fd;
+  background: linear-gradient(135deg, #fff 0%, #f5f3ff 100%);
+}
+
+.ioc-kpi--slate {
+  --ioc-kpi-accent: #64748b;
+  border-color: #cbd5e1;
+  background: linear-gradient(135deg, #fff 0%, #f8fafc 100%);
+}
+
+.ioc-kpi--dashboard {
+  min-height: 9.5rem;
+  padding: 1rem 1.125rem 1rem 1.25rem;
+}
+
+.ioc-kpi--dashboard .ioc-kpi-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ioc-kpi--dashboard .ioc-kpi-value {
+  font-size: clamp(1.7rem, 4vw, 2.45rem);
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.ioc-kpi--dashboard .ioc-kpi-sub {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.ioc-widget-panel {
+  min-height: 15rem;
+  height: 100%;
+  border-color: #dbeafe;
+}
+
+.ioc-widget-panel .ioc-panel-header {
+  background: linear-gradient(90deg, #f0f9ff, #fff 72%);
+  border-bottom-color: #e0f2fe;
+}
+
+.ioc-widget-panel .ioc-panel-title {
+  overflow: hidden;
+  color: #0f3d5e;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ioc-widget-panel .ioc-panel-accent {
+  background: linear-gradient(180deg, #38bdf8, #2563eb);
+}
+
+.ioc-widget-panel .ioc-panel-body {
+  min-height: 11rem;
+}
+
+.ioc-widget-state {
+  display: flex;
+  min-height: 9rem;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  text-align: center;
+}
+
+.ioc-widget-state-icon {
+  display: inline-flex;
+  width: 2.4rem;
+  height: 2.4rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background: #f1f5f9;
+  color: #64748b;
+  font-size: 1.35rem;
+  font-weight: 700;
+}
+
+.ioc-widget-state-title {
+  margin: 0.65rem 0 0;
+  color: #334155;
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.ioc-widget-state-detail,
+.ioc-widget-state-hint {
+  margin: 0.25rem 0 0;
+  max-width: 28rem;
+  color: #64748b;
+  font-size: 0.75rem;
+  line-height: 1.45;
+}
+
+.ioc-widget-state--error .ioc-widget-state-icon {
+  background: #fff1f2;
+  color: #e11d48;
+}
+
+.ioc-widget-state--error .ioc-widget-state-title {
+  color: #9f1239;
+}
+
+.ioc-skeleton {
+  background: linear-gradient(90deg, #e2e8f0 25%, #f8fafc 50%, #e2e8f0 75%);
+  background-size: 200% 100%;
+  animation: ioc-skeleton-wave 1.4s ease-in-out infinite;
+}
+
+@keyframes ioc-skeleton-wave {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+.ioc-chart-key {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+  color: #64748b;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.ioc-chart-key-dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 9999px;
+  background: #0ea5e9;
+  box-shadow: 0 0 0 3px #e0f2fe;
+}
+
+.ioc-dynamic-bars > ul {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ioc-dynamic-bar-row {
+  position: relative;
+  border-radius: 0.5rem;
+  outline: none;
+}
+
+.ioc-dynamic-bar-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.3rem;
+  color: #334155;
+  font-size: 0.78rem;
+}
+
+.ioc-dynamic-bar-meta span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ioc-dynamic-bar-meta strong {
+  flex-shrink: 0;
+  color: #0f172a;
+  font-variant-numeric: tabular-nums;
+}
+
+.ioc-dynamic-bar-track {
+  height: 0.62rem;
+  overflow: hidden;
+  border-radius: 9999px;
+  background: #eaf0f6;
+}
+
+.ioc-dynamic-bar-fill {
+  height: 100%;
+  min-width: 2px;
+  border-radius: inherit;
+  transition: width 0.45s ease;
+}
+
+.ioc-dynamic-bar-fill--negative {
+  background: #f43f5e;
+}
+
+.ioc-chart-tooltip {
+  position: absolute;
+  z-index: 20;
+  left: 50%;
+  bottom: calc(100% + 0.4rem);
+  display: flex;
+  visibility: hidden;
+  min-width: max-content;
+  max-width: min(20rem, 90vw);
+  transform: translate(-50%, 0.2rem);
+  flex-direction: column;
+  gap: 0.15rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.5rem;
+  background: rgb(15 23 42 / 0.96);
+  padding: 0.45rem 0.6rem;
+  color: #fff;
+  box-shadow: 0 8px 24px rgb(15 23 42 / 0.2);
+  opacity: 0;
+  pointer-events: none;
+  font-size: 0.68rem;
+  line-height: 1.35;
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease;
+}
+
+.ioc-dynamic-bar-row:hover .ioc-chart-tooltip,
+.ioc-dynamic-bar-row:focus .ioc-chart-tooltip,
+.ioc-chart-tooltip--visible {
+  visibility: visible;
+  transform: translate(-50%, 0);
+  opacity: 1;
+}
+
+.ioc-dynamic-pie-layout {
+  display: grid;
+  align-items: center;
+  gap: 1rem;
+  grid-template-columns: minmax(9rem, 0.8fr) minmax(0, 1.2fr);
+}
+
+.ioc-dynamic-pie-visual {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: center;
+}
+
+.ioc-dynamic-pie {
+  width: min(100%, 13.5rem);
+  height: auto;
+  filter: drop-shadow(0 5px 10px rgb(15 23 42 / 0.08));
+}
+
+.ioc-pie-segment {
+  cursor: pointer;
+  stroke: #fff;
+  stroke-width: 2;
+  transition:
+    opacity 0.15s ease,
+    filter 0.15s ease;
+}
+
+.ioc-pie-segment:hover,
+.ioc-pie-segment:focus {
+  opacity: 0.82;
+  filter: brightness(1.04);
+  outline: none;
+}
+
+.ioc-donut-hole {
+  fill: #fff;
+  stroke: #e2e8f0;
+  stroke-width: 1;
+}
+
+.ioc-donut-value {
+  fill: #0f172a;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.ioc-donut-label {
+  fill: #64748b;
+  font-size: 0.62rem;
+}
+
+.ioc-dynamic-pie-visual .ioc-chart-tooltip--visible {
+  left: 50%;
+  bottom: 0.25rem;
+}
+
+.ioc-chart-legend {
+  display: flex;
+  max-height: 14rem;
+  flex-direction: column;
+  gap: 0.1rem;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.ioc-chart-legend li {
+  display: grid;
+  align-items: center;
+  gap: 0.45rem;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  padding: 0.38rem 0;
+  border-bottom: 1px solid #f1f5f9;
+  color: #334155;
+  font-size: 0.75rem;
+}
+
+.ioc-chart-legend-dot {
+  width: 0.62rem;
+  height: 0.62rem;
+  border-radius: 9999px;
+}
+
+.ioc-chart-legend-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ioc-chart-legend strong {
+  color: #0f172a;
+  font-variant-numeric: tabular-nums;
+}
+
+.ioc-chart-legend small {
+  min-width: 2.8rem;
+  color: #64748b;
+  text-align: right;
+}
+
+.ioc-dynamic-line-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.ioc-dynamic-line {
+  display: block;
+  width: 100%;
+  min-height: 12rem;
+}
+
+.ioc-dynamic-line > line {
+  stroke: #e2e8f0;
+  stroke-dasharray: 4 4;
+}
+
+.ioc-dynamic-line-path {
+  fill: none;
+  stroke: #0ea5e9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 3;
+}
+
+.ioc-dynamic-line circle {
+  fill: #fff;
+  stroke: #0284c7;
+  stroke-width: 3;
+  cursor: pointer;
+}
+
+.ioc-dynamic-line text {
+  fill: #64748b;
+  font-size: 0.62rem;
+  font-weight: 600;
+}
+
+.ioc-dynamic-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #eff6ff;
+  color: #1e40af;
+}
+
+.ioc-dynamic-table td {
+  max-width: 18rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 639px) {
+  .ioc-dynamic-pie-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .ioc-dynamic-pie {
+    width: min(11rem, 70vw);
+  }
+
+  .ioc-chart-legend {
+    max-height: 11rem;
+  }
+
+  .ioc-kpi--dashboard {
+    min-height: 8.5rem;
   }
 }
 

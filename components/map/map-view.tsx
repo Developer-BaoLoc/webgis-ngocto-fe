@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { BasemapSwitcher } from "@/components/map/basemap-switcher";
@@ -13,13 +13,27 @@ import {
   resolveMapBasemapStyle,
   setGoogleBasemapVisibility,
 } from "@/lib/map/mapbox-basemap";
-import { getGeoJsonBounds, isValidMapViewBounds, normalizeMapViewBounds, padBounds, ensureBoundsSpan } from "@/lib/map/bounds";
+import {
+  getGeoJsonBounds,
+  isValidMapViewBounds,
+  normalizeMapViewBounds,
+  padBounds,
+  ensureBoundsSpan,
+} from "@/lib/map/bounds";
 import {
   upsertWardBoundaryLayer,
   removeWardBoundaryLayer,
 } from "@/lib/map/ward-boundary-layer";
 import { useMapDataLayers } from "@/components/map/use-map-data-layers";
 import { useMapFeatureInteractions } from "@/components/map/use-map-feature-interactions";
+import { MapLayerFilterChips } from "@/components/map/map-layer-filter-chips";
+import { useMapLayerVisibility } from "@/providers/map-layer-visibility-provider";
+import { isMapVisibleLayer } from "@/lib/layers/adapter";
+import {
+  countActiveLayerFilters,
+  type LayerFilters,
+  type LayerFilterState,
+} from "@/lib/map/layer-filters";
 import { normalizeMapCenter, toMapLibreCenter } from "@/lib/map/vietnam";
 import type { MapViewBounds, MapViewConfig } from "@/types/api/map-view";
 import type { GeoJsonFeatureCollection } from "@/types/gis.types";
@@ -87,13 +101,17 @@ function resolveFitBounds(
   const normalized = normalizeMapViewBounds(raw);
   if (!normalized) return null;
 
-  const padded = padBounds(normalized, FIT_BOUNDS_GEO_PADDING_RATIO) ?? normalized;
+  const padded =
+    padBounds(normalized, FIT_BOUNDS_GEO_PADDING_RATIO) ?? normalized;
   if (!isValidMapViewBounds(padded)) return null;
 
   return ensureBoundsSpan(padded);
 }
 
-function resolveFitPadding(map: maplibregl.Map, preferred = FIT_BOUNDS_PADDING): number {
+function resolveFitPadding(
+  map: maplibregl.Map,
+  preferred = FIT_BOUNDS_PADDING,
+): number {
   const container = map.getContainer();
   const width = container.clientWidth;
   const height = container.clientHeight;
@@ -185,6 +203,11 @@ export function MapView({
     lat: number;
     lng: number;
   } | null>(null);
+  const [activeFilterLayerId, setActiveFilterLayerId] = useState<string | null>(
+    null,
+  );
+  const [layerFilters, setLayerFilters] = useState<LayerFilters>({});
+  const { hiddenLayerIds } = useMapLayerVisibility();
 
   const handleViewDetail = useCallback(
     async (
@@ -215,18 +238,69 @@ export function MapView({
 
   const mapReady = !isLoading && mapInstance !== null;
 
-  const { error: dataLayersError, restoreOnMap } = useMapDataLayers({
+  const {
+    error: dataLayersError,
+    loaded: dataLayersLoaded,
+    restoreOnMap,
+    entries: dataLayerEntries,
+  } = useMapDataLayers({
     map: mapInstance,
     layers,
     ready: mapReady,
     interactionOptions: { onViewDetail: handleViewDetail },
     showAllLayers,
+    layerFilters,
   });
   console.log("MapView render", { layers });
 
   useMapFeatureInteractions({
     map: mapInstance,
   });
+
+  const visibleFilterLayers = useMemo(
+    () =>
+      embedded || showAllLayers
+        ? []
+        : layers.filter(
+            (layer) =>
+              isMapVisibleLayer(layer) && !hiddenLayerIds.has(layer.id),
+          ),
+    [embedded, hiddenLayerIds, layers, showAllLayers],
+  );
+  const resolvedActiveFilterLayerId = visibleFilterLayers.some(
+    (layer) => layer.id === activeFilterLayerId,
+  )
+    ? activeFilterLayerId
+    : null;
+  const visibleFilterLayerKey = visibleFilterLayers
+    .map((layer) => layer.id)
+    .join(",");
+
+  useEffect(() => {
+    const nextLayerIds = new Set(
+      visibleFilterLayerKey ? visibleFilterLayerKey.split(",") : [],
+    );
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- keep active filter layer aligned with sidebar visibility
+    setActiveFilterLayerId((current) => {
+      if (current === null || nextLayerIds.has(current)) return current;
+      return visibleFilterLayerKey.split(",").filter(Boolean)[0] ?? null;
+    });
+  }, [visibleFilterLayerKey]);
+
+  const handleLayerFiltersChange = useCallback(
+    (layerId: string, filter: LayerFilterState) => {
+      setLayerFilters((current) => {
+        const next = { ...current };
+        if (countActiveLayerFilters(filter) > 0) {
+          next[layerId] = filter;
+        } else {
+          delete next[layerId];
+        }
+        return next;
+      });
+    },
+    [],
+  );
 
   mapViewRef.current = {
     ...mapView,
@@ -407,14 +481,30 @@ export function MapView({
 
   return (
     <div className={wrapperClass}>
-      <BasemapSwitcher value={basemap} onChange={setBasemap} compact={embedded} />
+      <MapLayerFilterChips
+        key={resolvedActiveFilterLayerId ?? "no-active-filter-layer"}
+        visibleLayers={visibleFilterLayers}
+        entries={dataLayerEntries}
+        loaded={dataLayersLoaded}
+        activeLayerId={resolvedActiveFilterLayerId}
+        layerFilters={layerFilters}
+        onActiveLayerChange={setActiveFilterLayerId}
+        onLayerFiltersChange={handleLayerFiltersChange}
+      />
+      <BasemapSwitcher
+        value={basemap}
+        onChange={setBasemap}
+        compact={embedded}
+      />
       {mapError && (
         <div className="absolute bottom-3 left-3 right-14 z-10 rounded-lg border border-amber-200 bg-amber-50/95 px-3 py-2 text-xs text-amber-900 shadow-sm">
           {mapError}
           {!usingMapbox && (
             <span className="mt-0.5 block text-amber-800">
-              Thêm <code className="font-mono">NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN</code>{" "}
-              vào <code className="font-mono">.env.local</code> để dùng glyph Mapbox.
+              Thêm{" "}
+              <code className="font-mono">NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN</code>{" "}
+              vào <code className="font-mono">.env.local</code> để dùng glyph
+              Mapbox.
             </span>
           )}
         </div>

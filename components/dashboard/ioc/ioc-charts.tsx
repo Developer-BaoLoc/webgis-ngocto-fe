@@ -612,7 +612,7 @@ function shortenOrgName(name: string): string {
     .replace(/^HTX NN\s+/i, "")
     .replace(/^HTX\s+/i, "")
     .replace(/^THT\s+/i, "")
-    .replace(/\s+Long Bình$/i, "");
+    .replace(/\s+Ngọc Tố$/i, "");
 }
 
 export function TopRevenueChart({

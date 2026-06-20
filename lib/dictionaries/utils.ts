@@ -14,13 +14,21 @@ export function parseValueLabels(text: string): string[] {
     .filter(Boolean);
 }
 
+export function cleanDictionaryText(value: string): string {
+  return value.trim().replace(/\s+/g, " ");
+}
+
+export function normalizeDictionaryName(value: string): string {
+  return cleanDictionaryText(value).normalize("NFC").toLocaleLowerCase("vi-VN");
+}
+
 export function uniqueLabels(labels: string[]): string[] {
   const seen = new Set<string>();
   const result: string[] = [];
   for (const label of labels) {
-    const trimmed = label.trim();
+    const trimmed = cleanDictionaryText(label);
     if (!trimmed) continue;
-    const key = trimmed.toLowerCase();
+    const key = normalizeDictionaryName(trimmed);
     if (seen.has(key)) continue;
     seen.add(key);
     result.push(trimmed);
