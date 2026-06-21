@@ -15,9 +15,13 @@ import { DashboardWidgetCard } from "./dashboard-widget-card";
 
 interface DynamicDashboardViewProps {
   dashboard: DashboardDetail;
+  editable?: boolean;
 }
 
-export function DynamicDashboardView({ dashboard }: DynamicDashboardViewProps) {
+export function DynamicDashboardView({
+  dashboard,
+  editable = false,
+}: DynamicDashboardViewProps) {
   const widgets = useMemo(
     () =>
       sortWidgets(
@@ -55,8 +59,8 @@ export function DynamicDashboardView({ dashboard }: DynamicDashboardViewProps) {
           rowHeight={58}
           margin={{ lg: [16, 16], md: [14, 14], sm: [10, 10] }}
           containerPadding={{ lg: [0, 0], md: [0, 0], sm: [0, 0] }}
-          dragConfig={{ enabled: false, bounded: false, threshold: 3 }}
-          resizeConfig={{ enabled: false, handles: [] }}
+          dragConfig={{ enabled: editable, bounded: false, threshold: 3 }}
+          resizeConfig={{ enabled: editable, handles: editable ? ["se"] : [] }}
         >
           {widgets.map((widget, index) => (
             <div

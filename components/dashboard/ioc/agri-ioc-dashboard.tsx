@@ -1,34 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, type ReactNode } from "react";
-import {
-  agriDashboardData,
-  formatBillionVnd,
-  formatNumber,
-  getAgriAlerts,
-  getCitizenFeedback,
-  getFeedbackStats,
-  getRevenueForecast,
-} from "@/lib/dashboard/agri-data";
-import {
-  AlertList,
-  FeedbackList,
-  FinancialDonutChart,
-  ForecastAreaChart,
-  IocPanel,
-  SectorDistributionChart,
-  TopRevenueChart,
-} from "@/components/dashboard/ioc/ioc-charts";
-import { IocMapPanel } from "@/components/dashboard/ioc/ioc-map-panel";
+import { useEffect, useState } from "react";
+import { agriDashboardData } from "@/lib/dashboard/agri-data";
+import { getCurrentPublishedDashboard } from "@/lib/api/dashboards";
+import { DynamicDashboardView } from "@/components/dashboard/dynamic-dashboard-view";
 import { IocWeatherStrip } from "@/components/dashboard/ioc/ioc-weather-strip";
-import {
-  KpiIconArea,
-  KpiIconHtx,
-  KpiIconMembers,
-  KpiIconPump,
-  KpiIconRevenue,
-} from "@/components/dashboard/ioc/kpi-icons";
+import type { DashboardDetail } from "@/types/api/dashboard";
 import type { MapViewConfig } from "@/types/api/map-view";
 import type { GeoJsonFeatureCollection } from "@/types/gis.types";
 import { wardConfig } from "@/config/ward.config";
@@ -43,7 +21,6 @@ function LiveClock() {
   const [now, setNow] = useState<Date | null>(null);
 
   useEffect(() => {
-    setNow(new Date());
     const timer = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
@@ -73,50 +50,35 @@ function LiveClock() {
   );
 }
 
-function KpiCard({
-  label,
-  value,
-  unit,
-  sub,
-  tone,
-  icon,
-}: {
-  label: string;
-  value: string | number;
-  unit?: string;
-  sub?: string;
-  tone: "green" | "gold" | "sky" | "lime";
-  icon: ReactNode;
-}) {
-  return (
-    <article className={`ioc-kpi ioc-kpi--${tone}`}>
-      <div className="ioc-kpi-icon-wrap">{icon}</div>
-      <div className="ioc-kpi-body">
-        <p className="ioc-kpi-label">{label}</p>
-        <p className="ioc-kpi-value">
-          {value}
-          {unit && <span className="ioc-kpi-unit">{unit}</span>}
-        </p>
-        {sub && <p className="ioc-kpi-sub">{sub}</p>}
-      </div>
-    </article>
-  );
-}
+export function AgriIocDashboard(_props: AgriIocDashboardProps) {
+  void _props;
+  const { meta } = agriDashboardData;
+  const [dashboard, setDashboard] = useState<DashboardDetail | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-export function AgriIocDashboard({
-  mapView = null,
-  boundary = null,
-  boundaryError = null,
-}: AgriIocDashboardProps) {
-  const { meta, kpis, charts } = agriDashboardData;
-  const sectorTotal = charts.sectorDistribution.reduce(
-    (sum, item) => sum + item.value,
-    0,
-  );
-  const forecast = getRevenueForecast();
-  const alerts = getAgriAlerts();
-  const feedback = getCitizenFeedback();
-  const feedbackStats = getFeedbackStats();
+  useEffect(() => {
+    let cancelled = false;
+    getCurrentPublishedDashboard()
+      .then((result) => {
+        if (!cancelled) setDashboard(result);
+      })
+      .catch((requestError: unknown) => {
+        if (!cancelled) {
+          setError(
+            requestError instanceof Error
+              ? requestError.message
+              : "Không tải được dashboard đã xuất bản.",
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <div className="ioc-dashboard ioc-dashboard--command ioc-dashboard--light">
@@ -130,7 +92,9 @@ export function AgriIocDashboard({
             </span>
           </div>
           <div className="min-w-0">
-            <p className="ioc-eyebrow ioc-eyebrow--command">OneGis · {wardConfig.locationLabel}</p>
+            <p className="ioc-eyebrow ioc-eyebrow--command">
+              OneGis · {wardConfig.locationLabel}
+            </p>
             <h1 className="ioc-title ioc-title--hero">{meta.title}</h1>
             <p className="ioc-location ioc-location--sm">
               {meta.ward} · {meta.city}
@@ -161,125 +125,28 @@ export function AgriIocDashboard({
         </div>
       </header>
 
-      <section className="ioc-kpi-grid ioc-kpi-grid--hero ioc-kpi-grid--command">
-        <KpiCard
-          label="Hợp tác xã / Tổ hợp tác"
-          value={`${kpis.htxCount} / ${kpis.thtCount}`}
-          sub="Tổ chức nông nghiệp"
-          tone="green"
-          icon={<KpiIconHtx />}
-        />
-        <KpiCard
-          label="Trạm bơm"
-          value={kpis.thuyLoiStations}
-          sub={`${formatNumber(kpis.irrigationAreaHa, 0)} ha tưới`}
-          tone="sky"
-          icon={<KpiIconPump />}
-        />
-        <KpiCard
-          label="Diện tích"
-          value={formatNumber(kpis.totalLandHa, 0)}
-          unit="ha"
-          sub={`${kpis.productionZones} vùng sản xuất`}
-          tone="lime"
-          icon={<KpiIconArea />}
-        />
-        <KpiCard
-          label="Thành viên"
-          value={formatNumber(kpis.totalMembers)}
-          sub={`${kpis.activeOrgs} tổ chức hoạt động`}
-          tone="green"
-          icon={<KpiIconMembers />}
-        />
-        <KpiCard
-          label="Doanh thu"
-          value={formatBillionVnd(kpis.totalRevenueMillion)}
-          sub={`OCOP ${kpis.ocopProducts} sản phẩm`}
-          tone="gold"
-          icon={<KpiIconRevenue />}
-        />
-      </section>
-
-      <div className="ioc-command-body">
-        <div className="ioc-command-side ioc-command-side--left">
-          <IocPanel
-            title="Dự báo sản lượng"
-            subtitle="Doanh thu nông nghiệp theo quý"
-            compact
-            command
-            className="ioc-side-panel"
-          >
-            <ForecastAreaChart data={forecast} unit="tỷ đ" />
-          </IocPanel>
-
-          <IocPanel
-            title="Top thu nhập (triệu đ)"
-            compact
-            command
-            className="ioc-side-panel"
-          >
-            <TopRevenueChart data={charts.topRevenue} compact limit={5} />
-          </IocPanel>
-        </div>
-
-        <div className="ioc-command-center">
-          <div className="ioc-command-map">
-            <IocMapPanel
-              mapView={mapView}
-              boundary={boundary}
-              boundaryError={boundaryError}
-            />
+      <main className="relative z-[1] px-3 pb-4 sm:px-4">
+        {loading ? (
+          <div className="rounded-xl border border-white/70 bg-white/90 px-4 py-10 text-center text-sm text-muted shadow-sm">
+            Đang tải dashboard...
           </div>
-
-          <div className="ioc-command-center-charts">
-            <IocPanel
-              title="Cơ cấu ngành nghề"
-              subtitle={`${formatNumber(sectorTotal)} tổ chức`}
-              compact
-              command
-              className="ioc-panel--mini"
+        ) : dashboard ? (
+          <DynamicDashboardView dashboard={dashboard} editable={false} />
+        ) : (
+          <div className="rounded-xl border border-dashed border-slate-300 bg-white/90 px-4 py-12 text-center shadow-sm">
+            <p className="text-base font-semibold text-slate-800">
+              Chưa có dashboard nào được xuất bản
+            </p>
+            {error && <p className="mt-2 text-sm text-rose-600">{error}</p>}
+            <Link
+              href="/admin/dashboard-builder"
+              className="mt-4 inline-flex rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-dark"
             >
-              <SectorDistributionChart
-                data={charts.sectorDistribution}
-                total={sectorTotal}
-              />
-            </IocPanel>
-            <IocPanel
-              title="So sánh tài chính"
-              subtitle="triệu đồng"
-              compact
-              command
-              className="ioc-panel--mini"
-            >
-              <FinancialDonutChart
-                data={charts.financialCompare.filter((row) => row.label !== "Trạm bơm")}
-              />
-            </IocPanel>
+              Đi tới Dashboard Builder
+            </Link>
           </div>
-        </div>
-
-        <div className="ioc-command-side ioc-command-side--right">
-          <IocPanel
-            title="Cảnh báo nông nghiệp"
-            subtitle={`${alerts.length} cảnh báo cần theo dõi`}
-            compact
-            command
-            className="ioc-side-panel"
-          >
-            <AlertList data={alerts} />
-          </IocPanel>
-
-          <IocPanel
-            title="Phản ánh người dân"
-            subtitle={`${feedbackStats.total} phản ánh trong tuần`}
-            compact
-            command
-            className="ioc-side-panel"
-          >
-            <FeedbackList data={feedback} stats={feedbackStats} />
-          </IocPanel>
-        </div>
-      </div>
+        )}
+      </main>
     </div>
   );
 }

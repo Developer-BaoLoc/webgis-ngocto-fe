@@ -50,7 +50,8 @@ export function DashboardAdminPage() {
   }, []);
 
   useEffect(() => {
-    void load();
+    const timer = window.setTimeout(() => void load(), 0);
+    return () => window.clearTimeout(timer);
   }, [load]);
 
   async function handleCreate(e: React.FormEvent) {
@@ -123,55 +124,52 @@ export function DashboardAdminPage() {
         }
       >
         <DataTable>
-              <DataTableHead>
-                <tr>
-                  <DataTableHeaderCell>Tên</DataTableHeaderCell>
-                  <DataTableHeaderCell>Phạm vi</DataTableHeaderCell>
-                  <DataTableHeaderCell>Trạng thái</DataTableHeaderCell>
-                  <DataTableHeaderCell align="right">
-                    Thao tác
-                  </DataTableHeaderCell>
-                </tr>
-              </DataTableHead>
-              <DataTableBody>
-                {dashboards.map((dashboard) => (
-                  <DataTableRow key={dashboard.id}>
-                    <DataTableCell variant="primary">
-                      {dashboard.name}
-                    </DataTableCell>
-                    <DataTableCell>
-                      <TableBadge variant="muted">
-                        {SCOPE_LABELS[dashboard.scope] ?? dashboard.scope}
-                      </TableBadge>
-                    </DataTableCell>
-                    <DataTableCell>
-                      <div className="flex flex-wrap gap-1.5">
-                        {dashboard.hasPublished !== false && (
-                          <TableBadge variant="success">Đã xuất bản</TableBadge>
-                        )}
-                        {dashboard.hasDraft && (
-                          <TableBadge variant="warning">Có bản nháp</TableBadge>
-                        )}
-                      </div>
-                    </DataTableCell>
-                    <DataTableCell variant="actions" align="right">
-                      <TableActions>
-                        <TableActionLink
-                          href={`/quan-tri/dashboard/${dashboard.id}`}
-                        >
-                          Thiết kế
-                        </TableActionLink>
-                        <TableActionLink
-                          href={`/dashboards/${dashboard.id}`}
-                          variant="neutral"
-                        >
-                          Xem
-                        </TableActionLink>
-                      </TableActions>
-                    </DataTableCell>
-                  </DataTableRow>
-                ))}
-              </DataTableBody>
+          <DataTableHead>
+            <tr>
+              <DataTableHeaderCell>Tên</DataTableHeaderCell>
+              <DataTableHeaderCell>Phạm vi</DataTableHeaderCell>
+              <DataTableHeaderCell>Trạng thái</DataTableHeaderCell>
+              <DataTableHeaderCell align="right">Thao tác</DataTableHeaderCell>
+            </tr>
+          </DataTableHead>
+          <DataTableBody>
+            {dashboards.map((dashboard) => (
+              <DataTableRow key={dashboard.id}>
+                <DataTableCell variant="primary">
+                  {dashboard.name}
+                </DataTableCell>
+                <DataTableCell>
+                  <TableBadge variant="muted">
+                    {SCOPE_LABELS[dashboard.scope] ?? dashboard.scope}
+                  </TableBadge>
+                </DataTableCell>
+                <DataTableCell>
+                  <div className="flex flex-wrap gap-1.5">
+                    {dashboard.hasPublished ? (
+                      <TableBadge variant="success">Published</TableBadge>
+                    ) : (
+                      <TableBadge variant="warning">Draft</TableBadge>
+                    )}
+                  </div>
+                </DataTableCell>
+                <DataTableCell variant="actions" align="right">
+                  <TableActions>
+                    <TableActionLink
+                      href={`/quan-tri/dashboard/${dashboard.id}`}
+                    >
+                      Thiết kế
+                    </TableActionLink>
+                    <TableActionLink
+                      href={`/dashboards/${dashboard.id}`}
+                      variant="neutral"
+                    >
+                      Xem
+                    </TableActionLink>
+                  </TableActions>
+                </DataTableCell>
+              </DataTableRow>
+            ))}
+          </DataTableBody>
         </DataTable>
       </AdminListPanel>
 

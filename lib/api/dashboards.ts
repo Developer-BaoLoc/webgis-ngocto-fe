@@ -40,6 +40,13 @@ export async function getPublishedDashboard(
   return unwrapData(res);
 }
 
+export async function getCurrentPublishedDashboard(): Promise<DashboardDetail | null> {
+  const res = await apiFetch<ApiResponse<DashboardDetail | null>>(
+    "/dashboards/published/current",
+  );
+  return unwrapData(res);
+}
+
 export async function getDashboardDraft(
   dashboardId: string,
 ): Promise<DashboardDetail> {
