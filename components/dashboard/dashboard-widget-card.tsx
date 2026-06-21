@@ -20,6 +20,13 @@ import {
   WidgetEmptyState,
   WidgetPanel,
 } from "./widget-renderers";
+import {
+  ActivityHistoryWidgetRenderer,
+  CalendarWidgetRenderer,
+  MilestoneWidgetRenderer,
+  ProgressWidgetRenderer,
+  TimelineWidgetRenderer,
+} from "./operational-widget-renderers";
 
 interface DashboardWidgetCardProps {
   widget: DashboardWidget;
@@ -136,7 +143,33 @@ function AnalyticsWidget({ widget }: { widget: DashboardWidget }) {
     );
   }
 
-  return <WidgetDataContent widget={widget} data={data} />;
+  return (
+    <WidgetDataContent
+      widget={withAnalyticsFieldLabels(widget, data)}
+      data={data}
+    />
+  );
+}
+
+function withAnalyticsFieldLabels(
+  widget: DashboardWidget,
+  data: AnalyticsResult,
+): DashboardWidget {
+  if (!data.fieldLabels || Object.keys(data.fieldLabels).length === 0) {
+    return widget;
+  }
+  const stored = widget.displayConfig?.fieldLabels;
+  const storedLabels =
+    stored && typeof stored === "object" && !Array.isArray(stored)
+      ? (stored as Record<string, string>)
+      : {};
+  return {
+    ...widget,
+    displayConfig: {
+      ...widget.displayConfig,
+      fieldLabels: { ...storedLabels, ...data.fieldLabels },
+    },
+  };
 }
 
 function WidgetDataContent({
@@ -148,6 +181,42 @@ function WidgetDataContent({
 }) {
   if (widget.widgetType === "stat") {
     return <KpiWidgetRenderer widget={widget} data={data} />;
+  }
+
+  if (widget.widgetType === "timeline") {
+    return (
+      <WidgetPanel widget={widget}>
+        <TimelineWidgetRenderer widget={widget} data={data} />
+      </WidgetPanel>
+    );
+  }
+  if (widget.widgetType === "calendar") {
+    return (
+      <WidgetPanel widget={widget}>
+        <CalendarWidgetRenderer widget={widget} data={data} />
+      </WidgetPanel>
+    );
+  }
+  if (widget.widgetType === "progress") {
+    return (
+      <WidgetPanel widget={widget}>
+        <ProgressWidgetRenderer widget={widget} data={data} />
+      </WidgetPanel>
+    );
+  }
+  if (widget.widgetType === "milestone") {
+    return (
+      <WidgetPanel widget={widget}>
+        <MilestoneWidgetRenderer widget={widget} data={data} />
+      </WidgetPanel>
+    );
+  }
+  if (widget.widgetType === "activity_history") {
+    return (
+      <WidgetPanel widget={widget}>
+        <ActivityHistoryWidgetRenderer widget={widget} data={data} />
+      </WidgetPanel>
+    );
   }
 
   if (

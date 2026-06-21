@@ -46,6 +46,16 @@ export function buildStylePayload(
 ): LayerStyle {
   const meta = { geometryType };
   const normalized = normalizeLayerIcon(style);
+  const dynamic = {
+    styleMode: style.styleMode ?? "single",
+    ...(style.styleMode === "by_value"
+      ? {
+          styleField: style.styleField,
+          styleRules: style.styleRules ?? [],
+          fallbackStyle: style.fallbackStyle ?? {},
+        }
+      : {}),
+  };
   const iconPayload: LayerStyle = {};
   if (normalized.iconAttachmentId) {
     iconPayload.iconAttachmentId = normalized.iconAttachmentId;
@@ -56,16 +66,18 @@ export function buildStylePayload(
 
   switch (geometryType) {
     case "point":
-      return { ...meta, ...iconPayload };
+      return { ...meta, ...dynamic, ...iconPayload };
     case "line":
       return {
         ...meta,
+        ...dynamic,
         lineColor: style.lineColor ?? "#2563eb",
         lineWidth: Number(style.lineWidth ?? 3),
       };
     case "polygon":
       return {
         ...meta,
+        ...dynamic,
         fillColor: style.fillColor ?? "#22c55e80",
         strokeColor: style.strokeColor ?? "#15803d",
       };

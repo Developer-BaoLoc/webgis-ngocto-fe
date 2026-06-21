@@ -1,4 +1,6 @@
 @import "tailwindcss";
+@import "react-grid-layout/css/styles.css";
+@import "react-resizable/css/styles.css";
 
 :root {
   --background: #f8fafc;
@@ -26,6 +28,141 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+.dashboard-grid-editor-container,
+.dashboard-view-grid-container {
+  min-width: 0;
+  width: 100%;
+}
+
+.dashboard-grid-item {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  background: var(--surface);
+  box-shadow: 0 8px 24px rgb(15 23 42 / 7%);
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.dashboard-grid-item:hover,
+.dashboard-grid-item.react-draggable-dragging,
+.dashboard-grid-item.react-resizable-resizing {
+  border-color: rgb(14 165 233 / 65%);
+  box-shadow: 0 14px 32px rgb(14 116 144 / 16%);
+}
+
+.dashboard-grid-toolbar {
+  display: flex;
+  min-height: 2.5rem;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(90deg, #f8fafc, #f0f9ff);
+  padding: 0.35rem 0.45rem 0.35rem 0.65rem;
+}
+
+.dashboard-grid-drag-handle {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  cursor: grab;
+  align-items: center;
+  gap: 0.45rem;
+  border: 0;
+  background: transparent;
+  color: #334155;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-align: left;
+}
+
+.dashboard-grid-drag-handle:active {
+  cursor: grabbing;
+}
+
+.dashboard-grid-drag-handle > span:first-child {
+  color: #0284c7;
+  font-size: 1rem;
+  letter-spacing: -0.15rem;
+}
+
+.dashboard-grid-actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 0.25rem;
+}
+
+.dashboard-grid-action {
+  border: 1px solid #cbd5e1;
+  border-radius: 0.4rem;
+  background: #fff;
+  color: #475569;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.dashboard-grid-action:hover {
+  border-color: #7dd3fc;
+  color: #0369a1;
+}
+
+.dashboard-grid-action--danger:hover {
+  border-color: #fda4af;
+  background: #fff1f2;
+  color: #be123c;
+}
+
+.dashboard-grid-widget-content {
+  min-height: 0;
+  flex: 1;
+  overflow: auto;
+  padding: 0.5rem;
+}
+
+.dashboard-grid-widget-content > *,
+.dashboard-view-grid-item > * {
+  height: 100%;
+  min-height: 0;
+}
+
+.dashboard-view-grid-item {
+  min-width: 0;
+  overflow: hidden;
+  border-radius: 1rem;
+}
+
+.dashboard-grid-editor-container .react-grid-item > .react-resizable-handle {
+  right: 3px;
+  bottom: 3px;
+  width: 22px;
+  height: 22px;
+  border-radius: 0.45rem;
+  background: rgb(14 165 233 / 14%);
+}
+
+.dashboard-grid-editor-container
+  .react-grid-item
+  > .react-resizable-handle::after {
+  right: 6px;
+  bottom: 6px;
+  width: 7px;
+  height: 7px;
+  border-color: #0284c7;
+}
+
+.dashboard-grid-editor-container .react-grid-placeholder {
+  border: 2px dashed #0ea5e9;
+  border-radius: 1rem;
+  background: rgb(186 230 253 / 45%);
 }
 
 .gis-map-popup.maplibregl-popup {
@@ -784,7 +921,7 @@ body {
   border: 1px solid #d1fae5;
   background: #fff;
   box-shadow: 0 4px 16px rgb(15 23 42 / 0.06);
-  overflow: hidden;
+  overflow: scroll;
 }
 
 .ioc-panel-header {

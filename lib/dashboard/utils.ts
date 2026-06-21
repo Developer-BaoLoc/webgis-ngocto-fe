@@ -32,6 +32,11 @@ export const WIDGET_TYPE_LABELS: Record<string, string> = {
   map: "Bản đồ",
   text: "Văn bản",
   global_filter: "Bộ lọc chung",
+  timeline: "Timeline",
+  calendar: "Lịch công việc",
+  progress: "Tiến độ",
+  milestone: "Kết quả triển khai",
+  activity_history: "Lịch sử hoạt động",
 };
 
 export const AGGREGATION_LABELS: Record<string, string> = {
@@ -41,7 +46,10 @@ export const AGGREGATION_LABELS: Record<string, string> = {
   min: "Nhỏ nhất",
   max: "Lớn nhất",
   top: "Top N",
+  records: "Danh sách bản ghi",
 };
+
+export const DATE_FIELD_TYPES = new Set(["date", "datetime", "timestamp"]);
 
 export const NUMERIC_FIELD_TYPES = new Set([
   "integer",

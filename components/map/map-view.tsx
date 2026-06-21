@@ -27,6 +27,7 @@ import {
 import { useMapDataLayers } from "@/components/map/use-map-data-layers";
 import { useMapFeatureInteractions } from "@/components/map/use-map-feature-interactions";
 import { MapLayerFilterChips } from "@/components/map/map-layer-filter-chips";
+import { DynamicStyleLegend } from "@/components/map/dynamic-style-legend";
 import { useMapLayerVisibility } from "@/providers/map-layer-visibility-provider";
 import { isMapVisibleLayer } from "@/lib/layers/adapter";
 import {
@@ -496,6 +497,7 @@ export function MapView({
         onChange={setBasemap}
         compact={embedded}
       />
+      <DynamicStyleLegend layers={visibleFilterLayers} />
       {mapError && (
         <div className="absolute bottom-3 left-3 right-14 z-10 rounded-lg border border-amber-200 bg-amber-50/95 px-3 py-2 text-xs text-amber-900 shadow-sm">
           {mapError}

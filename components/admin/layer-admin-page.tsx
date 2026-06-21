@@ -128,6 +128,10 @@ export function LayerAdminPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (form.style.styleMode === "by_value" && !form.style.styleField) {
+      setError("Hãy chọn trường dùng để tô màu theo giá trị.");
+      return;
+    }
     setIsSubmitting(true);
     setError(null);
     try {
@@ -237,59 +241,55 @@ export function LayerAdminPage() {
         }
       >
         <DataTable scrollable stickyHeader stickyActions>
-              <DataTableHead>
-                <tr>
-                  <DataTableHeaderCell>Tên</DataTableHeaderCell>
-                  <DataTableHeaderCell>Loại</DataTableHeaderCell>
-                  <DataTableHeaderCell>Cấu trúc</DataTableHeaderCell>
-                  <DataTableHeaderCell align="right">
-                    Thao tác
-                  </DataTableHeaderCell>
-                </tr>
-              </DataTableHead>
-              <DataTableBody>
-                {layers.map((layer) => {
-                  const schemaBadge = getLayerSchemaStatusBadge(layer);
+          <DataTableHead>
+            <tr>
+              <DataTableHeaderCell>Tên</DataTableHeaderCell>
+              <DataTableHeaderCell>Loại</DataTableHeaderCell>
+              <DataTableHeaderCell>Cấu trúc</DataTableHeaderCell>
+              <DataTableHeaderCell align="right">Thao tác</DataTableHeaderCell>
+            </tr>
+          </DataTableHead>
+          <DataTableBody>
+            {layers.map((layer) => {
+              const schemaBadge = getLayerSchemaStatusBadge(layer);
 
-                  return (
-                  <DataTableRow key={layer.id}>
-                    <DataTableCell variant="primary">
-                      {layer.name}
-                    </DataTableCell>
-                    <DataTableCell variant="muted">
-                      {layerTypeLabel(layer)}
-                    </DataTableCell>
-                    <DataTableCell>
-                      <TableBadge variant={schemaBadge.variant}>
-                        {schemaBadge.label}
-                      </TableBadge>
-                    </DataTableCell>
-                    <DataTableCell variant="actions" align="right">
-                      <TableActions>
-                        <TableActionLink
-                          href={`/quan-tri/lop-du-lieu/${layer.id}/schema`}
-                        >
-                          Cấu trúc
-                        </TableActionLink>
-                        <TableActionLink href={`/lop-du-lieu/${layer.code}`}>
-                          Dữ liệu
-                        </TableActionLink>
-                        <TableActionButton onClick={() => openEdit(layer)}>
-                          Sửa
-                        </TableActionButton>
-                        <TableActionButton
-                          variant="danger"
-                          onClick={() => handleDelete(layer)}
-                        >
-                          Xóa
-                        </TableActionButton>
-                      </TableActions>
-                    </DataTableCell>
-                  </DataTableRow>
-                  );
-                })}
-              </DataTableBody>
-            </DataTable>
+              return (
+                <DataTableRow key={layer.id}>
+                  <DataTableCell variant="primary">{layer.name}</DataTableCell>
+                  <DataTableCell variant="muted">
+                    {layerTypeLabel(layer)}
+                  </DataTableCell>
+                  <DataTableCell>
+                    <TableBadge variant={schemaBadge.variant}>
+                      {schemaBadge.label}
+                    </TableBadge>
+                  </DataTableCell>
+                  <DataTableCell variant="actions" align="right">
+                    <TableActions>
+                      <TableActionLink
+                        href={`/quan-tri/lop-du-lieu/${layer.id}/schema`}
+                      >
+                        Cấu trúc
+                      </TableActionLink>
+                      <TableActionLink href={`/lop-du-lieu/${layer.code}`}>
+                        Dữ liệu
+                      </TableActionLink>
+                      <TableActionButton onClick={() => openEdit(layer)}>
+                        Sửa
+                      </TableActionButton>
+                      <TableActionButton
+                        variant="danger"
+                        onClick={() => handleDelete(layer)}
+                      >
+                        Xóa
+                      </TableActionButton>
+                    </TableActions>
+                  </DataTableCell>
+                </DataTableRow>
+              );
+            })}
+          </DataTableBody>
+        </DataTable>
       </AdminListPanel>
 
       {showForm && (
@@ -345,7 +345,8 @@ export function LayerAdminPage() {
                 {isSubLayer && !editing && (
                   <p className="mt-1 rounded-md border border-blue-100 bg-blue-50 px-2 py-1.5 text-xs text-blue-800">
                     Lớp phụ không yêu cầu icon, marker hoặc tọa độ. Lớp này dùng
-                    làm bảng con/import danh sách và không hiển thị trực tiếp trên bản đồ.
+                    làm bảng con/import danh sách và không hiển thị trực tiếp
+                    trên bản đồ.
                   </p>
                 )}
               </div>
@@ -369,6 +370,8 @@ export function LayerAdminPage() {
               <LayerStyleFields
                 fields={selectedMeta.styleFields}
                 style={form.style}
+                geometryType={form.geometryType}
+                layerId={editing?.id}
                 onChange={(style) => setForm((f) => ({ ...f, style }))}
               />
             )}

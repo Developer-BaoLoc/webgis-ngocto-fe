@@ -15,8 +15,17 @@ import {
   publishDashboard,
   updateDashboardDraft,
 } from "@/lib/api/dashboards";
-import { DynamicDashboardView } from "@/components/dashboard/dynamic-dashboard-view";
-import { WIDGET_TYPE_LABELS, sortWidgets } from "@/lib/dashboard/utils";
+import { sortWidgets } from "@/lib/dashboard/utils";
+import {
+  DashboardGridEditor,
+  type DashboardGridItemLayout,
+} from "@/components/admin/dashboard-grid-editor";
+import { dashboardWidgetGridId } from "@/lib/dashboard/responsive-grid";
+import {
+  ensureDashboardWidgetLayouts,
+  placeWidgetInNextSlot,
+  widgetLayoutsChanged,
+} from "@/lib/dashboard/grid-layout";
 import {
   WidgetFormFields,
   emptyWidgetForm,
@@ -25,24 +34,19 @@ import {
   type WidgetFormState,
 } from "@/components/admin/dashboard-widget-form";
 import {
-  DataTable,
-  DataTableBody,
-  DataTableCell,
-  DataTableHead,
-  DataTableHeaderCell,
-  DataTableRow,
-  TableActionButton,
-  TableActions,
-  TableBadge,
-} from "@/components/ui/data-table";
-import {
   isGroupedAnalyticsResult,
+  isRecordsAnalyticsResult,
   isTopAnalyticsResult,
 } from "@/types/api/dashboard";
-import type { DashboardDetail, DataSourceLayer } from "@/types/api/dashboard";
+import type {
+  DashboardDetail,
+  DashboardWidget,
+  DataSourceLayer,
+} from "@/types/api/dashboard";
 import type { SavedView } from "@/types/api/saved-view";
 import type { Dataset } from "@/types/api/dataset";
 import { formatAnalyticsNumber } from "@/lib/dashboard/utils";
+import { getOptionLabel } from "@/lib/fields/field-label";
 
 interface DashboardBuilderPageProps {
   dashboardId: string;
@@ -76,6 +80,7 @@ export function DashboardBuilderPage({
   const [widgetForm, setWidgetForm] =
     useState<WidgetFormState>(emptyWidgetForm());
   const [previewText, setPreviewText] = useState<string | null>(null);
+  const [layoutDirty, setLayoutDirty] = useState(false);
 
   const load = useCallback(async () => {
     setIsLoading(true);
@@ -87,13 +92,17 @@ export function DashboardBuilderPage({
         getSavedViews().catch(() => []),
         getDatasets().catch(() => []),
       ]);
+      const normalizedWidgets = ensureDashboardWidgetLayouts(draftData.widgets);
       setDraft({
         ...draftData,
-        widgets: sortWidgets(draftData.widgets),
+        widgets: sortWidgets(normalizedWidgets),
       });
       setDataSources(sources);
       setSavedViews(views);
       setDatasets(datasetRows);
+      setLayoutDirty(
+        widgetLayoutsChanged(draftData.widgets, normalizedWidgets),
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Không tải được dashboard");
     } finally {
@@ -107,7 +116,7 @@ export function DashboardBuilderPage({
   }, [load]);
 
   async function saveDraft(nextDraft: Partial<DashboardDetail>) {
-    if (!draft) return;
+    if (!draft) return false;
     setIsSubmitting(true);
     setError(null);
     try {
@@ -121,8 +130,10 @@ export function DashboardBuilderPage({
         ...updated,
         widgets: sortWidgets(updated.widgets),
       });
+      return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Lưu thất bại");
+      return false;
     } finally {
       setIsSubmitting(false);
     }
@@ -135,10 +146,36 @@ export function DashboardBuilderPage({
     setShowWidgetModal(true);
   }
 
+  function fieldLabelsForWidget(widget: DashboardWidget) {
+    const dataset = datasets.find(
+      (item) => item.id === widget.dataSourceConfig?.datasetId,
+    );
+    const view = savedViews.find(
+      (item) => item.id === widget.dataSourceConfig?.viewId,
+    );
+    const layerId = view?.layerId ?? widget.dataSourceConfig?.layerId;
+    const fields = dataset
+      ? dataset.config.fields.map((field) => ({
+          code: field.key,
+          label: field.label,
+        }))
+      : (dataSources.find((source) => source.layerId === layerId)?.fields ??
+        []);
+    return Object.fromEntries(fields.map((field) => [field.code, field.label]));
+  }
+
   function openEditWidget(index: number) {
     if (!draft) return;
+    const widget = draft.widgets[index];
+    const initialForm = widgetToForm(widget);
     setEditingIndex(index);
-    setWidgetForm(widgetToForm(draft.widgets[index]));
+    setWidgetForm({
+      ...initialForm,
+      fieldLabels: {
+        ...initialForm.fieldLabels,
+        ...fieldLabelsForWidget(widget),
+      },
+    });
     setPreviewText(null);
     setShowWidgetModal(true);
   }
@@ -154,7 +191,7 @@ export function DashboardBuilderPage({
     e.preventDefault();
     if (!draft) return;
 
-    const widget = formToWidget(
+    let widget = formToWidget(
       widgetForm,
       editingIndex ?? draft.widgets.length,
       editingIndex !== null ? draft.widgets[editingIndex]?.id : undefined,
@@ -164,26 +201,50 @@ export function DashboardBuilderPage({
     if (editingIndex !== null) {
       widgets[editingIndex] = widget;
     } else {
+      widget = placeWidgetInNextSlot(widget, widgets);
       widgets.push(widget);
     }
 
-    await saveDraft({ widgets });
-    closeWidgetModal();
+    if (await saveDraft({ widgets })) {
+      setLayoutDirty(false);
+      closeWidgetModal();
+    }
   }
 
   async function handleDeleteWidget(index: number) {
     if (!draft || !confirm("Xóa widget này?")) return;
     const widgets = draft.widgets.filter((_, i) => i !== index);
-    await saveDraft({ widgets });
+    if (await saveDraft({ widgets })) setLayoutDirty(false);
   }
 
-  function moveWidget(index: number, direction: "up" | "down") {
-    if (!draft) return;
-    const target = direction === "up" ? index - 1 : index + 1;
-    if (target < 0 || target >= draft.widgets.length) return;
-    const widgets = [...draft.widgets];
-    [widgets[index], widgets[target]] = [widgets[target], widgets[index]];
-    void saveDraft({ widgets });
+  function handleGridLayoutChange(layout: DashboardGridItemLayout[]) {
+    setDraft((current) => {
+      if (!current) return current;
+      const byId = new Map(layout.map((item) => [item.id, item]));
+      return {
+        ...current,
+        widgets: current.widgets.map((widget, index) => {
+          const next = byId.get(dashboardWidgetGridId(widget, index));
+          if (!next) return widget;
+          return {
+            ...widget,
+            layoutConfig: {
+              ...widget.layoutConfig,
+              x: next.x,
+              y: next.y,
+              w: next.w,
+              h: next.h,
+            },
+          };
+        }),
+      };
+    });
+    setLayoutDirty(true);
+  }
+
+  async function handleSaveLayout() {
+    if (!draft || !layoutDirty) return;
+    if (await saveDraft({ widgets: draft.widgets })) setLayoutDirty(false);
   }
 
   async function handlePreviewWidget() {
@@ -202,11 +263,25 @@ export function DashboardBuilderPage({
       });
       if (isTopAnalyticsResult(result)) {
         setPreviewText(`${result.records.length} dòng xếp hạng`);
+      } else if (isRecordsAnalyticsResult(result)) {
+        setPreviewText(`${result.records.length} bản ghi nghiệp vụ`);
       } else if (isGroupedAnalyticsResult(result)) {
         setPreviewText(
           result.rows
             .slice(0, 5)
-            .map((row) => `${row.label}: ${formatAnalyticsNumber(row.value)}`)
+            .map(
+              (row) =>
+                `${
+                  row.label && row.label !== row.rawLabel
+                    ? row.label
+                    : getOptionLabel(
+                        widget.dataSourceConfig?.dimensionField ??
+                          widget.dataSourceConfig?.groupByFieldCode ??
+                          "",
+                        row.rawLabel || row.label,
+                      )
+                }: ${formatAnalyticsNumber(row.value)}`,
+            )
             .join(" · "),
         );
       } else {
@@ -226,6 +301,11 @@ export function DashboardBuilderPage({
     }
     setIsSubmitting(true);
     try {
+      if (layoutDirty) {
+        const saved = await saveDraft({ widgets: draft.widgets });
+        if (!saved) return;
+        setLayoutDirty(false);
+      }
       await publishDashboard(dashboardId);
       await load();
     } catch (err) {
@@ -234,8 +314,6 @@ export function DashboardBuilderPage({
       setIsSubmitting(false);
     }
   }
-
-  const widgets = draft?.widgets ?? [];
 
   return (
     <div className="space-y-6">
@@ -263,12 +341,21 @@ export function DashboardBuilderPage({
           <Card>
             <CardHeader className="flex flex-row items-center justify-between gap-4">
               <div>
-                <h2 className="text-lg font-semibold">Widget</h2>
+                <h2 className="text-lg font-semibold">Bố cục widget</h2>
                 <p className="text-sm text-muted">
-                  Thêm widget từ Saved View; widget cũ dùng Layer vẫn hoạt động
+                  Kéo thanh tiêu đề để đổi vị trí, kéo góc phải dưới để thay đổi
+                  kích thước.
                 </p>
               </div>
               <div className="flex gap-2">
+                <button
+                  type="button"
+                  disabled={isSubmitting || !layoutDirty}
+                  onClick={() => void handleSaveLayout()}
+                  className="rounded-lg border border-primary px-3 py-2 text-sm font-medium text-primary disabled:opacity-50"
+                >
+                  {isSubmitting ? "Đang lưu..." : "Lưu bố cục"}
+                </button>
                 <button
                   type="button"
                   onClick={openAddWidget}
@@ -292,86 +379,28 @@ export function DashboardBuilderPage({
                   Chưa có widget. Thêm ít nhất 1 widget trước khi xuất bản.
                 </p>
               ) : (
-                <DataTable minWidth="640px">
-                  <DataTableHead>
-                    <tr>
-                      <DataTableHeaderCell className="w-14">
-                        #
-                      </DataTableHeaderCell>
-                      <DataTableHeaderCell>Tiêu đề</DataTableHeaderCell>
-                      <DataTableHeaderCell>Kiểu</DataTableHeaderCell>
-                      <DataTableHeaderCell>Kích thước</DataTableHeaderCell>
-                      <DataTableHeaderCell align="right">
-                        Thao tác
-                      </DataTableHeaderCell>
-                    </tr>
-                  </DataTableHead>
-                  <DataTableBody>
-                    {widgets.map((widget, index) => (
-                      <DataTableRow
-                        key={widget.id ?? `${widget.title}-${index}`}
-                      >
-                        <DataTableCell variant="index">
-                          {index + 1}
-                        </DataTableCell>
-                        <DataTableCell variant="primary">
-                          {widget.title}
-                        </DataTableCell>
-                        <DataTableCell>
-                          <TableBadge variant="default">
-                            {WIDGET_TYPE_LABELS[widget.widgetType] ??
-                              widget.widgetType}
-                          </TableBadge>
-                        </DataTableCell>
-                        <DataTableCell variant="muted">
-                          {widget.layoutConfig.w}×{widget.layoutConfig.h}
-                        </DataTableCell>
-                        <DataTableCell variant="actions" align="right">
-                          <TableActions>
-                            <TableActionButton
-                              variant="neutral"
-                              disabled={index === 0 || isSubmitting}
-                              onClick={() => moveWidget(index, "up")}
-                            >
-                              ↑
-                            </TableActionButton>
-                            <TableActionButton
-                              variant="neutral"
-                              disabled={
-                                index === widgets.length - 1 || isSubmitting
-                              }
-                              onClick={() => moveWidget(index, "down")}
-                            >
-                              ↓
-                            </TableActionButton>
-                            <TableActionButton
-                              variant="primary"
-                              onClick={() => openEditWidget(index)}
-                            >
-                              Sửa
-                            </TableActionButton>
-                            <TableActionButton
-                              variant="danger"
-                              onClick={() => void handleDeleteWidget(index)}
-                            >
-                              Xóa
-                            </TableActionButton>
-                          </TableActions>
-                        </DataTableCell>
-                      </DataTableRow>
-                    ))}
-                  </DataTableBody>
-                </DataTable>
+                <>
+                  <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-xs text-muted">
+                    <span>Desktop 12 cột · Tablet 8 cột · Mobile 4 cột</span>
+                    <span
+                      className={
+                        layoutDirty
+                          ? "font-medium text-amber-700"
+                          : "text-emerald-700"
+                      }
+                    >
+                      {layoutDirty ? "Bố cục chưa lưu" : "Bố cục đã lưu"}
+                    </span>
+                  </div>
+                  <DashboardGridEditor
+                    widgets={draft.widgets}
+                    disabled={isSubmitting}
+                    onLayoutChange={handleGridLayoutChange}
+                    onEdit={openEditWidget}
+                    onDelete={(index) => void handleDeleteWidget(index)}
+                  />
+                </>
               )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <h2 className="text-lg font-semibold">Xem trước bản nháp</h2>
-            </CardHeader>
-            <CardContent>
-              <DynamicDashboardView dashboard={draft} />
             </CardContent>
           </Card>
         </>

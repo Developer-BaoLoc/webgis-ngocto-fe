@@ -68,7 +68,8 @@ export function LayerFilterControl({
               onChange({
                 ...current,
                 type: field.type,
-                min: event.target.value === "" ? null : Number(event.target.value),
+                min:
+                  event.target.value === "" ? null : Number(event.target.value),
               })
             }
             placeholder={field.min !== undefined ? String(field.min) : "Min"}
@@ -86,7 +87,8 @@ export function LayerFilterControl({
               onChange({
                 ...current,
                 type: field.type,
-                max: event.target.value === "" ? null : Number(event.target.value),
+                max:
+                  event.target.value === "" ? null : Number(event.target.value),
               })
             }
             placeholder={field.max !== undefined ? String(field.max) : "Max"}
@@ -99,14 +101,20 @@ export function LayerFilterControl({
 
   if (field.type === "date") {
     return (
-      <div className={cn("grid gap-2", compact ? "grid-cols-1" : "grid-cols-2")}>
+      <div
+        className={cn("grid gap-2", compact ? "grid-cols-1" : "grid-cols-2")}
+      >
         <label className="text-xs text-muted">
           Từ ngày
           <input
             type="date"
             value={current.from ?? ""}
             onChange={(event) =>
-              onChange({ ...current, type: "date", from: event.target.value || null })
+              onChange({
+                ...current,
+                type: "date",
+                from: event.target.value || null,
+              })
             }
             className="mt-1 w-full rounded-lg border border-border bg-white px-2.5 py-2 text-sm text-foreground outline-none focus:border-primary"
           />
@@ -117,7 +125,11 @@ export function LayerFilterControl({
             type="date"
             value={current.to ?? ""}
             onChange={(event) =>
-              onChange({ ...current, type: "date", to: event.target.value || null })
+              onChange({
+                ...current,
+                type: "date",
+                to: event.target.value || null,
+              })
             }
             className="mt-1 w-full rounded-lg border border-border bg-white px-2.5 py-2 text-sm text-foreground outline-none focus:border-primary"
           />
@@ -167,7 +179,7 @@ function CategoryFilterControl({
 
   return (
     <div className="space-y-2">
-      {(field.options.length > 6 || field.type === "text") && (
+      {(field.options.length >= 6 || field.type === "text") && (
         <div className="relative">
           <input
             type="search"
@@ -189,7 +201,12 @@ function CategoryFilterControl({
           )}
         </div>
       )}
-      <div className={cn("space-y-1 overflow-y-auto", compact ? "max-h-52" : "max-h-48")}>
+      <div
+        className={cn(
+          "space-y-1 overflow-y-auto",
+          compact ? "max-h-52" : "max-h-48",
+        )}
+      >
         {visibleOptions.map((option) => (
           <label
             key={option.value}
@@ -202,7 +219,9 @@ function CategoryFilterControl({
               className="h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary"
             />
             <span className="min-w-0 flex-1 truncate">{option.label}</span>
-            <span className="text-xs tabular-nums text-muted">{option.count}</span>
+            <span className="text-xs tabular-nums text-muted">
+              {option.count}
+            </span>
           </label>
         ))}
         {visibleOptions.length === 0 && (

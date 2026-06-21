@@ -11,6 +11,23 @@ export interface LayerIconStyle {
   url?: string;
 }
 
+export type LayerStyleMode = "single" | "by_value";
+export type LayerStyleValue = string | number | boolean;
+
+export interface LayerStyleRule {
+  value: LayerStyleValue;
+  label?: string;
+  fillColor?: string;
+  strokeColor?: string;
+  lineColor?: string;
+}
+
+export interface LayerFallbackStyle {
+  fillColor?: string;
+  strokeColor?: string;
+  lineColor?: string;
+}
+
 export interface LayerStyle {
   geometryType?: string;
   icon?: string | LayerIconStyle;
@@ -20,6 +37,10 @@ export interface LayerStyle {
   lineWidth?: number;
   fillColor?: string;
   strokeColor?: string;
+  styleMode?: LayerStyleMode;
+  styleField?: string;
+  styleRules?: LayerStyleRule[];
+  fallbackStyle?: LayerFallbackStyle;
   layerRole?: "main_layer" | "sub_layer" | string;
   isSpatial?: boolean;
   showOnMap?: boolean;

@@ -4,7 +4,7 @@ import type {
   GeoJsonFeatureCollection,
 } from "@/types/gis.types";
 import type { Layer } from "@/types/layer.types";
-import { getFieldLabel } from "@/lib/fields/field-label";
+import { getFieldLabel, getOptionLabel } from "@/lib/fields/field-label";
 
 export type LayerFilterFieldType =
   | "text"
@@ -53,6 +53,13 @@ type MetadataField = {
   name?: string;
   displayName?: string;
   type?: string;
+  options?: unknown;
+  values?: unknown;
+  enum?: unknown;
+  enumLabels?: unknown;
+  dictionaryItems?: unknown;
+  dataSchema?: unknown;
+  uiSchema?: unknown;
 };
 
 const MAX_QUICK_FILTER_OPTIONS = 30;
@@ -79,7 +86,13 @@ const BLOCKED_KEYS = new Set([
   "recordid",
   "layerid",
   "popupsummary",
+  "srid",
+  "ghi_chu",
+  "note",
 ]);
+
+const FIXED_VALUE_HIDDEN_KEYS = new Set(["tp_tinh", "ten_xa"]);
+const FORCE_TEXT_KEY_PARTS = ["ma_", "_code", "code_"];
 
 const BLOCKED_KEY_PARTS = ["attachment", "file", "image", "icon"];
 const MONEY_FIELD_PARTS = [
@@ -103,6 +116,17 @@ const SEARCH_PRIORITY_FIELDS = [
   "region",
 ];
 const PRIORITY_FILTER_FIELDS = [
+  "loai_tuyen",
+  "cap_quan_ly",
+  "chuc_nang",
+  "huong_dong_chay",
+  "tinh_trang",
+  "don_vi_quan_ly",
+  "trang_thai_xac_minh",
+  "ten_ap",
+  "nguon_du_lieu",
+  "chieu_dai_gis_m",
+  "chieu_rong_m",
   "status",
   "trang_thai",
   "khu_vuc",
@@ -187,6 +211,13 @@ function readMetadataFields(layer: Layer): MetadataField[] {
             : typeof field.type === "string"
               ? field.type
               : undefined,
+        options: field.options,
+        values: field.values,
+        enum: field.enum,
+        enumLabels: field.enumLabels,
+        dictionaryItems: field.dictionaryItems,
+        dataSchema: field.dataSchema,
+        uiSchema: field.uiSchema,
       },
     ];
   });
@@ -294,6 +325,14 @@ export function inferFieldType(
   values: unknown[],
   metadata?: MetadataField,
 ): LayerFilterFieldType {
+  const normalizedKey = normalizeFieldKey(fieldKey);
+  if (
+    FORCE_TEXT_KEY_PARTS.some(
+      (part) => normalizedKey.startsWith(part) || normalizedKey.includes(part),
+    )
+  ) {
+    return "text";
+  }
   const declared = metadataFieldType(metadata?.type);
   if (declared) return declared;
   const present = values.filter(
@@ -305,7 +344,6 @@ export function inferFieldType(
   ) {
     return "boolean";
   }
-  const normalizedKey = normalizeFieldKey(fieldKey);
   const looksLikeMoney =
     MONEY_FIELD_PARTS.some((part) => normalizedKey.includes(part)) ||
     present.some(
@@ -356,7 +394,12 @@ export function getLayerFilterFields(
 ): LayerFilterField[] {
   if (!entry) return [];
   const metadata = readMetadataFields(entry.layer);
-  const metadataMap = new Map(metadata.map((field) => [field.key, field]));
+  const metadataMap = new Map(
+    metadata.flatMap((field) => [
+      [field.key, field] as const,
+      [normalizeFieldKey(field.key), field] as const,
+    ]),
+  );
   const keys = new Set<string>(metadata.map((field) => field.key));
   for (const feature of entry.geojson.features) {
     Object.keys(feature.properties ?? {}).forEach((key) => keys.add(key));
@@ -382,7 +425,8 @@ export function getLayerFilterFields(
     }
     if (hasComplexValue || rawValues.length === 0) continue;
 
-    const meta = metadataMap.get(key);
+    const meta =
+      metadataMap.get(key) ?? metadataMap.get(normalizeFieldKey(key));
     if (meta?.type && !metadataFieldType(meta.type)) continue;
     const type = inferFieldType(key, rawValues, meta);
     const counts = new Map<string, number>();
@@ -391,6 +435,12 @@ export function getLayerFilterFields(
       if (value !== null) counts.set(value, (counts.get(value) ?? 0) + 1);
     }
     if (counts.size === 0) continue;
+    if (
+      counts.size === 1 &&
+      FIXED_VALUE_HIDDEN_KEYS.has(normalizeFieldKey(key))
+    ) {
+      continue;
+    }
     const numericValues =
       type === "number" || type === "currency"
         ? [...counts.keys()].map(Number).filter(Number.isFinite)
@@ -403,7 +453,10 @@ export function getLayerFilterFields(
       options: [...counts.entries()]
         .map(([value, count]) => ({
           value,
-          label: optionLabel(value, type),
+          label:
+            type === "boolean"
+              ? optionLabel(value, type)
+              : getOptionLabel(key, value, meta),
           count,
         }))
         .sort((a, b) =>
@@ -414,7 +467,10 @@ export function getLayerFilterFields(
         : {}),
     });
   }
-  return fields.sort((a, b) => a.label.localeCompare(b.label, "vi"));
+  return fields.sort((a, b) => {
+    const priority = priorityIndex(a) - priorityIndex(b);
+    return priority || a.label.localeCompare(b.label, "vi");
+  });
 }
 
 function priorityIndex(field: LayerFilterField) {

@@ -14,6 +14,11 @@ import {
   formatAnalyticsNumber,
 } from "@/lib/dashboard/utils";
 import {
+  getWidgetDisplayTitle,
+  getWidgetFieldLabel,
+} from "@/lib/dashboard/widget-labels";
+import { getOptionLabel } from "@/lib/fields/field-label";
+import {
   isGroupedAnalyticsResult,
   isTopAnalyticsResult,
 } from "@/types/api/dashboard";
@@ -44,8 +49,8 @@ export function WidgetPanel({
     <section className="ioc-panel ioc-panel--command ioc-widget-panel h-full">
       <header className="ioc-panel-header ioc-panel-header--compact">
         <div className="min-w-0 flex-1">
-          <h3 className="ioc-panel-title" title={widget.title}>
-            {widget.title}
+          <h3 className="ioc-panel-title" title={getWidgetDisplayTitle(widget)}>
+            {getWidgetDisplayTitle(widget)}
           </h3>
           <p className="ioc-panel-subtitle ioc-panel-subtitle--compact">
             {getWidgetDescription(widget)}
@@ -89,7 +94,7 @@ export function KpiWidgetRenderer({
 
   const value = isGroupedAnalyticsResult(data)
     ? data.rows.reduce((sum, row) => sum + safeNumber(row.value), 0)
-    : safeNumber(data.value);
+    : safeNumber("value" in data ? data.value : 0);
   const suffix = String(widget.displayConfig?.suffix ?? "").trim();
   const icon = resolveKpiIcon(widget);
   const theme = resolveKpiTheme(widget, icon);
@@ -98,8 +103,8 @@ export function KpiWidgetRenderer({
     <article className={`ioc-kpi ioc-kpi--${theme} ioc-kpi--dashboard h-full`}>
       <div className="ioc-kpi-icon-wrap">{renderKpiIcon(icon)}</div>
       <div className="ioc-kpi-body">
-        <p className="ioc-kpi-label" title={widget.title}>
-          {widget.title}
+        <p className="ioc-kpi-label" title={getWidgetDisplayTitle(widget)}>
+          {getWidgetDisplayTitle(widget)}
         </p>
         <p className="ioc-kpi-value">
           {formatAnalyticsNumber(value)}
@@ -179,7 +184,7 @@ export function BarChartWidgetRenderer({
   widget: DashboardWidget;
   data: AnalyticsResult;
 }) {
-  const rows = groupedRows(data);
+  const rows = groupedRows(widget, data);
   if (rows.length === 0) return <WidgetEmptyState />;
   const maxValue = Math.max(...rows.map((row) => Math.abs(row.value)), 1);
   const metricLabel = metricDisplayLabel(widget);
@@ -233,7 +238,7 @@ export function PieChartWidgetRenderer({
   donut: boolean;
 }) {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
-  const rows = groupSmallSlices(groupedRows(data));
+  const rows = groupSmallSlices(groupedRows(widget, data));
   const positiveRows = rows.filter((row) => row.value > 0);
   const total = positiveRows.reduce((sum, row) => sum + row.value, 0);
   if (positiveRows.length === 0 || total <= 0) return <WidgetEmptyState />;
@@ -246,7 +251,7 @@ export function PieChartWidgetRenderer({
     <div className="ioc-dynamic-pie-layout">
       <div className="ioc-dynamic-pie-visual">
         <svg viewBox="0 0 220 220" className="ioc-dynamic-pie" role="img">
-          <title>{widget.title}</title>
+          <title>{getWidgetDisplayTitle(widget)}</title>
           {slices.map((slice, index) =>
             slice.fullCircle ? (
               <circle
@@ -340,7 +345,7 @@ export function LineChartWidgetRenderer({
   widget: DashboardWidget;
   data: AnalyticsResult;
 }) {
-  const rows = groupedRows(data);
+  const rows = groupedRows(widget, data);
   if (rows.length === 0) return <WidgetEmptyState />;
 
   const width = Math.max(520, rows.length * 78);
@@ -418,7 +423,7 @@ export function TableWidgetRenderer({
           <thead>
             <tr>
               {columns.map((column) => (
-                <th key={column}>{humanizeField(column)}</th>
+                <th key={column}>{getWidgetFieldLabel(widget, column)}</th>
               ))}
             </tr>
           </thead>
@@ -426,7 +431,9 @@ export function TableWidgetRenderer({
             {data.records.map((record, index) => (
               <tr key={index}>
                 {columns.map((column) => (
-                  <td key={column}>{displayCellValue(record[column])}</td>
+                  <td key={column}>
+                    {displayCellValue(record[column], column)}
+                  </td>
                 ))}
               </tr>
             ))}
@@ -436,7 +443,7 @@ export function TableWidgetRenderer({
     );
   }
 
-  const rows = groupedRows(data);
+  const rows = groupedRows(widget, data);
   if (rows.length === 0) return <WidgetEmptyState />;
   return (
     <div className="ioc-table-wrap">
@@ -462,10 +469,18 @@ export function TableWidgetRenderer({
   );
 }
 
-function groupedRows(data: AnalyticsResult): ChartRow[] {
+function groupedRows(
+  widget: DashboardWidget,
+  data: AnalyticsResult,
+): ChartRow[] {
   if (!isGroupedAnalyticsResult(data)) return [];
+  const dimensionField =
+    widget.dataSourceConfig?.dimensionField ??
+    widget.dataSourceConfig?.groupByFieldCode ??
+    data.groupByFieldCode ??
+    "";
   return data.rows.map((row) => ({
-    label: row.label || "(Trống)",
+    label: analyticsGroupLabel(dimensionField, row.rawLabel, row.label),
     value: safeNumber(row.value),
   }));
 }
@@ -473,7 +488,14 @@ function groupedRows(data: AnalyticsResult): ChartRow[] {
 function buildRankingRows(widget: DashboardWidget, data: AnalyticsResult) {
   if (isGroupedAnalyticsResult(data)) {
     return data.rows.map((row) => ({
-      name: row.label || "(Trống)",
+      name: analyticsGroupLabel(
+        widget.dataSourceConfig?.dimensionField ??
+          widget.dataSourceConfig?.groupByFieldCode ??
+          data.groupByFieldCode ??
+          "",
+        row.rawLabel,
+        row.label,
+      ),
       subtitle: "",
       value: safeNumber(row.value),
     }));
@@ -497,12 +519,29 @@ function buildRankingRows(widget: DashboardWidget, data: AnalyticsResult) {
       keys.find((key) => key !== metricField && key !== nameField);
     return {
       name:
-        displayCellValue(nameField ? record[nameField] : null) ||
+        displayCellValue(nameField ? record[nameField] : null, nameField) ||
         `Mục ${index + 1}`,
-      subtitle: subtitleField ? displayCellValue(record[subtitleField]) : "",
+      subtitle: subtitleField
+        ? displayCellValue(record[subtitleField], subtitleField)
+        : "",
       value: safeNumber(record[metricField]),
     };
   });
+}
+
+function analyticsGroupLabel(
+  fieldKey: string,
+  rawLabel: string,
+  resolvedLabel: string,
+) {
+  if (
+    resolvedLabel &&
+    resolvedLabel !== rawLabel &&
+    resolvedLabel !== "(Trống)"
+  ) {
+    return resolvedLabel;
+  }
+  return getOptionLabel(fieldKey, rawLabel || resolvedLabel || "(Trống)");
 }
 
 function groupSmallSlices(rows: ChartRow[]): ChartRow[] {
@@ -552,35 +591,43 @@ function getWidgetDescription(widget: DashboardWidget) {
   const aggregation =
     AGGREGATION_LABELS[widget.dataSourceConfig?.aggregation ?? "count"] ??
     "Thống kê";
-  const metric = widget.dataSourceConfig?.metricField;
-  const dimension = widget.dataSourceConfig?.dimensionField;
+  const metric =
+    widget.dataSourceConfig?.metricField ?? widget.dataSourceConfig?.fieldCode;
+  const dimension =
+    widget.dataSourceConfig?.dimensionField ??
+    widget.dataSourceConfig?.groupByFieldCode;
   if (metric && dimension) {
-    return `${aggregation} ${humanizeField(metric)} theo ${humanizeField(dimension)}`;
+    return `${aggregation} ${getWidgetFieldLabel(widget, metric)} theo ${getWidgetFieldLabel(widget, dimension)}`;
   }
-  if (metric) return `${aggregation} ${humanizeField(metric)}`;
-  if (dimension) return `${aggregation} theo ${humanizeField(dimension)}`;
+  if (metric) return `${aggregation} ${getWidgetFieldLabel(widget, metric)}`;
+  if (dimension)
+    return `${aggregation} theo ${getWidgetFieldLabel(widget, dimension)}`;
   return `${aggregation} từ nguồn dữ liệu đã chọn`;
 }
 
 function metricDisplayLabel(widget: DashboardWidget) {
-  const metric = widget.dataSourceConfig?.metricField;
+  const metric =
+    widget.dataSourceConfig?.metricField ?? widget.dataSourceConfig?.fieldCode;
   const aggregation =
     AGGREGATION_LABELS[widget.dataSourceConfig?.aggregation ?? "count"] ??
     "Giá trị";
-  return metric ? `${aggregation} ${humanizeField(metric)}` : aggregation;
+  return metric
+    ? `${aggregation} ${getWidgetFieldLabel(widget, metric)}`
+    : aggregation;
 }
 
 function dimensionDisplayLabel(widget: DashboardWidget) {
-  return widget.dataSourceConfig?.dimensionField
-    ? humanizeField(widget.dataSourceConfig.dimensionField)
-    : "Nhóm";
+  const dimension =
+    widget.dataSourceConfig?.dimensionField ??
+    widget.dataSourceConfig?.groupByFieldCode;
+  return dimension ? getWidgetFieldLabel(widget, dimension) : "Nhóm";
 }
 
 function resolveKpiIcon(widget: DashboardWidget) {
   const configured = String(widget.displayConfig?.icon ?? "auto");
   if (configured !== "auto") return configured;
   const haystack = normalizeText(
-    `${widget.title} ${widget.dataSourceConfig?.metricField ?? ""} ${widget.displayConfig?.suffix ?? ""}`,
+    `${getWidgetDisplayTitle(widget)} ${widget.dataSourceConfig?.metricField ?? ""} ${widget.displayConfig?.suffix ?? ""}`,
   );
   if (/nuoc|thuy loi|tram bom|irrigation|water/.test(haystack)) return "water";
   if (/lua|nong nghiep|san luong|agriculture|rice/.test(haystack))
@@ -628,19 +675,17 @@ function formatPercent(value: number, total: number) {
   })}%`;
 }
 
-function humanizeField(value: string) {
-  return value
-    .replace(/[_-]+/g, " ")
-    .replace(/\b\w/g, (character) => character.toUpperCase());
-}
-
-function displayCellValue(value: unknown): string {
+function displayCellValue(value: unknown, fieldKey?: string): string {
   if (value === null || value === undefined || value === "") {
     return "Chưa có dữ liệu";
   }
   if (typeof value === "number") return formatAnalyticsNumber(value);
-  if (Array.isArray(value)) return value.join(", ");
-  return String(value);
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => (fieldKey ? getOptionLabel(fieldKey, item) : String(item)))
+      .join(", ");
+  }
+  return fieldKey ? getOptionLabel(fieldKey, value) : String(value);
 }
 
 function normalizeText(value: string) {

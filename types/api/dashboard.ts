@@ -9,9 +9,21 @@ export type WidgetType =
   | "table"
   | "map"
   | "text"
-  | "global_filter";
+  | "global_filter"
+  | "timeline"
+  | "calendar"
+  | "progress"
+  | "milestone"
+  | "activity_history";
 
-export type AggregationType = "count" | "sum" | "avg" | "min" | "max" | "top";
+export type AggregationType =
+  | "count"
+  | "sum"
+  | "avg"
+  | "min"
+  | "max"
+  | "top"
+  | "records";
 
 export interface WidgetLayoutConfig {
   x: number;
@@ -48,6 +60,20 @@ export interface DataSourceConfig {
   filters?: AnalyticsFilter[];
   limit?: number;
   displayFields?: string[];
+  titleField?: string;
+  descriptionField?: string;
+  startDateField?: string;
+  dateField?: string;
+  endDateField?: string;
+  statusField?: string;
+  groupField?: string;
+  typeField?: string;
+  severityField?: string;
+  progressField?: string;
+  ownerField?: string;
+  deadlineField?: string;
+  resultField?: string;
+  metricFields?: string[];
   sort?: { field: string; direction: "asc" | "desc" };
 }
 
@@ -118,6 +144,7 @@ export interface AnalyticsScalarResult {
   aggregation: string;
   value: number;
   fieldCode?: string;
+  fieldLabels?: Record<string, string>;
 }
 
 export interface AnalyticsGroupRow {
@@ -134,19 +161,31 @@ export interface AnalyticsGroupedResult {
   groupByFieldCode?: string;
   fieldCode?: string;
   rows: AnalyticsGroupRow[];
+  fieldLabels?: Record<string, string>;
 }
 
 export interface AnalyticsTopResult {
-  datasetId: string;
+  datasetId?: string;
   aggregation: "top";
   fieldCode?: string;
   records: Array<Record<string, unknown>>;
+  fieldLabels?: Record<string, string>;
+}
+
+export interface AnalyticsRecordsResult {
+  datasetId?: string;
+  viewId?: string;
+  layerId?: string;
+  aggregation: "records";
+  records: Array<Record<string, unknown>>;
+  fieldLabels?: Record<string, string>;
 }
 
 export type AnalyticsResult =
   | AnalyticsScalarResult
   | AnalyticsGroupedResult
-  | AnalyticsTopResult;
+  | AnalyticsTopResult
+  | AnalyticsRecordsResult;
 
 export interface AnalyticsPreviewPayload {
   dataSourceConfig: DataSourceConfig;
@@ -162,5 +201,19 @@ export function isGroupedAnalyticsResult(
 export function isTopAnalyticsResult(
   result: AnalyticsResult,
 ): result is AnalyticsTopResult {
-  return "records" in result && Array.isArray(result.records);
+  return (
+    result.aggregation === "top" &&
+    "records" in result &&
+    Array.isArray(result.records)
+  );
+}
+
+export function isRecordsAnalyticsResult(
+  result: AnalyticsResult,
+): result is AnalyticsRecordsResult {
+  return (
+    result.aggregation === "records" &&
+    "records" in result &&
+    Array.isArray(result.records)
+  );
 }

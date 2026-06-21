@@ -3,6 +3,7 @@ import type { FeatureCollection } from "geojson";
 import { resolvePublicAssetUrl } from "@/lib/api/assets";
 import type { LayerGeoJsonEntry } from "@/lib/api/map-geojson";
 import { extractStyleFromLayer } from "@/lib/layers/style";
+import { buildColorMatchExpression } from "@/lib/layers/dynamic-style";
 
 const SOURCE_PREFIX = "data-layer-";
 const POINT_ICON_SIZE = 0.07;
@@ -128,6 +129,7 @@ async function upsertPointLayer(
   entry: LayerGeoJsonEntry,
   sourceId: string,
 ) {
+  const style = extractStyleFromLayer(entry.layer);
   const iconUrl = getLayerIconUrl(entry.layer);
   const iconImageId = iconUrl
     ? await ensureLayerIcon(map, entry.layer.id, iconUrl)
@@ -177,11 +179,21 @@ async function upsertPointLayer(
       ],
       paint: {
         "circle-radius": POINT_CIRCLE_RADIUS,
-        "circle-color": entry.layer.color,
+        "circle-color": buildColorMatchExpression(
+          style,
+          "fill",
+          entry.layer.color,
+        ),
         "circle-stroke-width": 2,
         "circle-stroke-color": "#ffffff",
       },
     });
+  } else if (map.getLayer(circleLayerId) && !iconImageId) {
+    map.setPaintProperty(
+      circleLayerId,
+      "circle-color",
+      buildColorMatchExpression(style, "fill", entry.layer.color),
+    );
   }
 
   if (!map.getLayer(hitLayerId)) {
@@ -209,6 +221,16 @@ async function upsertPolygonLayer(
   sourceId: string,
 ) {
   const style = extractStyleFromLayer(entry.layer);
+  const fillColor = buildColorMatchExpression(
+    style,
+    "fill",
+    style.fillColor ?? entry.layer.color,
+  );
+  const strokeColor = buildColorMatchExpression(
+    style,
+    "stroke",
+    style.strokeColor ?? "#15803d",
+  );
   const fillLayerId = `${sourceId}-fill`;
   const lineLayerId = `${sourceId}-line`;
 
@@ -218,10 +240,12 @@ async function upsertPolygonLayer(
       type: "fill",
       source: sourceId,
       paint: {
-        "fill-color": style.fillColor ?? entry.layer.color,
+        "fill-color": fillColor,
         "fill-opacity": 0.35,
       },
     });
+  } else {
+    map.setPaintProperty(fillLayerId, "fill-color", fillColor);
   }
 
   if (!map.getLayer(lineLayerId)) {
@@ -230,10 +254,12 @@ async function upsertPolygonLayer(
       type: "line",
       source: sourceId,
       paint: {
-        "line-color": style.strokeColor ?? "#15803d",
+        "line-color": strokeColor,
         "line-width": 2,
       },
     });
+  } else {
+    map.setPaintProperty(lineLayerId, "line-color", strokeColor);
   }
 }
 
@@ -244,6 +270,11 @@ async function upsertLineLayer(
   geojson: FeatureCollection,
 ) {
   const style = extractStyleFromLayer(entry.layer);
+  const lineColor = buildColorMatchExpression(
+    style,
+    "line",
+    style.lineColor ?? entry.layer.color,
+  );
   const lineLayerId = `${sourceId}-line`;
   if (entry.layer.code === "duong") {
     console.log("[duong-render-trace][frontend:upsertLineLayer:start]", {
@@ -269,10 +300,12 @@ async function upsertLineLayer(
       type: "line",
       source: sourceId,
       paint: {
-        "line-color": style.lineColor ?? entry.layer.color,
+        "line-color": lineColor,
         "line-width": Number(style.lineWidth ?? 3),
       },
     });
+  } else {
+    map.setPaintProperty(lineLayerId, "line-color", lineColor);
   }
 }
 
