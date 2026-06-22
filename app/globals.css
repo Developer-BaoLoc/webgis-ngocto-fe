@@ -925,6 +925,9 @@ body {
 }
 
 .ioc-panel-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -1606,6 +1609,11 @@ body {
   box-shadow: 0 2px 10px rgb(245 158 11 / 0.1);
 }
 
+.ioc-top-revenue-rank-item--leader .ioc-top-revenue-rank-name {
+  font-size: 0.75rem;
+  font-weight: 750;
+}
+
 .ioc-top-revenue-rank-head {
   display: grid;
   grid-template-columns: 1.2rem minmax(0, 1fr) auto;
@@ -1683,16 +1691,19 @@ body {
 }
 
 .ioc-top-revenue-rank-badge--1 {
+  font-size: 0.875rem;
   color: #713f12;
   background: linear-gradient(135deg, #fef08a, #f59e0b);
 }
 
 .ioc-top-revenue-rank-badge--2 {
+  font-size: 0.875rem;
   color: #334155;
   background: linear-gradient(135deg, #f8fafc, #cbd5e1);
 }
 
 .ioc-top-revenue-rank-badge--3 {
+  font-size: 0.875rem;
   color: #7c2d12;
   background: linear-gradient(135deg, #ffedd5, #fdba74);
 }

@@ -91,7 +91,8 @@ export function LayerAdminPage() {
   }, []);
 
   useEffect(() => {
-    load();
+    const timer = window.setTimeout(() => void load(), 0);
+    return () => window.clearTimeout(timer);
   }, [load]);
 
   const typeOptions =
@@ -130,6 +131,10 @@ export function LayerAdminPage() {
     e.preventDefault();
     if (form.style.styleMode === "by_value" && !form.style.styleField) {
       setError("Hãy chọn trường dùng để tô màu theo giá trị.");
+      return;
+    }
+    if (form.style.styleMode === "icon_by_value" && !form.style.styleField) {
+      setError("Hãy chọn trường dùng để hiển thị icon theo giá trị.");
       return;
     }
     setIsSubmitting(true);

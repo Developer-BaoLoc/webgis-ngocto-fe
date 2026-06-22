@@ -55,6 +55,13 @@ export function buildStylePayload(
           fallbackStyle: style.fallbackStyle ?? {},
         }
       : {}),
+    ...(style.styleMode === "icon_by_value"
+      ? {
+          styleField: style.styleField,
+          iconRules: style.iconRules ?? [],
+          ...(style.fallbackIcon ? { fallbackIcon: style.fallbackIcon } : {}),
+        }
+      : {}),
   };
   const iconPayload: LayerStyle = {};
   if (normalized.iconAttachmentId) {

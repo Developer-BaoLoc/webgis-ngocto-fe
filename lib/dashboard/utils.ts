@@ -29,6 +29,7 @@ export const WIDGET_TYPE_LABELS: Record<string, string> = {
   donut: "Biểu đồ vòng",
   line: "Biểu đồ đường",
   table: "Bảng",
+  ranking: "Bảng xếp hạng",
   map: "Bản đồ",
   text: "Văn bản",
   global_filter: "Bộ lọc chung",

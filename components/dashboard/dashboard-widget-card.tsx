@@ -137,7 +137,7 @@ function AnalyticsWidget({ widget }: { widget: DashboardWidget }) {
   if (error) return <WidgetError widget={widget} message={error} />;
   if (!data) {
     return (
-      <WidgetPanel widget={widget}>
+      <WidgetPanel widget={widget} data={data}>
         <WidgetEmptyState />
       </WidgetPanel>
     );
@@ -185,47 +185,48 @@ function WidgetDataContent({
 
   if (widget.widgetType === "timeline") {
     return (
-      <WidgetPanel widget={widget}>
+      <WidgetPanel widget={widget} data={data}>
         <TimelineWidgetRenderer widget={widget} data={data} />
       </WidgetPanel>
     );
   }
   if (widget.widgetType === "calendar") {
     return (
-      <WidgetPanel widget={widget}>
+      <WidgetPanel widget={widget} data={data}>
         <CalendarWidgetRenderer widget={widget} data={data} />
       </WidgetPanel>
     );
   }
   if (widget.widgetType === "progress") {
     return (
-      <WidgetPanel widget={widget}>
+      <WidgetPanel widget={widget} data={data}>
         <ProgressWidgetRenderer widget={widget} data={data} />
       </WidgetPanel>
     );
   }
   if (widget.widgetType === "milestone") {
     return (
-      <WidgetPanel widget={widget}>
+      <WidgetPanel widget={widget} data={data}>
         <MilestoneWidgetRenderer widget={widget} data={data} />
       </WidgetPanel>
     );
   }
   if (widget.widgetType === "activity_history") {
     return (
-      <WidgetPanel widget={widget}>
+      <WidgetPanel widget={widget} data={data}>
         <ActivityHistoryWidgetRenderer widget={widget} data={data} />
       </WidgetPanel>
     );
   }
 
   if (
+    widget.widgetType === "ranking" ||
     widget.dataSourceConfig?.aggregation === "top" ||
     isTopAnalyticsResult(data) ||
     widget.displayConfig?.variant === "ranking"
   ) {
     return (
-      <WidgetPanel widget={widget}>
+      <WidgetPanel widget={widget} data={data}>
         <RankingWidgetRenderer widget={widget} data={data} />
       </WidgetPanel>
     );
@@ -233,7 +234,7 @@ function WidgetDataContent({
 
   if (widget.widgetType === "bar") {
     return (
-      <WidgetPanel widget={widget}>
+      <WidgetPanel widget={widget} data={data}>
         <BarChartWidgetRenderer widget={widget} data={data} />
       </WidgetPanel>
     );
@@ -241,7 +242,7 @@ function WidgetDataContent({
 
   if (widget.widgetType === "line") {
     return (
-      <WidgetPanel widget={widget}>
+      <WidgetPanel widget={widget} data={data}>
         <LineChartWidgetRenderer widget={widget} data={data} />
       </WidgetPanel>
     );
@@ -249,7 +250,7 @@ function WidgetDataContent({
 
   if (widget.widgetType === "pie" || widget.widgetType === "donut") {
     return (
-      <WidgetPanel widget={widget}>
+      <WidgetPanel widget={widget} data={data}>
         <PieChartWidgetRenderer
           widget={widget}
           data={data}
@@ -261,7 +262,7 @@ function WidgetDataContent({
 
   if (widget.widgetType === "table") {
     return (
-      <WidgetPanel widget={widget}>
+      <WidgetPanel widget={widget} data={data}>
         <TableWidgetRenderer widget={widget} data={data} />
       </WidgetPanel>
     );

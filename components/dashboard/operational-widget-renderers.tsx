@@ -4,7 +4,10 @@ import { useMemo, useState } from "react";
 import { WidgetEmptyState } from "@/components/dashboard/widget-renderers";
 import { formatAnalyticsNumber } from "@/lib/dashboard/utils";
 import { getWidgetFieldLabel } from "@/lib/dashboard/widget-labels";
-import { humanizeOptionValue } from "@/lib/fields/field-label";
+import {
+  formatDisplayValue,
+  getStatusBadgeStyle,
+} from "@/lib/dashboard/widget-display";
 import {
   isRecordsAnalyticsResult,
   type AnalyticsResult,
@@ -61,27 +64,23 @@ function isDone(value: string) {
 }
 
 function statusTone(value: string) {
-  const normalized = normalize(value);
-  if (isDone(value) || /da xu ly|an toan|dat/.test(normalized)) {
-    return "border-emerald-200 bg-emerald-50 text-emerald-700";
-  }
-  if (/khan|cao|tre|qua han|nguy hiem|loi/.test(normalized)) {
-    return "border-rose-200 bg-rose-50 text-rose-700";
-  }
-  if (/dang|trung binh|cho|can/.test(normalized)) {
-    return "border-amber-200 bg-amber-50 text-amber-700";
-  }
-  return "border-sky-200 bg-sky-50 text-sky-700";
+  return getStatusBadgeStyle(value);
 }
 
-function StatusBadge({ value }: { value: string }) {
+function StatusBadge({
+  value,
+  fieldKey = "status",
+}: {
+  value: string;
+  fieldKey?: string;
+}) {
   if (!value) return null;
   return (
     <span
       className={`inline-flex max-w-full rounded-full border px-2 py-0.5 text-[11px] font-semibold ${statusTone(value)}`}
       title={value}
     >
-      <span className="truncate">{humanizeOptionValue(value)}</span>
+      <span className="truncate">{formatDisplayValue(value, fieldKey)}</span>
     </span>
   );
 }
@@ -141,12 +140,12 @@ export function TimelineWidgetRenderer({
                       {text(row, titleField) || `Sự kiện ${index + 1}`}
                     </h4>
                   </div>
-                  <StatusBadge value={status} />
+                  <StatusBadge value={status} fieldKey={config?.statusField} />
                 </div>
               </summary>
               <div className="mt-2 border-t border-slate-100 pt-2 text-xs text-slate-600">
                 {group
-                  ? `Loại: ${humanizeOptionValue(group)}`
+                  ? `Loại: ${formatDisplayValue(group, config?.groupField)}`
                   : "Nhấn để thu gọn chi tiết."}
               </div>
             </details>
@@ -261,10 +260,13 @@ export function CalendarWidgetRenderer({
                     <div className="mt-1 flex flex-wrap gap-1">
                       {type && (
                         <span className="text-[11px] text-slate-500">
-                          {humanizeOptionValue(type)}
+                          {formatDisplayValue(type, config?.typeField)}
                         </span>
                       )}
-                      <StatusBadge value={status} />
+                      <StatusBadge
+                        value={status}
+                        fieldKey={config?.statusField}
+                      />
                     </div>
                   </div>
                 </div>
@@ -347,7 +349,7 @@ export function ProgressWidgetRenderer({
               />
             </div>
             <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-              <StatusBadge value={status} />
+              <StatusBadge value={status} fieldKey={config?.statusField} />
               {overdue && (
                 <span className="rounded-full bg-rose-100 px-2 py-0.5 text-[11px] font-semibold text-rose-700">
                   ⚠ Quá hạn
@@ -398,7 +400,10 @@ export function MilestoneWidgetRenderer({
                   {text(row, config?.titleField) || `Kết quả ${index + 1}`}
                 </h4>
               </div>
-              <StatusBadge value={text(row, config?.statusField)} />
+              <StatusBadge
+                value={text(row, config?.statusField)}
+                fieldKey={config?.statusField}
+              />
             </div>
             <p className="mt-2 line-clamp-2 min-h-10 text-xs leading-5 text-slate-600">
               {text(row, config?.resultField) || "Chưa cập nhật kết quả."}
@@ -451,7 +456,7 @@ const SEVERITY_LABELS: Record<string, string> = {
 function severityLabel(value: string) {
   return (
     SEVERITY_LABELS[normalize(value).replace(/\s+/g, "_")] ??
-    humanizeOptionValue(value)
+    formatDisplayValue(value, "severity")
   );
 }
 
@@ -511,7 +516,7 @@ export function ActivityHistoryWidgetRenderer({
               <option value="">Tất cả trạng thái</option>
               {statuses.map((value) => (
                 <option key={value} value={value}>
-                  {humanizeOptionValue(value)}
+                  {formatDisplayValue(value, config?.statusField)}
                 </option>
               ))}
             </select>
@@ -562,10 +567,13 @@ export function ActivityHistoryWidgetRenderer({
                     </p>
                   )}
                   <div className="mt-2 flex flex-wrap items-center gap-2">
-                    <StatusBadge value={text(row, config?.statusField)} />
+                    <StatusBadge
+                      value={text(row, config?.statusField)}
+                      fieldKey={config?.statusField}
+                    />
                     {type && (
                       <span className="text-[11px] text-slate-500">
-                        {humanizeOptionValue(type)}
+                        {formatDisplayValue(type, config?.typeField)}
                       </span>
                     )}
                   </div>

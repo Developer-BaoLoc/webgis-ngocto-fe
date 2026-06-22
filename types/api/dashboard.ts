@@ -7,6 +7,7 @@ export type WidgetType =
   | "donut"
   | "line"
   | "table"
+  | "ranking"
   | "map"
   | "text"
   | "global_filter"
@@ -49,6 +50,7 @@ export interface AnalyticsFilter {
 }
 
 export interface DataSourceConfig {
+  name?: string;
   datasetId?: string;
   viewId?: string;
   layerId?: string;

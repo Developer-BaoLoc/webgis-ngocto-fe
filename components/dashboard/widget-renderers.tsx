@@ -17,6 +17,10 @@ import {
   getWidgetDisplayTitle,
   getWidgetFieldLabel,
 } from "@/lib/dashboard/widget-labels";
+import {
+  formatDisplayValue,
+  getWidgetSubtitle,
+} from "@/lib/dashboard/widget-display";
 import { getOptionLabel } from "@/lib/fields/field-label";
 import {
   isGroupedAnalyticsResult,
@@ -40,9 +44,11 @@ type KpiTheme = "sky" | "green" | "amber" | "rose" | "violet" | "slate";
 
 export function WidgetPanel({
   widget,
+  data,
   children,
 }: {
   widget: DashboardWidget;
+  data?: AnalyticsResult | null;
   children: React.ReactNode;
 }) {
   return (
@@ -53,7 +59,7 @@ export function WidgetPanel({
             {getWidgetDisplayTitle(widget)}
           </h3>
           <p className="ioc-panel-subtitle ioc-panel-subtitle--compact">
-            {getWidgetDescription(widget)}
+            {getWidgetSubtitle(widget, data)}
           </p>
         </div>
         <span className="ioc-panel-accent" aria-hidden />
@@ -123,11 +129,21 @@ export function RankingWidgetRenderer({
   widget: DashboardWidget;
   data: AnalyticsResult;
 }) {
-  const rows = buildRankingRows(widget, data);
+  const configuredLimit = positiveInteger(
+    widget.displayConfig?.limit ?? widget.dataSourceConfig?.limit,
+  );
+  const sort = widget.displayConfig?.sort === "asc" ? "asc" : "desc";
+  const rows = buildRankingRows(widget, data)
+    .sort((left, right) =>
+      sort === "asc" ? left.value - right.value : right.value - left.value,
+    )
+    .slice(0, configuredLimit ?? undefined);
   if (rows.length === 0) return <WidgetEmptyState />;
 
   const maxValue = Math.max(...rows.map((row) => Math.max(0, row.value)), 0);
   const suffix = String(widget.displayConfig?.suffix ?? "").trim();
+  const showMedal = widget.displayConfig?.showMedal !== false;
+  const showProgressBar = widget.displayConfig?.showProgressBar !== false;
 
   return (
     <ul className="ioc-top-revenue-rank">
@@ -142,9 +158,10 @@ export function RankingWidgetRenderer({
           >
             <div className="ioc-top-revenue-rank-head">
               <span
-                className={`ioc-top-revenue-rank-badge ioc-top-revenue-rank-badge--${rank <= 3 ? rank : "default"}`}
+                className={`ioc-top-revenue-rank-badge ioc-top-revenue-rank-badge--${showMedal && rank <= 3 ? rank : "default"}`}
+                aria-label={`Hạng ${rank}`}
               >
-                {rank}
+                {showMedal && rank <= 3 ? ["🥇", "🥈", "🥉"][rank - 1] : rank}
               </span>
               <div className="ioc-top-revenue-rank-info">
                 <span className="ioc-top-revenue-rank-name" title={row.name}>
@@ -164,12 +181,14 @@ export function RankingWidgetRenderer({
                 {suffix ? ` ${suffix}` : ""}
               </span>
             </div>
-            <div className="ioc-top-revenue-rank-bar" aria-hidden>
-              <div
-                className={`ioc-top-revenue-rank-bar-fill ${rank === 1 ? "ioc-top-revenue-rank-bar-fill--leader" : ""}`}
-                style={{ width: `${Math.min(100, progress)}%` }}
-              />
-            </div>
+            {showProgressBar && (
+              <div className="ioc-top-revenue-rank-bar" aria-hidden>
+                <div
+                  className={`ioc-top-revenue-rank-bar-fill ${rank === 1 ? "ioc-top-revenue-rank-bar-fill--leader" : ""}`}
+                  style={{ width: `${Math.min(100, progress)}%` }}
+                />
+              </div>
+            )}
           </li>
         );
       })}
@@ -502,16 +521,23 @@ function buildRankingRows(widget: DashboardWidget, data: AnalyticsResult) {
   }
   if (!isTopAnalyticsResult(data)) return [];
 
-  const metricField =
-    widget.dataSourceConfig?.metricField ?? data.fieldCode ?? "value";
+  const metricField = String(
+    widget.displayConfig?.valueField ??
+      widget.dataSourceConfig?.metricField ??
+      data.fieldCode ??
+      "value",
+  );
   const displayFields = (widget.dataSourceConfig?.displayFields ?? []).filter(
     (field) => field !== metricField,
   );
 
   return data.records.map((record, index) => {
     const keys = Object.keys(record);
+    const configuredLabelField = String(
+      widget.displayConfig?.labelField ?? "",
+    ).trim();
     const nameField =
-      displayFields[0] ??
+      (configuredLabelField || displayFields[0]) ??
       widget.dataSourceConfig?.dimensionField ??
       keys.find((key) => key !== metricField);
     const subtitleField =
@@ -680,12 +706,12 @@ function displayCellValue(value: unknown, fieldKey?: string): string {
     return "Chưa có dữ liệu";
   }
   if (typeof value === "number") return formatAnalyticsNumber(value);
-  if (Array.isArray(value)) {
-    return value
-      .map((item) => (fieldKey ? getOptionLabel(fieldKey, item) : String(item)))
-      .join(", ");
-  }
-  return fieldKey ? getOptionLabel(fieldKey, value) : String(value);
+  return formatDisplayValue(value, fieldKey);
+}
+
+function positiveInteger(value: unknown): number | null {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
 }
 
 function normalizeText(value: string) {

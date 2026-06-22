@@ -1,4 +1,8 @@
-import type { GeoJSONSource, Map as MapLibreMap } from "maplibre-gl";
+import type {
+  ExpressionSpecification,
+  GeoJSONSource,
+  Map as MapLibreMap,
+} from "maplibre-gl";
 import type { FeatureCollection } from "geojson";
 import { resolvePublicAssetUrl } from "@/lib/api/assets";
 import type { LayerGeoJsonEntry } from "@/lib/api/map-geojson";
@@ -9,6 +13,10 @@ const SOURCE_PREFIX = "data-layer-";
 const POINT_ICON_SIZE = 0.07;
 const POINT_CIRCLE_RADIUS = 6;
 const POINT_HIT_RADIUS = 20;
+const registeredLayerImages = new WeakMap<
+  MapLibreMap,
+  Map<string, Set<string>>
+>();
 
 export function getDataLayerSourceId(layerId: string) {
   return `${SOURCE_PREFIX}${layerId}`;
@@ -68,15 +76,40 @@ async function ensureLayerIcon(
   iconUrl: string,
 ): Promise<string | null> {
   const imageId = getIconImageId(layerId);
+  return ensureMapImage(map, layerId, imageId, iconUrl);
+}
+
+async function ensureMapImage(
+  map: MapLibreMap,
+  layerId: string,
+  imageId: string,
+  iconUrl: string,
+): Promise<string | null> {
   if (map.hasImage(imageId)) return imageId;
 
   try {
     const response = await map.loadImage(iconUrl);
-    map.addImage(imageId, response.data);
+    if (!map.hasImage(imageId)) map.addImage(imageId, response.data);
+    let layers = registeredLayerImages.get(map);
+    if (!layers) {
+      layers = new Map();
+      registeredLayerImages.set(map, layers);
+    }
+    const imageIds = layers.get(layerId) ?? new Set<string>();
+    imageIds.add(imageId);
+    layers.set(layerId, imageIds);
     return imageId;
   } catch {
     return null;
   }
+}
+
+function removeRegisteredLayerImages(map: MapLibreMap, layerId: string) {
+  const layers = registeredLayerImages.get(map);
+  for (const imageId of layers?.get(layerId) ?? []) {
+    if (map.hasImage(imageId)) map.removeImage(imageId);
+  }
+  layers?.delete(layerId);
 }
 
 function removeDataLayerById(
@@ -93,6 +126,7 @@ function removeDataLayerById(
 
   const imageId = getIconImageId(layerId);
   if (map.hasImage(imageId)) map.removeImage(imageId);
+  removeRegisteredLayerImages(map, layerId);
 }
 
 export function getInteractiveLayerIds(entries: LayerGeoJsonEntry[]): string[] {
@@ -131,15 +165,22 @@ async function upsertPointLayer(
 ) {
   const style = extractStyleFromLayer(entry.layer);
   const iconUrl = getLayerIconUrl(entry.layer);
-  const iconImageId = iconUrl
+  const singleIconImageId = iconUrl
     ? await ensureLayerIcon(map, entry.layer.id, iconUrl)
     : null;
+  const dynamicIcon = await buildDynamicIconExpression(
+    map,
+    entry.layer.id,
+    style,
+    singleIconImageId,
+  );
+  const iconImage = dynamicIcon ?? singleIconImageId;
 
   const circleLayerId = `${sourceId}-circle`;
   const symbolLayerId = `${sourceId}-symbol`;
   const hitLayerId = `${sourceId}-hit`;
 
-  if (iconImageId) {
+  if (iconImage) {
     if (map.getLayer(circleLayerId)) map.removeLayer(circleLayerId);
     if (!map.getLayer(symbolLayerId)) {
       map.addLayer({
@@ -152,13 +193,14 @@ async function upsertPointLayer(
           ["==", ["geometry-type"], "MultiPoint"],
         ],
         layout: {
-          "icon-image": iconImageId,
+          "icon-image": iconImage,
           "icon-size": POINT_ICON_SIZE,
           "icon-allow-overlap": true,
           "icon-anchor": "bottom",
         },
       });
     } else {
+      map.setLayoutProperty(symbolLayerId, "icon-image", iconImage);
       map.setLayoutProperty(symbolLayerId, "icon-size", POINT_ICON_SIZE);
     }
   } else {
@@ -167,7 +209,7 @@ async function upsertPointLayer(
     if (map.hasImage(imageId)) map.removeImage(imageId);
   }
 
-  if (!map.getLayer(circleLayerId) && !iconImageId) {
+  if (!map.getLayer(circleLayerId) && !iconImage) {
     map.addLayer({
       id: circleLayerId,
       type: "circle",
@@ -188,7 +230,7 @@ async function upsertPointLayer(
         "circle-stroke-color": "#ffffff",
       },
     });
-  } else if (map.getLayer(circleLayerId) && !iconImageId) {
+  } else if (map.getLayer(circleLayerId) && !iconImage) {
     map.setPaintProperty(
       circleLayerId,
       "circle-color",
@@ -213,6 +255,72 @@ async function upsertPointLayer(
       },
     });
   }
+}
+
+async function buildDynamicIconExpression(
+  map: MapLibreMap,
+  layerId: string,
+  style: ReturnType<typeof extractStyleFromLayer>,
+  singleIconImageId: string | null,
+): Promise<ExpressionSpecification | string | null> {
+  if (style.styleMode !== "icon_by_value" || !style.styleField) return null;
+
+  const fallbackUrl = style.fallbackIcon?.url
+    ? resolvePublicAssetUrl(style.fallbackIcon.url)
+    : null;
+  const fallbackImageId = fallbackUrl
+    ? await ensureMapImage(
+        map,
+        layerId,
+        dynamicImageId(
+          layerId,
+          `fallback:${style.fallbackIcon?.attachmentId ?? fallbackUrl}`,
+        ),
+        fallbackUrl,
+      )
+    : singleIconImageId;
+  const matches: Array<string | number | ExpressionSpecification> = [];
+  let firstRuleImageId: string | null = null;
+  const stringifyValues = (style.iconRules ?? []).some(
+    (rule) => typeof rule.value === "boolean",
+  );
+
+  for (const rule of style.iconRules ?? []) {
+    if (!rule.url) continue;
+    const imageId = await ensureMapImage(
+      map,
+      layerId,
+      dynamicImageId(
+        layerId,
+        `${String(rule.value)}:${rule.attachmentId ?? rule.url}`,
+      ),
+      resolvePublicAssetUrl(rule.url),
+    );
+    if (!imageId) continue;
+    firstRuleImageId ??= imageId;
+    const matchValue: string | number =
+      stringifyValues || typeof rule.value === "boolean"
+        ? String(rule.value)
+        : rule.value;
+    matches.push(matchValue, imageId);
+  }
+
+  const fallback = fallbackImageId ?? firstRuleImageId;
+  if (!fallback) return null;
+  if (matches.length === 0) return fallback;
+  const input: ExpressionSpecification = stringifyValues
+    ? ["to-string", ["get", style.styleField]]
+    : ["get", style.styleField];
+  return ["match", input, ...matches, fallback] as ExpressionSpecification;
+}
+
+function dynamicImageId(layerId: string, value: string) {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return `layer-icon-${layerId}-${(hash >>> 0).toString(36)}`;
 }
 
 async function upsertPolygonLayer(
@@ -316,7 +424,11 @@ async function upsertDataLayer(map: MapLibreMap, entry: LayerGeoJsonEntry) {
   );
   const geojson = entry.geojson as FeatureCollection;
   const source = map.getSource(sourceId);
-  const hasAllLayers = layerIds.every((id) => Boolean(map.getLayer(id)));
+  const hasAllLayers = hasRequiredDataLayers(
+    map,
+    layerIds,
+    entry.layer.geometryType,
+  );
   if (entry.layer.code === "duong") {
     console.log("[duong-render-trace][frontend:upsertDataLayer:start]", {
       layerId: entry.layer.id,
@@ -366,6 +478,23 @@ async function upsertDataLayer(map: MapLibreMap, entry: LayerGeoJsonEntry) {
     default:
       await upsertPointLayer(map, entry, sourceId);
   }
+}
+
+function hasRequiredDataLayers(
+  map: MapLibreMap,
+  layerIds: string[],
+  geometryType: string,
+) {
+  if (!["point", "multipoint"].includes(geometryType.toLowerCase())) {
+    return layerIds.every((id) => Boolean(map.getLayer(id)));
+  }
+  const hit = layerIds.find((id) => id.endsWith("-hit"));
+  const visual = layerIds.filter(
+    (id) => id.endsWith("-symbol") || id.endsWith("-circle"),
+  );
+  return Boolean(
+    hit && map.getLayer(hit) && visual.some((id) => map.getLayer(id)),
+  );
 }
 
 export async function syncDataLayers(

@@ -14,6 +14,7 @@ export function getDefaultWidgetLayout(
   if (widget.widgetType === "stat") return { w: 3, h: 2 };
   if (
     widget.widgetType === "table" ||
+    widget.widgetType === "ranking" ||
     widget.dataSourceConfig?.aggregation === "top" ||
     widget.displayConfig?.variant === "ranking"
   ) {

@@ -1,7 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { LayerIconUploadField } from "@/components/admin/layer-icon-upload";
+import {
+  LayerIconUploadField,
+  LayerRuleIconUpload,
+} from "@/components/admin/layer-icon-upload";
 import { inputClass } from "@/components/form/field-wrapper";
 import { getLayerGeoJson, getLayerSchema } from "@/lib/api/layers";
 import {
@@ -13,6 +16,7 @@ import {
 import { getFieldLabel, getOptionLabel } from "@/lib/fields/field-label";
 import type {
   LayerStyle,
+  LayerIconRule,
   LayerStyleRule,
   LayerStyleValue,
 } from "@/types/api/admin";
@@ -153,31 +157,34 @@ export function LayerStyleFields({
   useEffect(() => {
     if (!layerId) return;
     let active = true;
-    setLoadingValues(true);
-    setLoadError(null);
-    Promise.all([getLayerSchema(layerId), getLayerGeoJson(layerId)])
-      .then(([schema, geojson]) => {
-        if (!active) return;
-        setSchemaFields(
-          schema.fields.filter((field) => field.isActive !== false),
-        );
-        setFeatureProperties(
-          geojson.features.map((feature) => feature.properties ?? {}),
-        );
-      })
-      .catch((error: unknown) => {
-        if (!active) return;
-        setLoadError(
-          error instanceof Error
-            ? error.message
-            : "Không tải được trường và giá trị của layer.",
-        );
-      })
-      .finally(() => {
-        if (active) setLoadingValues(false);
-      });
+    const timer = window.setTimeout(() => {
+      setLoadingValues(true);
+      setLoadError(null);
+      Promise.all([getLayerSchema(layerId), getLayerGeoJson(layerId)])
+        .then(([schema, geojson]) => {
+          if (!active) return;
+          setSchemaFields(
+            schema.fields.filter((field) => field.isActive !== false),
+          );
+          setFeatureProperties(
+            geojson.features.map((feature) => feature.properties ?? {}),
+          );
+        })
+        .catch((error: unknown) => {
+          if (!active) return;
+          setLoadError(
+            error instanceof Error
+              ? error.message
+              : "Không tải được trường và giá trị của layer.",
+          );
+        })
+        .finally(() => {
+          if (active) setLoadingValues(false);
+        });
+    }, 0);
     return () => {
       active = false;
+      window.clearTimeout(timer);
     };
   }, [layerId]);
 
@@ -291,6 +298,20 @@ export function LayerStyleFields({
       styleRules: selectedField ? rulesForField(selectedField.key) : [],
       fallbackStyle: DEFAULT_DYNAMIC_FALLBACK,
     });
+  }
+
+  if (geometryType === "point") {
+    return (
+      <PointIconStyleFields
+        style={style}
+        dynamicFields={dynamicFields}
+        selectedField={selectedField}
+        loadingValues={loadingValues}
+        loadError={loadError}
+        layerId={layerId}
+        onChange={onChange}
+      />
+    );
   }
 
   return (
@@ -577,4 +598,288 @@ export function LayerStyleFields({
       )}
     </div>
   );
+}
+
+function PointIconStyleFields({
+  style,
+  dynamicFields,
+  selectedField,
+  loadingValues,
+  loadError,
+  layerId,
+  onChange,
+}: {
+  style: LayerStyle;
+  dynamicFields: DynamicField[];
+  selectedField?: DynamicField;
+  loadingValues: boolean;
+  loadError: string | null;
+  layerId?: string;
+  onChange: (style: LayerStyle) => void;
+}) {
+  const iconRules = style.iconRules ?? [];
+  const isDynamic = style.styleMode === "icon_by_value";
+
+  function setSingleMode() {
+    onChange({
+      ...style,
+      styleMode: "single_icon",
+      styleField: undefined,
+      iconRules: undefined,
+      fallbackIcon: undefined,
+    });
+  }
+
+  function setDynamicMode() {
+    onChange({ ...style, styleMode: "icon_by_value" });
+  }
+
+  function generateRules(field = selectedField) {
+    if (!field) return;
+    const previous = new Map(
+      iconRules.map((rule) => [valueIdentity(rule.value), rule]),
+    );
+    onChange({
+      ...style,
+      styleMode: "icon_by_value",
+      styleField: field.key,
+      iconRules: field.values.map((item) => ({
+        value: item.value,
+        label: item.label,
+        ...pickIcon(previous.get(valueIdentity(item.value))),
+      })),
+    });
+  }
+
+  function updateRule(index: number, patch: Partial<LayerIconRule>) {
+    onChange({
+      ...style,
+      iconRules: iconRules.map((rule, ruleIndex) =>
+        ruleIndex === index ? { ...rule, ...patch } : rule,
+      ),
+    });
+  }
+
+  return (
+    <div className="space-y-4 rounded-lg border border-border bg-slate-50/50 p-4">
+      <div>
+        <p className="text-sm font-medium text-foreground">Point Layer Style</p>
+        <p className="mt-0.5 text-xs text-muted">
+          Dùng một icon chung hoặc chọn icon riêng theo giá trị thuộc tính.
+        </p>
+      </div>
+
+      <div className="grid gap-2 sm:grid-cols-2">
+        <label className="flex cursor-pointer gap-2 rounded-lg border border-border bg-white p-3 text-sm">
+          <input
+            type="radio"
+            name="pointStyleMode"
+            checked={!isDynamic}
+            onChange={setSingleMode}
+          />
+          <span>
+            <strong className="block">Một icon duy nhất</strong>
+            <small className="text-muted">Áp dụng cho toàn bộ điểm.</small>
+          </span>
+        </label>
+        <label className="flex cursor-pointer gap-2 rounded-lg border border-border bg-white p-3 text-sm">
+          <input
+            type="radio"
+            name="pointStyleMode"
+            checked={isDynamic}
+            onChange={setDynamicMode}
+          />
+          <span>
+            <strong className="block">Icon theo giá trị trường</strong>
+            <small className="text-muted">Mỗi giá trị dùng một icon.</small>
+          </span>
+        </label>
+      </div>
+
+      {!isDynamic ? (
+        <LayerIconUploadField style={style} onChange={onChange} />
+      ) : (
+        <div className="space-y-4 rounded-lg border border-sky-200 bg-white p-3">
+          {!layerId && (
+            <p className="rounded-md bg-blue-50 px-3 py-2 text-xs text-blue-800">
+              Hãy tạo layer và field trước, sau đó mở sửa để sinh rule từ dữ
+              liệu.
+            </p>
+          )}
+          <div>
+            <label className="block text-sm font-medium">
+              Trường phân icon
+            </label>
+            <p className="mb-1.5 text-xs text-muted">
+              Gợi ý trường Văn bản, lựa chọn, phân loại hoặc Đúng/Sai.
+            </p>
+            <select
+              className={inputClass}
+              value={style.styleField ?? ""}
+              disabled={loadingValues || !layerId}
+              onChange={(event) => {
+                const field = dynamicFields.find(
+                  (item) => item.key === event.target.value,
+                );
+                onChange({
+                  ...style,
+                  styleMode: "icon_by_value",
+                  styleField: event.target.value,
+                  iconRules: field
+                    ? field.values.map((item) => ({
+                        value: item.value,
+                        label: item.label,
+                      }))
+                    : [],
+                });
+              }}
+            >
+              <option value="">
+                {loadingValues ? "Đang tải trường..." : "Chọn trường"}
+              </option>
+              {dynamicFields.map((field) => (
+                <option key={field.key} value={field.key}>
+                  {field.label} ({field.values.length} giá trị)
+                </option>
+              ))}
+            </select>
+            {loadError && (
+              <p className="mt-1 text-xs text-red-600">{loadError}</p>
+            )}
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              disabled={!selectedField}
+              onClick={() => generateRules()}
+              className="rounded-md bg-sky-600 px-3 py-2 text-xs font-medium text-white disabled:opacity-50"
+            >
+              Tự sinh từ dữ liệu
+            </button>
+            <button
+              type="button"
+              disabled={!style.styleField}
+              onClick={() =>
+                onChange({
+                  ...style,
+                  iconRules: [
+                    ...iconRules,
+                    { value: "", label: "Giá trị mới" },
+                  ],
+                })
+              }
+              className="rounded-md border border-border bg-white px-3 py-2 text-xs font-medium disabled:opacity-50"
+            >
+              + Thêm rule
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                onChange({
+                  ...style,
+                  styleMode: "single_icon",
+                  styleField: undefined,
+                  iconRules: undefined,
+                  fallbackIcon: undefined,
+                })
+              }
+              className="rounded-md border border-border bg-white px-3 py-2 text-xs font-medium"
+            >
+              Reset
+            </button>
+          </div>
+
+          {iconRules.length > 0 && (
+            <div className="overflow-x-auto rounded-lg border border-border">
+              <table className="w-full min-w-[680px] text-left text-xs">
+                <thead className="bg-slate-100 text-slate-600">
+                  <tr>
+                    <th className="px-3 py-2">Giá trị</th>
+                    <th className="px-3 py-2">Nhãn</th>
+                    <th className="px-3 py-2">Icon</th>
+                    <th className="w-12 px-3 py-2" />
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {iconRules.map((rule, index) => (
+                    <tr key={`${valueIdentity(rule.value)}-${index}`}>
+                      <td className="px-3 py-2">
+                        <input
+                          className={inputClass}
+                          value={String(rule.value)}
+                          onChange={(event) =>
+                            updateRule(index, { value: event.target.value })
+                          }
+                        />
+                      </td>
+                      <td className="px-3 py-2">
+                        <input
+                          className={inputClass}
+                          value={rule.label ?? ""}
+                          onChange={(event) =>
+                            updateRule(index, { label: event.target.value })
+                          }
+                        />
+                      </td>
+                      <td className="px-3 py-2">
+                        <LayerRuleIconUpload
+                          value={rule}
+                          label={rule.label || String(rule.value)}
+                          onChange={(icon) =>
+                            updateRule(index, {
+                              attachmentId: icon?.attachmentId,
+                              url: icon?.url,
+                            })
+                          }
+                        />
+                      </td>
+                      <td className="px-3 py-2">
+                        <button
+                          type="button"
+                          aria-label={`Xóa rule ${rule.label ?? rule.value}`}
+                          onClick={() =>
+                            onChange({
+                              ...style,
+                              iconRules: iconRules.filter(
+                                (_, ruleIndex) => ruleIndex !== index,
+                              ),
+                            })
+                          }
+                          className="rounded px-2 py-1 text-red-600 hover:bg-red-50"
+                        >
+                          ✕
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          <div>
+            <label className="mb-1 block text-sm font-medium">
+              Fallback icon
+            </label>
+            <p className="mb-2 text-xs text-muted">
+              Dùng icon này khi giá trị không khớp rule; nếu bỏ trống sẽ dùng
+              icon chung hiện tại.
+            </p>
+            <LayerRuleIconUpload
+              value={style.fallbackIcon}
+              label="Fallback icon"
+              onChange={(fallbackIcon) => onChange({ ...style, fallbackIcon })}
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function pickIcon(rule?: LayerIconRule) {
+  return rule?.attachmentId && rule.url
+    ? { attachmentId: rule.attachmentId, url: rule.url }
+    : {};
 }

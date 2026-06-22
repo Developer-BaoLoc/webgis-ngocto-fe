@@ -55,6 +55,9 @@ export interface WidgetFormState {
   icon: string;
   theme: string;
   renderVariant: string;
+  rankingSort: "asc" | "desc";
+  showMedal: boolean;
+  showProgressBar: boolean;
   content: string;
   layoutW: number;
   layoutH: number;
@@ -92,6 +95,9 @@ export function emptyWidgetForm(): WidgetFormState {
     icon: "auto",
     theme: "sky",
     renderVariant: "default",
+    rankingSort: "desc",
+    showMedal: true,
+    showProgressBar: true,
     content: "",
     layoutW: 3,
     layoutH: 2,
@@ -136,6 +142,9 @@ export function widgetToForm(widget: DashboardWidget): WidgetFormState {
     icon: String(widget.displayConfig?.icon ?? "auto"),
     theme: String(widget.displayConfig?.theme ?? "sky"),
     renderVariant: String(widget.displayConfig?.variant ?? "default"),
+    rankingSort: widget.displayConfig?.sort === "asc" ? "asc" : "desc",
+    showMedal: widget.displayConfig?.showMedal !== false,
+    showProgressBar: widget.displayConfig?.showProgressBar !== false,
     content: String(widget.displayConfig?.content ?? ""),
     layoutW: widget.layoutConfig.w,
     layoutH: widget.layoutConfig.h,
@@ -226,6 +235,7 @@ export function formToWidget(
   const needsDimension =
     !isOperational &&
     (form.aggregation === "top" ||
+      form.widgetType === "ranking" ||
       form.widgetType === "bar" ||
       form.widgetType === "pie" ||
       form.widgetType === "donut" ||
@@ -259,7 +269,10 @@ export function formToWidget(
           ...(needsDimension ? { limit: form.limit } : {}),
           ...(!isOperational && form.aggregation === "top" && form.metricField
             ? {
-                sort: { field: form.metricField, direction: "desc" as const },
+                sort: {
+                  field: form.metricField,
+                  direction: form.rankingSort,
+                },
                 limit: form.limit,
                 ...(topDisplayFields.length > 0
                   ? { displayFields: topDisplayFields }
@@ -275,6 +288,17 @@ export function formToWidget(
     ...(form.description ? { description: form.description } : {}),
     ...(form.renderVariant !== "default"
       ? { variant: form.renderVariant }
+      : {}),
+    ...(form.widgetType === "ranking"
+      ? {
+          variant: "ranking",
+          labelField: form.dimensionField,
+          valueField: form.metricField,
+          limit: form.limit,
+          sort: form.rankingSort,
+          showMedal: form.showMedal,
+          showProgressBar: form.showProgressBar,
+        }
       : {}),
     ...(form.widgetType === "stat"
       ? { icon: form.icon, theme: form.theme }
@@ -355,6 +379,7 @@ export function WidgetFormFields({
   const needsDimension =
     !isOperational &&
     (form.aggregation === "top" ||
+      form.widgetType === "ranking" ||
       form.widgetType === "bar" ||
       form.widgetType === "pie" ||
       form.widgetType === "donut" ||
@@ -420,11 +445,14 @@ export function WidgetFormFields({
             onChange({
               ...form,
               widgetType,
-              aggregation: operational
-                ? "records"
-                : form.aggregation === "records"
-                  ? "count"
-                  : form.aggregation,
+              aggregation:
+                widgetType === "ranking"
+                  ? "top"
+                  : operational
+                    ? "records"
+                    : form.aggregation === "records"
+                      ? "count"
+                      : form.aggregation,
               layoutW,
               layoutH,
             });
@@ -768,6 +796,49 @@ export function WidgetFormFields({
                         {field.label}
                       </label>
                     ))}
+                </div>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="block text-sm font-medium">Sắp xếp</label>
+                  <select
+                    className={inputClass}
+                    value={form.rankingSort}
+                    onChange={(event) =>
+                      onChange({
+                        ...form,
+                        rankingSort: event.target.value as "asc" | "desc",
+                      })
+                    }
+                  >
+                    <option value="desc">Giá trị cao xuống thấp</option>
+                    <option value="asc">Giá trị thấp lên cao</option>
+                  </select>
+                </div>
+                <div className="flex flex-col justify-end gap-2 pb-1">
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={form.showMedal}
+                      onChange={(event) =>
+                        onChange({ ...form, showMedal: event.target.checked })
+                      }
+                    />
+                    Hiển thị huy chương Top 3
+                  </label>
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={form.showProgressBar}
+                      onChange={(event) =>
+                        onChange({
+                          ...form,
+                          showProgressBar: event.target.checked,
+                        })
+                      }
+                    />
+                    Hiển thị thanh tỷ lệ
+                  </label>
                 </div>
               </div>
             </div>

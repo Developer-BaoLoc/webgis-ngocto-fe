@@ -11,8 +11,22 @@ export interface LayerIconStyle {
   url?: string;
 }
 
-export type LayerStyleMode = "single" | "by_value";
+export type LayerStyleMode =
+  | "single"
+  | "by_value"
+  | "single_icon"
+  | "icon_by_value";
 export type LayerStyleValue = string | number | boolean;
+
+export interface LayerIconReference {
+  attachmentId?: string;
+  url?: string;
+}
+
+export interface LayerIconRule extends LayerIconReference {
+  value: LayerStyleValue;
+  label?: string;
+}
 
 export interface LayerStyleRule {
   value: LayerStyleValue;
@@ -41,6 +55,8 @@ export interface LayerStyle {
   styleField?: string;
   styleRules?: LayerStyleRule[];
   fallbackStyle?: LayerFallbackStyle;
+  iconRules?: LayerIconRule[];
+  fallbackIcon?: LayerIconReference;
   layerRole?: "main_layer" | "sub_layer" | string;
   isSpatial?: boolean;
   showOnMap?: boolean;
