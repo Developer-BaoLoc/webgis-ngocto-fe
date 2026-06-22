@@ -89,6 +89,9 @@ function getWidgetMinimumSize(widget: DashboardWidget) {
       "progress",
       "milestone",
       "activity_history",
+      "minimap",
+      "activity_feed",
+      "seasonal_calendar",
     ].includes(widget.widgetType)
   ) {
     return { minW: 4, minH: 4 };

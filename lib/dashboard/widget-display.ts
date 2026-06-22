@@ -80,7 +80,17 @@ export function getWidgetSubtitle(
                         ? "Kết quả triển khai"
                         : type === "activity_history"
                           ? "Lịch sử hoạt động"
-                          : "Dữ liệu từ nguồn đã chọn";
+                          : type === "minimap"
+                            ? "Bản đồ dữ liệu thu nhỏ"
+                            : type === "progress_ring"
+                              ? "Tỷ lệ hoàn thành"
+                              : type === "activity_feed"
+                                ? "Hoạt động gần đây"
+                                : type === "treemap"
+                                  ? "Cơ cấu tỷ trọng dữ liệu"
+                                  : type === "seasonal_calendar"
+                                    ? "Lịch mùa vụ"
+                                    : "Dữ liệu từ nguồn đã chọn";
   const sourceName = String(widget.dataSourceConfig?.name ?? "").trim();
   return sourceName ? `${base} • Nguồn: ${sourceName}` : base;
 }

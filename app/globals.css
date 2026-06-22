@@ -3316,6 +3316,10 @@ body {
 }
 
 .ioc-widget-panel {
+  container-type: size;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   min-height: 15rem;
   height: 100%;
   border-color: #dbeafe;
@@ -3338,7 +3342,472 @@ body {
 }
 
 .ioc-widget-panel .ioc-panel-body {
+  flex: 1;
+  overflow: auto;
   min-height: 11rem;
+}
+
+.ioc-minimap {
+  position: relative;
+  min-height: 10rem;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 0.75rem;
+  border: 1px solid #dbeafe;
+  background: #eef6f2;
+}
+
+.ioc-minimap-canvas {
+  position: absolute;
+  inset: 0;
+}
+
+.ioc-minimap-legend {
+  position: absolute;
+  right: 0.5rem;
+  bottom: 0.5rem;
+  z-index: 2;
+  display: grid;
+  max-width: min(12rem, 62%);
+  max-height: 55%;
+  gap: 0.2rem;
+  overflow: auto;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid rgb(255 255 255 / 0.8);
+  border-radius: 0.5rem;
+  background: rgb(255 255 255 / 0.92);
+  box-shadow: 0 4px 12px rgb(15 23 42 / 0.12);
+  font-size: 0.625rem;
+}
+
+.ioc-minimap-legend > strong,
+.ioc-minimap-legend > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ioc-minimap-legend > span {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.ioc-minimap-legend img,
+.ioc-minimap-legend i {
+  width: 0.9rem;
+  height: 0.9rem;
+  flex: none;
+  border-radius: 0.2rem;
+  object-fit: contain;
+}
+
+.ioc-progress-ring {
+  display: flex;
+  height: 100%;
+  min-height: 10rem;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(0.75rem, 5cqw, 2rem);
+  padding: 0.5rem;
+}
+
+.ioc-progress-ring-visual {
+  position: relative;
+  width: min(52cqw, 11rem);
+  min-width: 7rem;
+  aspect-ratio: 1;
+}
+
+.ioc-progress-ring svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.ioc-progress-ring circle {
+  fill: none;
+  stroke-width: 10;
+}
+
+.ioc-progress-ring-track {
+  stroke: #e2e8f0;
+}
+
+.ioc-progress-ring-value {
+  stroke: #16a34a;
+  stroke-linecap: round;
+  transition: stroke-dasharray 0.5s ease;
+}
+
+.ioc-progress-ring--rose .ioc-progress-ring-value {
+  stroke: #e11d48;
+}
+.ioc-progress-ring--amber .ioc-progress-ring-value {
+  stroke: #d97706;
+}
+.ioc-progress-ring--green .ioc-progress-ring-value {
+  stroke: #16a34a;
+}
+
+.ioc-progress-ring-visual > strong {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #0f172a;
+  font-size: clamp(1.35rem, 8cqw, 2.35rem);
+  font-variant-numeric: tabular-nums;
+}
+
+.ioc-progress-ring-visual small {
+  margin-left: 0.15rem;
+  color: #64748b;
+  font-size: 0.45em;
+}
+
+.ioc-progress-ring-copy {
+  max-width: 15rem;
+}
+
+.ioc-progress-ring-copy p {
+  font-weight: 700;
+  color: #0f3d5e;
+}
+
+.ioc-progress-ring-copy span {
+  display: block;
+  margin-top: 0.25rem;
+  color: #64748b;
+  font-size: 0.75rem;
+  line-height: 1.35;
+}
+
+.ioc-activity-feed {
+  position: relative;
+  display: grid;
+  gap: 0.65rem;
+  margin: 0;
+  padding: 0 0 0 1.4rem;
+  list-style: none;
+}
+
+.ioc-activity-feed::before {
+  position: absolute;
+  inset-block: 0.5rem;
+  left: 0.42rem;
+  width: 1px;
+  background: #cbd5e1;
+  content: "";
+}
+
+.ioc-activity-feed > li {
+  position: relative;
+}
+
+.ioc-activity-feed-dot {
+  position: absolute;
+  top: 0.85rem;
+  left: -1.35rem;
+  width: 0.72rem;
+  height: 0.72rem;
+  border: 2px solid white;
+  border-radius: 999px;
+  box-shadow: 0 0 0 1px #cbd5e1;
+}
+
+.ioc-activity-feed article {
+  padding: 0.7rem 0.8rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.7rem;
+  background: #fff;
+}
+
+.ioc-activity-feed-head {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 0.7rem;
+}
+
+.ioc-activity-feed h4,
+.ioc-activity-feed p {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ioc-activity-feed h4 {
+  white-space: nowrap;
+  color: #0f172a;
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.ioc-activity-feed time {
+  flex: none;
+  color: #64748b;
+  font-size: 0.625rem;
+}
+
+.ioc-activity-feed p {
+  display: -webkit-box;
+  margin-top: 0.3rem;
+  color: #64748b;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.ioc-activity-feed-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-top: 0.45rem;
+}
+
+.ioc-feed-badge,
+.ioc-activity-feed-badges > span {
+  padding: 0.16rem 0.42rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  font-size: 0.625rem;
+  font-weight: 600;
+}
+
+.ioc-severity--low {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+  color: #166534;
+}
+.ioc-severity--medium {
+  border-color: #fde68a;
+  background: #fffbeb;
+  color: #92400e;
+}
+.ioc-severity--high {
+  border-color: #fdba74;
+  background: #fff7ed;
+  color: #9a3412;
+}
+.ioc-severity--critical {
+  border-color: #fca5a5;
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.ioc-treemap-layout {
+  display: grid;
+  height: 100%;
+  min-height: 10rem;
+  grid-template-columns: minmax(0, 1fr) minmax(8rem, 28%);
+  gap: 0.75rem;
+}
+
+.ioc-treemap {
+  display: flex;
+  min-height: 9rem;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.ioc-treemap article {
+  display: flex;
+  min-width: 5rem;
+  min-height: 4rem;
+  flex: 1 1 25%;
+  flex-direction: column;
+  justify-content: end;
+  overflow: hidden;
+  padding: 0.55rem;
+  border-radius: 0.55rem;
+  color: white;
+}
+
+.ioc-treemap strong,
+.ioc-treemap span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ioc-treemap strong {
+  font-size: 0.75rem;
+}
+.ioc-treemap span {
+  font-size: 0.6875rem;
+  font-weight: 700;
+}
+.ioc-treemap small {
+  font-size: 0.625rem;
+  opacity: 0.85;
+}
+.ioc-treemap-legend {
+  max-height: 100%;
+}
+
+.ioc-seasonal-calendar {
+  min-width: 0;
+  height: 100%;
+}
+
+.ioc-seasonal-compact {
+  display: none;
+}
+
+.ioc-seasonal-timeline {
+  display: grid;
+  min-width: 38rem;
+  grid-template-columns: 10rem minmax(28rem, 1fr);
+  color: #334155;
+  font-size: 0.6875rem;
+}
+
+.ioc-seasonal-label-head,
+.ioc-seasonal-months {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #f8fafc;
+  font-weight: 700;
+}
+
+.ioc-seasonal-label-head {
+  padding: 0.5rem;
+}
+.ioc-seasonal-months {
+  display: grid;
+  grid-template-columns: repeat(var(--month-count), 1fr);
+}
+.ioc-seasonal-months span {
+  padding: 0.5rem 0.2rem;
+  border-left: 1px solid #e2e8f0;
+  text-align: center;
+}
+.ioc-seasonal-row {
+  display: contents;
+}
+
+.ioc-seasonal-row-label {
+  min-width: 0;
+  padding: 0.5rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.ioc-seasonal-row-label strong,
+.ioc-seasonal-row-label small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ioc-seasonal-row-label small {
+  margin-top: 0.12rem;
+  color: #64748b;
+}
+
+.ioc-seasonal-track {
+  position: relative;
+  min-height: 2.8rem;
+  border-top: 1px solid #e2e8f0;
+  background: repeating-linear-gradient(
+    90deg,
+    transparent 0 calc((100% / var(--month-count)) - 1px),
+    #e2e8f0 calc((100% / var(--month-count)) - 1px)
+      calc(100% / var(--month-count))
+  );
+}
+
+.ioc-seasonal-bar,
+.ioc-seasonal-marker {
+  position: absolute;
+  top: 50%;
+  min-width: 0.55rem;
+  height: 0.65rem;
+  border-radius: 999px;
+  transform: translateY(-50%);
+}
+
+.ioc-seasonal-marker {
+  width: 0.7rem;
+  height: 0.7rem;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 0 3px rgb(255 255 255 / 0.9);
+}
+
+.ioc-seasonal-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin: 0.65rem 0 0;
+  padding: 0;
+  color: #64748b;
+  font-size: 0.625rem;
+  list-style: none;
+}
+
+.ioc-seasonal-legend li {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+.ioc-seasonal-legend span {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 999px;
+}
+
+@container (max-width: 430px) or (max-height: 285px) {
+  .ioc-progress-ring {
+    gap: 0.4rem;
+  }
+  .ioc-progress-ring-copy span {
+    display: none;
+  }
+  .ioc-progress-ring-copy p {
+    font-size: 0.75rem;
+  }
+  .ioc-activity-feed p {
+    display: none;
+  }
+  .ioc-activity-feed article {
+    padding: 0.55rem 0.65rem;
+  }
+  .ioc-treemap-layout {
+    grid-template-columns: 1fr;
+  }
+  .ioc-treemap small,
+  .ioc-treemap-legend {
+    display: none;
+  }
+  .ioc-seasonal-timeline,
+  .ioc-seasonal-legend {
+    display: none;
+  }
+  .ioc-seasonal-compact {
+    display: grid;
+    gap: 0.45rem;
+  }
+  .ioc-seasonal-compact article {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.55rem;
+  }
+  .ioc-seasonal-compact time {
+    color: #64748b;
+    font-size: 0.625rem;
+  }
+  .ioc-seasonal-compact strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.75rem;
+  }
 }
 
 .ioc-widget-state {

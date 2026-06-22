@@ -31,6 +31,7 @@ export interface WidgetFormState {
   viewId: string;
   datasetId: string;
   layerId: string;
+  sourceName: string;
   aggregation: AggregationType;
   metricField: string;
   dimensionField: string;
@@ -58,6 +59,15 @@ export interface WidgetFormState {
   rankingSort: "asc" | "desc";
   showMedal: boolean;
   showProgressBar: boolean;
+  unit: string;
+  target: number;
+  showLegend: boolean;
+  showBoundary: boolean;
+  autoFitBounds: boolean;
+  interactive: boolean;
+  colorField: string;
+  seasonalMode: "month" | "quarter";
+  minimapLayerMode: "active" | "all" | "default";
   content: string;
   layoutW: number;
   layoutH: number;
@@ -71,6 +81,7 @@ export function emptyWidgetForm(): WidgetFormState {
     viewId: "",
     datasetId: "",
     layerId: "",
+    sourceName: "",
     aggregation: "count",
     metricField: "",
     dimensionField: "",
@@ -98,6 +109,15 @@ export function emptyWidgetForm(): WidgetFormState {
     rankingSort: "desc",
     showMedal: true,
     showProgressBar: true,
+    unit: "",
+    target: 100,
+    showLegend: true,
+    showBoundary: true,
+    autoFitBounds: true,
+    interactive: false,
+    colorField: "",
+    seasonalMode: "month",
+    minimapLayerMode: "active",
     content: "",
     layoutW: 3,
     layoutH: 2,
@@ -112,6 +132,7 @@ export function widgetToForm(widget: DashboardWidget): WidgetFormState {
     viewId: widget.dataSourceConfig?.viewId ?? "",
     datasetId: widget.dataSourceConfig?.datasetId ?? "",
     layerId: widget.dataSourceConfig?.layerId ?? "",
+    sourceName: widget.dataSourceConfig?.name ?? "",
     aggregation: widget.dataSourceConfig?.aggregation ?? "count",
     metricField:
       widget.dataSourceConfig?.metricField ??
@@ -145,6 +166,20 @@ export function widgetToForm(widget: DashboardWidget): WidgetFormState {
     rankingSort: widget.displayConfig?.sort === "asc" ? "asc" : "desc",
     showMedal: widget.displayConfig?.showMedal !== false,
     showProgressBar: widget.displayConfig?.showProgressBar !== false,
+    unit: String(widget.displayConfig?.unit ?? ""),
+    target: Number(widget.displayConfig?.target ?? 100),
+    showLegend: widget.displayConfig?.showLegend !== false,
+    showBoundary: widget.displayConfig?.showBoundary !== false,
+    autoFitBounds: widget.displayConfig?.autoFitBounds !== false,
+    interactive: widget.displayConfig?.interactive === true,
+    colorField: String(widget.displayConfig?.colorField ?? ""),
+    seasonalMode:
+      widget.displayConfig?.mode === "quarter" ? "quarter" : "month",
+    minimapLayerMode:
+      widget.displayConfig?.layerMode === "all" ||
+      widget.displayConfig?.layerMode === "default"
+        ? widget.displayConfig.layerMode
+        : "active",
     content: String(widget.displayConfig?.content ?? ""),
     layoutW: widget.layoutConfig.w,
     layoutH: widget.layoutConfig.h,
@@ -157,6 +192,8 @@ const OPERATIONAL_WIDGET_TYPES = new Set<WidgetType>([
   "progress",
   "milestone",
   "activity_history",
+  "activity_feed",
+  "seasonal_calendar",
 ]);
 
 function isOperationalWidgetType(widgetType: WidgetType) {
@@ -204,15 +241,28 @@ function buildOperationalDataSourceConfig(form: WidgetFormState) {
                 progressField: form.progressField,
                 metricFields: form.metricFields,
               }
-            : {
-                descriptionField: form.descriptionField,
-                dateField: form.dateField,
-                ...(form.severityField
-                  ? { severityField: form.severityField }
-                  : {}),
-                ...(form.typeField ? { typeField: form.typeField } : {}),
-                sort: { field: form.dateField, direction: "desc" as const },
-              };
+            : form.widgetType === "seasonal_calendar"
+              ? {
+                  startDateField: form.startDateField,
+                  ...(form.endDateField
+                    ? { endDateField: form.endDateField }
+                    : {}),
+                  ...(form.typeField ? { typeField: form.typeField } : {}),
+                  ...(form.groupField ? { groupField: form.groupField } : {}),
+                  sort: {
+                    field: form.startDateField,
+                    direction: "asc" as const,
+                  },
+                }
+              : {
+                  descriptionField: form.descriptionField,
+                  dateField: form.dateField,
+                  ...(form.severityField
+                    ? { severityField: form.severityField }
+                    : {}),
+                  ...(form.typeField ? { typeField: form.typeField } : {}),
+                  sort: { field: form.dateField, direction: "desc" as const },
+                };
   const displayFields = Array.from(
     new Set(
       Object.entries({ ...common, ...byType })
@@ -236,6 +286,7 @@ export function formToWidget(
     !isOperational &&
     (form.aggregation === "top" ||
       form.widgetType === "ranking" ||
+      form.widgetType === "treemap" ||
       form.widgetType === "bar" ||
       form.widgetType === "pie" ||
       form.widgetType === "donut" ||
@@ -251,7 +302,7 @@ export function formToWidget(
   );
 
   const dataSourceConfig =
-    form.widgetType === "text"
+    form.widgetType === "text" || form.widgetType === "minimap"
       ? undefined
       : {
           ...(form.viewId ? { viewId: form.viewId } : {}),
@@ -259,7 +310,11 @@ export function formToWidget(
           ...(!form.datasetId && !form.viewId && form.layerId
             ? { layerId: form.layerId }
             : {}),
-          aggregation: isOperational ? ("records" as const) : form.aggregation,
+          ...(form.sourceName ? { name: form.sourceName } : {}),
+          aggregation:
+            isOperational || form.widgetType === "minimap"
+              ? ("records" as const)
+              : form.aggregation,
           ...(!isOperational && form.metricField && form.aggregation !== "count"
             ? { metricField: form.metricField }
             : {}),
@@ -303,6 +358,40 @@ export function formToWidget(
     ...(form.widgetType === "stat"
       ? { icon: form.icon, theme: form.theme }
       : {}),
+    ...(["progress_ring", "treemap"].includes(form.widgetType)
+      ? { unit: form.unit }
+      : {}),
+    ...(form.widgetType === "progress_ring"
+      ? { target: form.target, subtitle: form.description }
+      : {}),
+    ...(form.widgetType === "minimap"
+      ? {
+          showBoundary: form.showBoundary,
+          showLegend: form.showLegend,
+          autoFitBounds: form.autoFitBounds,
+          interactive: form.interactive,
+          highlightMode: "none",
+          layerMode: form.minimapLayerMode,
+          ...(form.colorField ? { colorField: form.colorField } : {}),
+        }
+      : {}),
+    ...(form.widgetType === "treemap" ? { showLegend: form.showLegend } : {}),
+    ...(["activity_feed", "seasonal_calendar"].includes(form.widgetType)
+      ? {
+          titleField: form.titleField,
+          descriptionField: form.descriptionField,
+          dateField: form.dateField,
+          startDateField: form.startDateField,
+          endDateField: form.endDateField,
+          statusField: form.statusField,
+          severityField: form.severityField,
+          typeField: form.typeField,
+          groupField: form.groupField,
+          ...(form.widgetType === "seasonal_calendar"
+            ? { mode: form.seasonalMode }
+            : {}),
+        }
+      : {}),
     ...(Object.keys(form.fieldLabels).length
       ? { fieldLabels: form.fieldLabels }
       : {}),
@@ -310,9 +399,19 @@ export function formToWidget(
 
   const title =
     form.title.trim() ||
-    (form.widgetType === "map" || form.widgetType === "text" || isOperational
-      ? WIDGET_TYPE_LABELS[form.widgetType]
-      : buildWidgetAutoTitle(dataSourceConfig, form.fieldLabels));
+    (form.widgetType === "minimap"
+      ? `Bản đồ ${form.sourceName || "dữ liệu"}`
+      : form.widgetType === "progress_ring"
+        ? `Tiến độ ${form.metricField ? (form.fieldLabels[form.metricField] ?? form.metricField) : "thực hiện"}`
+        : form.widgetType === "activity_feed"
+          ? "Hoạt động gần đây"
+        : form.widgetType === "treemap"
+          ? `Cơ cấu ${form.metricField ? (form.fieldLabels[form.metricField] ?? form.metricField) : "số lượng"}${form.dimensionField ? ` theo ${form.fieldLabels[form.dimensionField] ?? form.dimensionField}` : ""}`
+          : form.widgetType === "map" ||
+              form.widgetType === "text" ||
+              isOperational
+            ? WIDGET_TYPE_LABELS[form.widgetType]
+            : buildWidgetAutoTitle(dataSourceConfig, form.fieldLabels));
 
   return {
     ...(existingId ? { id: existingId } : {}),
@@ -375,11 +474,17 @@ export function WidgetFormFields({
   );
 
   const isOperational = isOperationalWidgetType(form.widgetType);
-  const needsNumericField = !isOperational && form.aggregation !== "count";
+  const isMiniMap = form.widgetType === "minimap";
+  const needsNumericField =
+    !isOperational &&
+    !isMiniMap &&
+    form.widgetType !== "map" &&
+    form.aggregation !== "count";
   const needsDimension =
     !isOperational &&
     (form.aggregation === "top" ||
       form.widgetType === "ranking" ||
+      form.widgetType === "treemap" ||
       form.widgetType === "bar" ||
       form.widgetType === "pie" ||
       form.widgetType === "donut" ||
@@ -433,13 +538,21 @@ export function WidgetFormFields({
             const widgetType = e.target.value as WidgetType;
             const operational = isOperationalWidgetType(widgetType);
             const layoutW =
-              widgetType === "stat" ? 3 : widgetType === "text" ? 12 : 6;
+              widgetType === "stat"
+                ? 3
+                : widgetType === "text"
+                  ? 12
+                  : ["minimap", "activity_feed", "seasonal_calendar"].includes(
+                        widgetType,
+                      )
+                    ? 8
+                    : 6;
             const layoutH =
               widgetType === "stat"
                 ? 2
                 : widgetType === "text"
                   ? 2
-                  : operational
+                  : operational || widgetType === "minimap"
                     ? 5
                     : 4;
             onChange({
@@ -448,11 +561,15 @@ export function WidgetFormFields({
               aggregation:
                 widgetType === "ranking"
                   ? "top"
-                  : operational
-                    ? "records"
-                    : form.aggregation === "records"
-                      ? "count"
-                      : form.aggregation,
+                  : widgetType === "progress_ring"
+                    ? "avg"
+                    : widgetType === "treemap"
+                      ? "sum"
+                      : operational || widgetType === "minimap"
+                        ? "records"
+                        : form.aggregation === "records"
+                          ? "count"
+                          : form.aggregation,
               layoutW,
               layoutH,
             });
@@ -478,7 +595,7 @@ export function WidgetFormFields({
         </div>
       ) : (
         <>
-          <div>
+          {form.widgetType !== "minimap" && <div>
             <div className="flex items-center justify-between gap-3">
               <label className="block text-sm font-medium">Nguồn dữ liệu</label>
               <Link
@@ -498,6 +615,19 @@ export function WidgetFormFields({
               value={sourceValue}
               onChange={(e) => {
                 const [kind, id] = e.target.value.split(":");
+                const sourceName =
+                  kind === "dataset"
+                    ? (datasets.find((dataset) => dataset.id === id)?.name ??
+                      "")
+                    : kind === "view"
+                      ? (() => {
+                          const view = savedViews.find(
+                            (item) => item.id === id,
+                          );
+                          return view ? `${view.layerName} / ${view.name}` : "";
+                        })()
+                      : (dataSources.find((source) => source.layerId === id)
+                          ?.layerName ?? "");
                 const sourceFields =
                   kind === "dataset"
                     ? (
@@ -523,6 +653,7 @@ export function WidgetFormFields({
                   datasetId: kind === "dataset" ? id : "",
                   viewId: kind === "view" ? id : "",
                   layerId: kind === "legacy" ? id : "",
+                  sourceName,
                   metricField: "",
                   dimensionField: "",
                   displayFields: [],
@@ -586,6 +717,7 @@ export function WidgetFormFields({
               </p>
             )}
             {!isOperational &&
+              !isMiniMap &&
               selectedDataset &&
               groupableFields.length === 0 && (
                 <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
@@ -593,7 +725,7 @@ export function WidgetFormFields({
                   bản như loai_vung.
                 </p>
               )}
-          </div>
+          </div>}
 
           {isOperational && (
             <OperationalWidgetMappingFields
@@ -626,7 +758,7 @@ export function WidgetFormFields({
             />
           )}
 
-          {form.widgetType !== "map" && !isOperational && (
+          {form.widgetType !== "map" && !isMiniMap && !isOperational && (
             <div>
               <label className="block text-sm font-medium">Tổng hợp</label>
               <p className="mb-1 text-xs text-muted">
@@ -643,9 +775,15 @@ export function WidgetFormFields({
                 }
               >
                 {Object.entries(AGGREGATION_LABELS)
-                  .filter(
-                    ([code]) => code !== "top" || Boolean(selectedDataset),
-                  )
+                  .filter(([code]) => {
+                    if (form.widgetType === "progress_ring") {
+                      return code === "avg" || code === "sum";
+                    }
+                    if (form.widgetType === "treemap") {
+                      return code === "count" || code === "sum";
+                    }
+                    return code !== "top" || Boolean(selectedDataset);
+                  })
                   .map(([code, label]) => (
                     <option key={code} value={code}>
                       {label}
@@ -655,7 +793,7 @@ export function WidgetFormFields({
             </div>
           )}
 
-          {needsNumericField && form.widgetType !== "map" && (
+          {needsNumericField && (
             <div>
               <label className="block text-sm font-medium">Trường chỉ số</label>
               <p className="mb-1 text-xs text-muted">
@@ -869,6 +1007,146 @@ export function WidgetFormFields({
               </div>
             )}
 
+          {form.widgetType === "minimap" && (
+            <div className="space-y-3 rounded-xl border border-emerald-200 bg-emerald-50/60 p-3">
+              <p className="text-xs text-emerald-800">
+                Bản đồ tổng quan dùng cùng boundary, layer và style với trang
+                bản đồ WebGIS.
+              </p>
+              <div>
+                <label className="block text-sm font-medium">Chế độ layer</label>
+                <p className="mb-1 text-xs text-muted">
+                  Chọn cách MiniMap lấy các layer từ bản đồ chính.
+                </p>
+                <select
+                  className={inputClass}
+                  value={form.minimapLayerMode}
+                  onChange={(event) =>
+                    onChange({
+                      ...form,
+                      minimapLayerMode: event.target.value as
+                        | "active"
+                        | "all"
+                        | "default",
+                    })
+                  }
+                >
+                  <option value="active">Theo layer đang bật trên bản đồ</option>
+                  <option value="all">Tất cả layer hiển thị trên bản đồ</option>
+                  <option value="default">Các layer mặc định</option>
+                </select>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2">
+                <CheckOption
+                  label="Hiện ranh giới xã"
+                  checked={form.showBoundary}
+                  onChange={(showBoundary) =>
+                    onChange({ ...form, showBoundary })
+                  }
+                />
+                <CheckOption
+                  label="Hiện chú giải"
+                  checked={form.showLegend}
+                  onChange={(showLegend) => onChange({ ...form, showLegend })}
+                />
+                <CheckOption
+                  label="Tự động zoom"
+                  checked={form.autoFitBounds}
+                  onChange={(autoFitBounds) =>
+                    onChange({ ...form, autoFitBounds })
+                  }
+                />
+                <CheckOption
+                  label="Cho phép tương tác"
+                  checked={form.interactive}
+                  onChange={(interactive) => onChange({ ...form, interactive })}
+                />
+              </div>
+            </div>
+          )}
+
+          {form.widgetType === "progress_ring" && (
+            <div className="grid gap-3 rounded-xl border border-emerald-200 bg-emerald-50/60 p-3 sm:grid-cols-2">
+              <div>
+                <label className="block text-sm font-medium">Mục tiêu</label>
+                <p className="mb-1 text-xs text-muted">
+                  Giá trị tương ứng với một vòng hoàn thành.
+                </p>
+                <input
+                  type="number"
+                  min={0.01}
+                  className={inputClass}
+                  value={form.target}
+                  onChange={(event) =>
+                    onChange({
+                      ...form,
+                      target: Number(event.target.value) || 100,
+                    })
+                  }
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium">Đơn vị</label>
+                <p className="mb-1 text-xs text-muted">
+                  Ví dụ: %, ha, triệu đ.
+                </p>
+                <input
+                  className={inputClass}
+                  value={form.unit}
+                  onChange={(event) =>
+                    onChange({ ...form, unit: event.target.value })
+                  }
+                  placeholder="%"
+                />
+              </div>
+            </div>
+          )}
+
+          {form.widgetType === "treemap" && (
+            <div className="grid gap-3 rounded-xl border border-violet-200 bg-violet-50/60 p-3 sm:grid-cols-2">
+              <div>
+                <label className="block text-sm font-medium">Đơn vị</label>
+                <input
+                  className={inputClass}
+                  value={form.unit}
+                  onChange={(event) =>
+                    onChange({ ...form, unit: event.target.value })
+                  }
+                  placeholder="ha, triệu đ, ..."
+                />
+              </div>
+              <CheckOption
+                label="Hiện chú giải"
+                checked={form.showLegend}
+                onChange={(showLegend) => onChange({ ...form, showLegend })}
+              />
+            </div>
+          )}
+
+          {form.widgetType === "seasonal_calendar" && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-3">
+              <label className="block text-sm font-medium">
+                Chế độ thời gian
+              </label>
+              <p className="mb-1 text-xs text-muted">
+                Theo tháng hoặc gom thành bốn quý trong năm.
+              </p>
+              <select
+                className={inputClass}
+                value={form.seasonalMode}
+                onChange={(event) =>
+                  onChange({
+                    ...form,
+                    seasonalMode: event.target.value as "month" | "quarter",
+                  })
+                }
+              >
+                <option value="month">Theo tháng</option>
+                <option value="quarter">Theo quý</option>
+              </select>
+            </div>
+          )}
+
           {form.widgetType === "stat" && (
             <div className="space-y-3 rounded-xl border border-sky-100 bg-sky-50/60 p-3">
               <div className="grid gap-3 sm:grid-cols-2">
@@ -957,5 +1235,26 @@ export function WidgetFormFields({
         </div>
       </div>
     </div>
+  );
+}
+
+function CheckOption({
+  label,
+  checked,
+  onChange,
+}: {
+  label: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+}) {
+  return (
+    <label className="flex items-center gap-2 rounded-lg border border-white/80 bg-white px-3 py-2 text-sm">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(event) => onChange(event.target.checked)}
+      />
+      {label}
+    </label>
   );
 }

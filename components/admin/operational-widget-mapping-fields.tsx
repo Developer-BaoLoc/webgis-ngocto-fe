@@ -280,7 +280,8 @@ export function OperationalWidgetMappingFields({
           </>
         )}
 
-        {widgetType === "activity_history" && (
+        {(widgetType === "activity_history" ||
+          widgetType === "activity_feed") && (
           <>
             {select(
               "titleField",
@@ -319,6 +320,49 @@ export function OperationalWidgetMappingFields({
               "Loại cảnh báo",
               "Nhóm nghiệp vụ của cảnh báo.",
               statusFields,
+            )}
+          </>
+        )}
+
+        {widgetType === "seasonal_calendar" && (
+          <>
+            {select(
+              "titleField",
+              "Tên mùa vụ/công việc",
+              "Tên hiển thị trên từng dòng lịch.",
+              textFields,
+              true,
+            )}
+            {select(
+              "startDateField",
+              "Ngày bắt đầu",
+              "Mốc bắt đầu thanh thời gian.",
+              dateFields,
+              true,
+            )}
+            {select(
+              "endDateField",
+              "Ngày kết thúc",
+              "Để trống nếu sự kiện chỉ có một ngày.",
+              dateFields,
+            )}
+            {select(
+              "typeField",
+              "Loại công việc",
+              "Dùng tạo màu và chú giải.",
+              statusFields,
+            )}
+            {select(
+              "statusField",
+              "Trạng thái",
+              "Trạng thái thực hiện mùa vụ.",
+              statusFields,
+            )}
+            {select(
+              "groupField",
+              "Nhóm cây trồng/vật nuôi",
+              "Thông tin nhóm hiển thị dưới tên công việc.",
+              textFields,
             )}
           </>
         )}

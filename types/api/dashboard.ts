@@ -15,7 +15,12 @@ export type WidgetType =
   | "calendar"
   | "progress"
   | "milestone"
-  | "activity_history";
+  | "activity_history"
+  | "minimap"
+  | "progress_ring"
+  | "activity_feed"
+  | "treemap"
+  | "seasonal_calendar";
 
 export type AggregationType =
   | "count"

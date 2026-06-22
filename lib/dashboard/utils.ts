@@ -38,6 +38,11 @@ export const WIDGET_TYPE_LABELS: Record<string, string> = {
   progress: "Tiến độ",
   milestone: "Kết quả triển khai",
   activity_history: "Lịch sử hoạt động",
+  minimap: "Bản đồ nhỏ",
+  progress_ring: "Vòng tiến độ",
+  activity_feed: "Dòng hoạt động",
+  treemap: "Treemap",
+  seasonal_calendar: "Lịch mùa vụ",
 };
 
 export const AGGREGATION_LABELS: Record<string, string> = {

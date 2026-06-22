@@ -30,11 +30,16 @@ export function getDefaultWidgetLayout(
       "progress",
       "milestone",
       "activity_history",
+      "minimap",
+      "activity_feed",
+      "seasonal_calendar",
     ].includes(widget.widgetType)
   ) {
     return { w: 8, h: 5 };
   }
   if (widget.widgetType === "map") return { w: 12, h: 5 };
+  if (widget.widgetType === "progress_ring") return { w: 4, h: 4 };
+  if (widget.widgetType === "treemap") return { w: 6, h: 4 };
   return { w: 6, h: 4 };
 }
 

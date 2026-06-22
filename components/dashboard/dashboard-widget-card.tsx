@@ -27,6 +27,13 @@ import {
   ProgressWidgetRenderer,
   TimelineWidgetRenderer,
 } from "./operational-widget-renderers";
+import {
+  ActivityFeedWidgetRenderer,
+  MiniMapWidgetRenderer,
+  ProgressRingWidgetRenderer,
+  SeasonalCalendarWidgetRenderer,
+  TreemapWidgetRenderer,
+} from "./advanced-widget-renderers";
 
 interface DashboardWidgetCardProps {
   widget: DashboardWidget;
@@ -43,6 +50,9 @@ export function DashboardWidgetCard({ widget }: DashboardWidgetCardProps) {
 function DashboardWidgetContent({ widget }: DashboardWidgetCardProps) {
   if (widget.widgetType === "text") return <TextWidget widget={widget} />;
   if (widget.widgetType === "map") return <MapWidget widget={widget} />;
+  if (widget.widgetType === "minimap") {
+    return <MiniMapWidgetRenderer widget={widget} />;
+  }
   if (widget.widgetType === "global_filter") return null;
   return <AnalyticsWidget widget={widget} />;
 }
@@ -181,6 +191,38 @@ function WidgetDataContent({
 }) {
   if (widget.widgetType === "stat") {
     return <KpiWidgetRenderer widget={widget} data={data} />;
+  }
+
+  if (widget.widgetType === "progress_ring") {
+    return (
+      <WidgetPanel widget={widget} data={data}>
+        <ProgressRingWidgetRenderer widget={widget} data={data} />
+      </WidgetPanel>
+    );
+  }
+
+  if (widget.widgetType === "activity_feed") {
+    return (
+      <WidgetPanel widget={widget} data={data}>
+        <ActivityFeedWidgetRenderer widget={widget} data={data} />
+      </WidgetPanel>
+    );
+  }
+
+  if (widget.widgetType === "treemap") {
+    return (
+      <WidgetPanel widget={widget} data={data}>
+        <TreemapWidgetRenderer widget={widget} data={data} />
+      </WidgetPanel>
+    );
+  }
+
+  if (widget.widgetType === "seasonal_calendar") {
+    return (
+      <WidgetPanel widget={widget} data={data}>
+        <SeasonalCalendarWidgetRenderer widget={widget} data={data} />
+      </WidgetPanel>
+    );
   }
 
   if (widget.widgetType === "timeline") {
