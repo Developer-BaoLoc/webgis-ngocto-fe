@@ -67,7 +67,7 @@ export interface WidgetFormState {
   interactive: boolean;
   colorField: string;
   seasonalMode: "month" | "quarter";
-  minimapLayerMode: "active" | "all" | "default";
+  minimapLayerMode: "visible" | "all" | "default";
   content: string;
   layoutW: number;
   layoutH: number;
@@ -117,7 +117,7 @@ export function emptyWidgetForm(): WidgetFormState {
     interactive: false,
     colorField: "",
     seasonalMode: "month",
-    minimapLayerMode: "active",
+    minimapLayerMode: "visible",
     content: "",
     layoutW: 3,
     layoutH: 2,
@@ -179,7 +179,7 @@ export function widgetToForm(widget: DashboardWidget): WidgetFormState {
       widget.displayConfig?.layerMode === "all" ||
       widget.displayConfig?.layerMode === "default"
         ? widget.displayConfig.layerMode
-        : "active",
+        : "visible",
     content: String(widget.displayConfig?.content ?? ""),
     layoutW: widget.layoutConfig.w,
     layoutH: widget.layoutConfig.h,
@@ -355,9 +355,7 @@ export function formToWidget(
           showProgressBar: form.showProgressBar,
         }
       : {}),
-    ...(form.widgetType === "stat"
-      ? { icon: form.icon, theme: form.theme }
-      : {}),
+    ...(form.widgetType === "stat" ? { icon: form.icon, theme: form.theme } : {}),
     ...(["progress_ring", "treemap"].includes(form.widgetType)
       ? { unit: form.unit }
       : {}),
@@ -392,9 +390,7 @@ export function formToWidget(
             : {}),
         }
       : {}),
-    ...(Object.keys(form.fieldLabels).length
-      ? { fieldLabels: form.fieldLabels }
-      : {}),
+    ...(Object.keys(form.fieldLabels).length ? { fieldLabels: form.fieldLabels } : {}),
   };
 
   const title =
@@ -405,13 +401,13 @@ export function formToWidget(
         ? `Tiến độ ${form.metricField ? (form.fieldLabels[form.metricField] ?? form.metricField) : "thực hiện"}`
         : form.widgetType === "activity_feed"
           ? "Hoạt động gần đây"
-        : form.widgetType === "treemap"
-          ? `Cơ cấu ${form.metricField ? (form.fieldLabels[form.metricField] ?? form.metricField) : "số lượng"}${form.dimensionField ? ` theo ${form.fieldLabels[form.dimensionField] ?? form.dimensionField}` : ""}`
-          : form.widgetType === "map" ||
-              form.widgetType === "text" ||
-              isOperational
-            ? WIDGET_TYPE_LABELS[form.widgetType]
-            : buildWidgetAutoTitle(dataSourceConfig, form.fieldLabels));
+          : form.widgetType === "treemap"
+            ? `Cơ cấu ${form.metricField ? (form.fieldLabels[form.metricField] ?? form.metricField) : "số lượng"}${form.dimensionField ? ` theo ${form.fieldLabels[form.dimensionField] ?? form.dimensionField}` : ""}`
+            : form.widgetType === "map" ||
+                form.widgetType === "text" ||
+                isOperational
+              ? WIDGET_TYPE_LABELS[form.widgetType]
+              : buildWidgetAutoTitle(dataSourceConfig, form.fieldLabels));
 
   return {
     ...(existingId ? { id: existingId } : {}),
@@ -969,10 +965,7 @@ export function WidgetFormFields({
                       type="checkbox"
                       checked={form.showProgressBar}
                       onChange={(event) =>
-                        onChange({
-                          ...form,
-                          showProgressBar: event.target.checked,
-                        })
+                        onChange({ ...form, showProgressBar: event.target.checked })
                       }
                     />
                     Hiển thị thanh tỷ lệ
@@ -1025,13 +1018,13 @@ export function WidgetFormFields({
                     onChange({
                       ...form,
                       minimapLayerMode: event.target.value as
-                        | "active"
+                        | "visible"
                         | "all"
                         | "default",
                     })
                   }
                 >
-                  <option value="active">Theo layer đang bật trên bản đồ</option>
+                  <option value="visible">Theo layer đang bật trên bản đồ</option>
                   <option value="all">Tất cả layer hiển thị trên bản đồ</option>
                   <option value="default">Các layer mặc định</option>
                 </select>

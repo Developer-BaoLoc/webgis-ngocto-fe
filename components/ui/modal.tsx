@@ -1,6 +1,8 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 
 interface ModalProps {
@@ -25,14 +27,23 @@ export function Modal({
   size = "md",
   padding = true,
 }: ModalProps) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) return null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
       <button
         type="button"
         className="absolute inset-0 bg-black/45 backdrop-blur-[1px]"
         onClick={onClose}
         aria-label="Đóng"
       />
+
       <div
         className={cn(
           "relative max-h-[90vh] w-full rounded-2xl border border-border bg-surface shadow-2xl",
@@ -41,7 +52,12 @@ export function Modal({
         )}
       >
         {title && (
-          <div className={cn("flex items-center justify-between", padding ? "mb-4" : "hidden")}>
+          <div
+            className={cn(
+              "flex items-center justify-between",
+              padding ? "mb-4" : "hidden",
+            )}
+          >
             <h2 className="text-lg font-semibold text-foreground">{title}</h2>
             <button
               type="button"
@@ -52,8 +68,10 @@ export function Modal({
             </button>
           </div>
         )}
+
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

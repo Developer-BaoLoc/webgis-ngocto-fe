@@ -30,11 +30,17 @@ import {
   type AnalyticsResult,
   type DashboardWidget,
 } from "@/types/api/dashboard";
-import { isMapVisibleLayer } from "@/lib/layers/adapter";
-import { useMapLayerVisibility } from "@/providers/map-layer-visibility-provider";
+// import { isMapVisibleLayer } from "@/lib/layers/adapter";
+// import { useMapLayerVisibility } from "@/providers/map-layer-visibility-provider";
 import type { MapViewConfig } from "@/types/api/map-view";
 import type { GeoJsonFeatureCollection } from "@/types/gis.types";
 import { WidgetEmptyState, WidgetPanel } from "./widget-renderers";
+
+import Link from "next/link";
+import { MapPageContent } from "@/components/map/map-page-content";
+import { useLayerCatalog } from "@/providers/layer-catalog-provider";
+import { useMapLayerVisibility } from "@/providers/map-layer-visibility-provider";
+import { isMapVisibleLayer } from "@/lib/layers/adapter";
 
 type RecordRow = Record<string, unknown>;
 const PALETTE = [
@@ -49,124 +55,67 @@ const PALETTE = [
 ];
 
 export function MiniMapWidgetRenderer({ widget }: { widget: DashboardWidget }) {
+  const { layers } = useLayerCatalog();
   const { hiddenLayerIds } = useMapLayerVisibility();
-  const containerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<maplibregl.Map | null>(null);
-  const [entries, setEntries] = useState<LayerGeoJsonEntry[]>([]);
-  const [boundary, setBoundary] = useState<GeoJsonFeatureCollection | null>(
-    null,
-  );
-  const [mapView, setMapView] = useState<MapViewConfig | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    let active = true;
-    loadOverviewMap(
-      String(widget.displayConfig?.layerMode ?? "active"),
-      hiddenLayerIds,
-    )
-      .then((result) => {
-        if (active) {
-          setEntries(result.entries);
-          setBoundary(result.boundary);
-          setMapView(result.mapView);
-        }
-      })
-      .catch((reason: unknown) => {
-        if (active) {
-          setError(
-            reason instanceof Error
-              ? reason.message
-              : "Không tải được dữ liệu bản đồ.",
-          );
-        }
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, [hiddenLayerIds, widget.displayConfig?.layerMode]);
+  const mapLayers = layers.filter(isMapVisibleLayer);
+  const activeLayers = mapLayers.filter((layer) => !hiddenLayerIds.has(layer.id));
 
-  useEffect(() => {
-    if (!containerRef.current || (!mapView && !boundary && !entries.length)) {
-      return;
-    }
-    const interactive = widget.displayConfig?.interactive === true;
-    const map = new maplibregl.Map({
-      container: containerRef.current,
-      style: {
-        version: 8,
-        sources: {},
-        layers: [
-          {
-            id: "minimap-background",
-            type: "background",
-            paint: { "background-color": "#eef6f2" },
-          },
-        ],
-      },
-      center: mapView
-        ? [mapView.center.lng, mapView.center.lat]
-        : [105.75, 9.8],
-      zoom: mapView?.zoom ?? 10,
-      interactive,
-      attributionControl: false,
-    });
-    if (!interactive) {
-      map.dragPan.disable();
-      map.scrollZoom.disable();
-      map.boxZoom.disable();
-      map.doubleClickZoom.disable();
-      map.dragRotate.disable();
-      map.keyboard.disable();
-      map.touchZoomRotate.disable();
-    }
-    mapRef.current = map;
-    const resizeObserver = new ResizeObserver(() => map.resize());
-    resizeObserver.observe(containerRef.current);
-    map.on("load", async () => {
-      if (widget.displayConfig?.showBoundary !== false && boundary) {
-        upsertWardBoundaryLayer(map, boundary);
-      }
-      await syncDataLayers(map, entries);
-      if (widget.displayConfig?.autoFitBounds !== false) {
-        const collection =
-          boundary ?? mergeCollections(entries.map((entry) => entry.geojson));
-        const bounds = getGeoJsonBounds(collection);
-        if (bounds)
-          map.fitBounds(bounds, { padding: 28, maxZoom: 16, duration: 0 });
-      }
-    });
-    return () => {
-      resizeObserver.disconnect();
-      removeWardBoundaryLayer(map);
-      removeAllDataLayers(map, entries);
-      map.remove();
-      mapRef.current = null;
-    };
-  }, [boundary, entries, mapView, widget.displayConfig]);
+  const visibleDots = activeLayers.slice(0, 6);
+  const overflow = activeLayers.length - visibleDots.length;
 
   return (
     <WidgetPanel widget={widget}>
-      <div className="ioc-minimap">
-        {loading ? (
-          <div className="ioc-skeleton h-full min-h-40 rounded-lg" />
-        ) : error ? (
-          <WidgetEmptyState detail={error} />
-        ) : entries.length === 0 && !boundary ? (
-          <WidgetEmptyState detail="Không tải được bản đồ nhỏ" />
-        ) : (
-          <>
-            <div ref={containerRef} className="ioc-minimap-canvas" />
-            {widget.displayConfig?.showLegend !== false && (
-              <MiniMapLegend entries={entries} />
-            )}
-          </>
-        )}
-      </div>
+      <section className="ioc-map-panel ioc-map-panel--hero ioc-minimap-widget">
+        <span className="ioc-map-frame-corner ioc-map-frame-corner--tl" aria-hidden />
+        <span className="ioc-map-frame-corner ioc-map-frame-corner--tr" aria-hidden />
+        <span className="ioc-map-frame-corner ioc-map-frame-corner--bl" aria-hidden />
+        <span className="ioc-map-frame-corner ioc-map-frame-corner--br" aria-hidden />
+
+        <div className="ioc-map-panel-body">
+          <MapPageContent embedded />
+
+          <div className="ioc-map-float-bar" role="toolbar" aria-label="Điều khiển bản đồ nhỏ">
+            <div
+              className="ioc-map-float-group"
+              title={`${activeLayers.length} lớp đang bật`}
+              aria-label={`${activeLayers.length} lớp đang bật`}
+            >
+              <span className="ioc-map-icon-btn ioc-map-icon-btn--static" aria-hidden>
+                <LayersIcon />
+              </span>
+
+              <span className="ioc-map-layer-count">{activeLayers.length}</span>
+
+              <span className="ioc-map-layer-dots" aria-hidden>
+                {visibleDots.map((layer) => (
+                  <span
+                    key={layer.id}
+                    className="ioc-map-layer-dot"
+                    style={{ background: layer.color ?? "#22c55e" }}
+                    title={layer.name}
+                  />
+                ))}
+
+                {overflow > 0 && (
+                  <span className="ioc-map-layer-dot ioc-map-layer-dot--more" title={`+${overflow} lớp`}>
+                    +{overflow}
+                  </span>
+                )}
+              </span>
+            </div>
+
+            <Link
+              href="/ban-do"
+              className="ioc-map-icon-btn"
+              title="Mở bản đồ toàn màn hình"
+              aria-label="Mở bản đồ toàn màn hình"
+            >
+              <ExpandIcon />
+            </Link>
+          </div>
+        </div>
+      </section>
     </WidgetPanel>
   );
 }
@@ -512,28 +461,42 @@ async function loadOverviewMap(
   layerMode: string,
   hiddenLayerIds: ReadonlySet<string>,
 ) {
+  // accept legacy alias 'active' as 'visible'
+  const mode = layerMode === "active" ? "visible" : layerMode;
   const [layersResult, boundaryResult, mapViewResult] =
-    await Promise.allSettled([
-      getLayers(),
-      getAdministrativeBoundary(),
-      resolveMapView(),
-    ]);
+    await Promise.allSettled([getLayers(), getAdministrativeBoundary(), resolveMapView()]);
   const allLayers =
     layersResult.status === "fulfilled"
       ? layersResult.value.filter(isMapVisibleLayer)
       : [];
-  const selectedLayers =
-    layerMode === "all"
-      ? allLayers
-      : layerMode === "default"
-        ? allLayers.slice(0, 6)
-        : allLayers.filter((layer) => !hiddenLayerIds.has(layer.id));
+
+  // Candidate visible layers by explicit flags
+  const visibleByFlag = allLayers.filter(
+    (layer: any) =>
+      (layer.showOnMap || layer.showInMapSidebar) && !hiddenLayerIds.has(layer.id),
+  );
+
+  let selectedLayers: typeof allLayers = [];
+  if (mode === "all") {
+    selectedLayers = allLayers;
+  } else if (mode === "default") {
+    selectedLayers = allLayers.slice(0, 6);
+  } else {
+    // visible (including legacy 'active')
+    if (visibleByFlag.length > 0) {
+      selectedLayers = visibleByFlag;
+    } else {
+      // fallback to layers that are not hidden, or otherwise all spatial layers
+      const notHidden = allLayers.filter((layer: any) => !hiddenLayerIds.has(layer.id));
+      selectedLayers = notHidden.length > 0 ? notHidden : allLayers;
+    }
+  }
+
+  // Ensure we only pass spatial layers to loader
   const entries = await loadLayerGeoJsonEntries(selectedLayers);
-  const boundary =
-    boundaryResult.status === "fulfilled" ? boundaryResult.value : null;
-  const mapView =
-    mapViewResult.status === "fulfilled" ? mapViewResult.value : null;
-  if (!boundary && !mapView && !entries.length) {
+  const boundary = boundaryResult.status === "fulfilled" ? boundaryResult.value : null;
+  const mapView = mapViewResult.status === "fulfilled" ? mapViewResult.value : null;
+  if (!boundary && !mapView && entries.length === 0) {
     throw new Error("Không tải được bản đồ nhỏ");
   }
   return { entries, boundary, mapView };
@@ -698,4 +661,25 @@ function colorForValue(value: string) {
     hash = (hash * 31 + value.charCodeAt(index)) | 0;
   }
   return PALETTE[Math.abs(hash) % PALETTE.length];
+}
+
+function LayersIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 2 2 7l10 5 10-5-10-5Z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="m2 17 10 5 10-5" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="m2 12 10 5 10-5" />
+    </svg>
+  );
+}
+
+function ExpandIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15 3h6v6" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 21H3v-6" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M21 3l-7 7" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 21l7-7" />
+    </svg>
+  );
 }
