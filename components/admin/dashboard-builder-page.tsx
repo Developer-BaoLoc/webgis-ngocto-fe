@@ -46,7 +46,7 @@ import type {
 import type { SavedView } from "@/types/api/saved-view";
 import type { Dataset } from "@/types/api/dataset";
 import { formatAnalyticsNumber } from "@/lib/dashboard/utils";
-import { getOptionLabel } from "@/lib/fields/field-label";
+import { getFieldLabel, getOptionLabel } from "@/lib/fields/field-label";
 
 interface DashboardBuilderPageProps {
   dashboardId: string;
@@ -157,11 +157,13 @@ export function DashboardBuilderPage({
     const fields = dataset
       ? dataset.config.fields.map((field) => ({
           code: field.key,
-          label: field.label,
+          label: getFieldLabel(field.key, { label: field.label }),
         }))
       : (dataSources.find((source) => source.layerId === layerId)?.fields ??
         []);
-    return Object.fromEntries(fields.map((field) => [field.code, field.label]));
+    return Object.fromEntries(
+      fields.map((field) => [field.code, getFieldLabel(field.code, field)]),
+    );
   }
 
   function openEditWidget(index: number) {

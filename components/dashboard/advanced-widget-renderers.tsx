@@ -1,23 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { getAdministrativeBoundary } from "@/lib/api/map-view";
-import { resolveMapView } from "@/lib/api/map-view";
-import { getLayers } from "@/lib/api/layers";
-import { getGeoJsonBounds } from "@/lib/map/bounds";
-import {
-  removeWardBoundaryLayer,
-  upsertWardBoundaryLayer,
-} from "@/lib/map/ward-boundary-layer";
-import { removeAllDataLayers, syncDataLayers } from "@/lib/map/data-layers";
-import {
-  loadLayerGeoJsonEntries,
-  type LayerGeoJsonEntry,
-} from "@/lib/api/map-geojson";
-import { extractStyleFromLayer } from "@/lib/layers/style";
-import { resolvePublicAssetUrl } from "@/lib/api/assets";
 import {
   formatDisplayValue,
   getStatusBadgeStyle,
@@ -30,10 +13,6 @@ import {
   type AnalyticsResult,
   type DashboardWidget,
 } from "@/types/api/dashboard";
-// import { isMapVisibleLayer } from "@/lib/layers/adapter";
-// import { useMapLayerVisibility } from "@/providers/map-layer-visibility-provider";
-import type { MapViewConfig } from "@/types/api/map-view";
-import type { GeoJsonFeatureCollection } from "@/types/gis.types";
 import { WidgetEmptyState, WidgetPanel } from "./widget-renderers";
 
 import Link from "next/link";
@@ -268,6 +247,16 @@ export function TreemapWidgetRenderer({
   const total = visible.reduce((sum, row) => sum + row.value, 0);
   if (total <= 0) return <WidgetEmptyState />;
   const unit = String(widget.displayConfig?.unit ?? "").trim();
+  const metricField =
+    widget.dataSourceConfig?.metricField ?? widget.dataSourceConfig?.fieldCode;
+  const dimensionField =
+    widget.dataSourceConfig?.dimensionField ?? data.groupByFieldCode ?? "";
+  const metricLabel = metricField
+    ? getWidgetFieldLabel(widget, metricField)
+    : "Giá trị";
+  const dimensionLabel = dimensionField
+    ? getWidgetFieldLabel(widget, dimensionField)
+    : "Nhóm";
 
   return (
     <div className="ioc-treemap-layout">
@@ -281,7 +270,7 @@ export function TreemapWidgetRenderer({
                 flexBasis: `${Math.max(18, percent)}%`,
                 background: PALETTE[index % PALETTE.length],
               }}
-              title={`${row.label}: ${formatAnalyticsNumber(row.value)}${unit ? ` ${unit}` : ""} (${formatPercent(percent)})`}
+              title={`${dimensionLabel}: ${row.label}\n${metricLabel}: ${formatAnalyticsNumber(row.value)}${unit ? ` ${unit}` : ""} (${formatPercent(percent)})`}
             >
               <strong>{row.label}</strong>
               <span>
@@ -457,85 +446,6 @@ function Badge({
   );
 }
 
-async function loadOverviewMap(
-  layerMode: string,
-  hiddenLayerIds: ReadonlySet<string>,
-) {
-  // accept legacy alias 'active' as 'visible'
-  const mode = layerMode === "active" ? "visible" : layerMode;
-  const [layersResult, boundaryResult, mapViewResult] =
-    await Promise.allSettled([getLayers(), getAdministrativeBoundary(), resolveMapView()]);
-  const allLayers =
-    layersResult.status === "fulfilled"
-      ? layersResult.value.filter(isMapVisibleLayer)
-      : [];
-
-  // Candidate visible layers by explicit flags
-  const visibleByFlag = allLayers.filter(
-    (layer: any) =>
-      (layer.showOnMap || layer.showInMapSidebar) && !hiddenLayerIds.has(layer.id),
-  );
-
-  let selectedLayers: typeof allLayers = [];
-  if (mode === "all") {
-    selectedLayers = allLayers;
-  } else if (mode === "default") {
-    selectedLayers = allLayers.slice(0, 6);
-  } else {
-    // visible (including legacy 'active')
-    if (visibleByFlag.length > 0) {
-      selectedLayers = visibleByFlag;
-    } else {
-      // fallback to layers that are not hidden, or otherwise all spatial layers
-      const notHidden = allLayers.filter((layer: any) => !hiddenLayerIds.has(layer.id));
-      selectedLayers = notHidden.length > 0 ? notHidden : allLayers;
-    }
-  }
-
-  // Ensure we only pass spatial layers to loader
-  const entries = await loadLayerGeoJsonEntries(selectedLayers);
-  const boundary = boundaryResult.status === "fulfilled" ? boundaryResult.value : null;
-  const mapView = mapViewResult.status === "fulfilled" ? mapViewResult.value : null;
-  if (!boundary && !mapView && entries.length === 0) {
-    throw new Error("Không tải được bản đồ nhỏ");
-  }
-  return { entries, boundary, mapView };
-}
-
-function MiniMapLegend({ entries }: { entries: LayerGeoJsonEntry[] }) {
-  const layer = entries[0]?.layer;
-  if (!layer) return null;
-  const style = extractStyleFromLayer(layer);
-  const rules =
-    style.styleMode === "icon_by_value"
-      ? (style.iconRules ?? [])
-      : (style.styleRules ?? []);
-  if (!rules.length) return null;
-  return (
-    <div className="ioc-minimap-legend">
-      <strong>{layer.name}</strong>
-      {rules.slice(0, 6).map((rule, index) => (
-        <span key={`${String(rule.value)}-${index}`}>
-          {"url" in rule && rule.url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={resolvePublicAssetUrl(rule.url)} alt="" />
-          ) : (
-            <i
-              style={{
-                background:
-                  "fillColor" in rule
-                    ? rule.fillColor
-                    : PALETTE[index % PALETTE.length],
-              }}
-            />
-          )}
-          {rule.label || formatDisplayValue(rule.value, style.styleField)}
-        </span>
-      ))}
-    </div>
-  );
-}
-
 function recordRows(data: AnalyticsResult) {
   return isRecordsAnalyticsResult(data) ? data.records : [];
 }
@@ -599,62 +509,6 @@ function monthOffset(start: Date, date: Date) {
     start.getMonth()
   );
 }
-function mergeCollections(
-  collections: GeoJsonFeatureCollection[],
-): GeoJsonFeatureCollection {
-  return {
-    type: "FeatureCollection",
-    features: collections.flatMap((collection) => collection.features),
-  };
-}
-
-function applyMiniMapColorField(
-  entries: LayerGeoJsonEntry[],
-  colorField: string,
-): LayerGeoJsonEntry[] {
-  if (!colorField) return entries;
-  return entries.map((entry) => {
-    const style = extractStyleFromLayer(entry.layer);
-    if (style.styleMode === "by_value" || style.styleMode === "icon_by_value") {
-      return entry;
-    }
-    const values = Array.from(
-      new Set(
-        entry.geojson.features
-          .map((feature) => feature.properties?.[colorField])
-          .filter(
-            (value) => value !== null && value !== undefined && value !== "",
-          )
-          .map(String),
-      ),
-    ).slice(0, 12);
-    if (!values.length) return entry;
-    return {
-      ...entry,
-      layer: {
-        ...entry.layer,
-        style: {
-          ...style,
-          styleMode: "by_value",
-          styleField: colorField,
-          styleRules: values.map((value) => ({
-            value,
-            label: formatDisplayValue(value, colorField),
-            fillColor: colorForValue(value),
-            strokeColor: colorForValue(value),
-            lineColor: colorForValue(value),
-          })),
-          fallbackStyle: {
-            fillColor: "#94a3b8",
-            strokeColor: "#475569",
-            lineColor: "#475569",
-          },
-        },
-      },
-    };
-  });
-}
-
 function colorForValue(value: string) {
   let hash = 0;
   for (let index = 0; index < value.length; index += 1) {

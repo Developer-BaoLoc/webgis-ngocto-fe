@@ -15,6 +15,7 @@ import {
   NUMERIC_FIELD_TYPES,
   WIDGET_TYPE_LABELS,
 } from "@/lib/dashboard/utils";
+import { getFieldLabel } from "@/lib/fields/field-label";
 import type {
   AggregationType,
   DashboardWidget,
@@ -311,10 +312,7 @@ export function formToWidget(
             ? { layerId: form.layerId }
             : {}),
           ...(form.sourceName ? { name: form.sourceName } : {}),
-          aggregation:
-            isOperational || form.widgetType === "minimap"
-              ? ("records" as const)
-              : form.aggregation,
+          aggregation: isOperational ? ("records" as const) : form.aggregation,
           ...(!isOperational && form.metricField && form.aggregation !== "count"
             ? { metricField: form.metricField }
             : {}),
@@ -398,11 +396,38 @@ export function formToWidget(
     (form.widgetType === "minimap"
       ? `Bản đồ ${form.sourceName || "dữ liệu"}`
       : form.widgetType === "progress_ring"
-        ? `Tiến độ ${form.metricField ? (form.fieldLabels[form.metricField] ?? form.metricField) : "thực hiện"}`
+        ? `Tiến độ ${
+            form.metricField
+              ? getFieldLabel(
+                  form.metricField,
+                  form.fieldLabels[form.metricField]
+                    ? { label: form.fieldLabels[form.metricField] }
+                    : undefined,
+                )
+              : "thực hiện"
+          }`
         : form.widgetType === "activity_feed"
           ? "Hoạt động gần đây"
           : form.widgetType === "treemap"
-            ? `Cơ cấu ${form.metricField ? (form.fieldLabels[form.metricField] ?? form.metricField) : "số lượng"}${form.dimensionField ? ` theo ${form.fieldLabels[form.dimensionField] ?? form.dimensionField}` : ""}`
+            ? `Cơ cấu ${
+                form.metricField
+                  ? getFieldLabel(
+                      form.metricField,
+                      form.fieldLabels[form.metricField]
+                        ? { label: form.fieldLabels[form.metricField] }
+                        : undefined,
+                    )
+                  : "số lượng"
+              }${
+                form.dimensionField
+                  ? ` theo ${getFieldLabel(
+                      form.dimensionField,
+                      form.fieldLabels[form.dimensionField]
+                        ? { label: form.fieldLabels[form.dimensionField] }
+                        : undefined,
+                    )}`
+                  : ""
+              }`
             : form.widgetType === "map" ||
                 form.widgetType === "text" ||
                 isOperational
@@ -457,10 +482,13 @@ export function WidgetFormFields({
   const selectedFields = selectedDataset
     ? selectedDataset.config.fields.map((field) => ({
         code: field.key,
-        label: field.label,
+        label: getFieldLabel(field.key, { label: field.label }),
         fieldType: field.type,
       }))
-    : (selectedLayer?.fields ?? []);
+    : (selectedLayer?.fields ?? []).map((field) => ({
+        ...field,
+        label: getFieldLabel(field.code, field),
+      }));
 
   const numericFields = selectedFields.filter((field) =>
     NUMERIC_FIELD_TYPES.has(field.fieldType),
@@ -631,7 +659,9 @@ export function WidgetFormFields({
                           .fields ?? []
                       ).map((field) => ({
                         code: field.key,
-                        label: field.label,
+                        label: getFieldLabel(field.key, {
+                          label: field.label,
+                        }),
                       }))
                     : (() => {
                         const layerId =
@@ -654,7 +684,10 @@ export function WidgetFormFields({
                   dimensionField: "",
                   displayFields: [],
                   fieldLabels: Object.fromEntries(
-                    sourceFields.map((field) => [field.code, field.label]),
+                    sourceFields.map((field) => [
+                      field.code,
+                      getFieldLabel(field.code, field),
+                    ]),
                   ),
                   titleField: "",
                   descriptionField: "",

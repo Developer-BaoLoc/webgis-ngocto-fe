@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   KpiIconAgriculture,
   KpiIconArea,
@@ -21,7 +22,7 @@ import {
   formatDisplayValue,
   getWidgetSubtitle,
 } from "@/lib/dashboard/widget-display";
-import { getOptionLabel } from "@/lib/fields/field-label";
+import { getKnownOptionLabel, getOptionLabel } from "@/lib/fields/field-label";
 import {
   isGroupedAnalyticsResult,
   isTopAnalyticsResult,
@@ -40,7 +41,24 @@ const CHART_PALETTE = [
 ];
 
 type ChartRow = { label: string; value: number };
+type LineChartPoint = ChartRow & {
+  x: number;
+  y: number;
+  viewportX: number;
+  viewportY: number;
+};
+type LineChartTooltipPosition = {
+  left: number;
+  top: number;
+  arrowLeft: number;
+  placement: "top" | "bottom";
+};
 type KpiTheme = "sky" | "green" | "amber" | "rose" | "violet" | "slate";
+
+const LINE_TOOLTIP_WIDTH = 220;
+const LINE_TOOLTIP_HEIGHT = 68;
+const LINE_TOOLTIP_GAP = 12;
+const LINE_TOOLTIP_EDGE = 8;
 
 export function WidgetPanel({
   widget,
@@ -207,6 +225,7 @@ export function BarChartWidgetRenderer({
   if (rows.length === 0) return <WidgetEmptyState />;
   const maxValue = Math.max(...rows.map((row) => Math.abs(row.value)), 1);
   const metricLabel = metricDisplayLabel(widget);
+  const dimensionLabel = dimensionDisplayLabel(widget);
 
   return (
     <div className="ioc-dynamic-bars">
@@ -243,6 +262,9 @@ export function BarChartWidgetRenderer({
           </li>
         ))}
       </ul>
+      <p className="ioc-chart-axis-caption ioc-chart-axis-caption--x">
+        {dimensionLabel}
+      </p>
     </div>
   );
 }
@@ -262,9 +284,9 @@ export function PieChartWidgetRenderer({
   const total = positiveRows.reduce((sum, row) => sum + row.value, 0);
   if (positiveRows.length === 0 || total <= 0) return <WidgetEmptyState />;
 
-  const slices = buildPieSlices(positiveRows, total);
   const active = activeIndex === null ? null : positiveRows[activeIndex];
   const metricLabel = metricDisplayLabel(widget);
+  const slices = buildPieSlices(positiveRows, total, metricLabel);
 
   return (
     <div className="ioc-dynamic-pie-layout">
@@ -364,9 +386,36 @@ export function LineChartWidgetRenderer({
   widget: DashboardWidget;
   data: AnalyticsResult;
 }) {
-  const rows = groupedRows(widget, data);
+  const [hoveredPoint, setHoveredPoint] = useState<LineChartPoint | null>(null);
+  const [pinnedPoint, setPinnedPoint] = useState<LineChartPoint | null>(null);
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
+  const tooltipRef = useRef<HTMLDivElement | null>(null);
+  const activeCircleRef = useRef<SVGCircleElement | null>(null);
+  const rows = lineChartRows(widget, data);
+  useEffect(() => {
+    function handlePointerDown(event: PointerEvent) {
+      const target = event.target as Node;
+      if (tooltipRef.current?.contains(target)) return;
+      if (activeCircleRef.current?.contains(target)) return;
+      setHoveredPoint(null);
+      setPinnedPoint(null);
+    }
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setHoveredPoint(null);
+        setPinnedPoint(null);
+      }
+    }
+    document.addEventListener("pointerdown", handlePointerDown, true);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown, true);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
   if (rows.length === 0) return <WidgetEmptyState />;
 
+  const unit = String(widget.displayConfig?.unit ?? "").trim();
   const width = Math.max(520, rows.length * 78);
   const height = 230;
   const padX = 44;
@@ -376,47 +425,182 @@ export function LineChartWidgetRenderer({
   const minValue = Math.min(0, ...values);
   const maxValue = Math.max(0, ...values);
   const range = maxValue - minValue || 1;
+  const metricLabel = pureMetricDisplayLabel(widget);
+  const metricSeriesLabel = metricDisplayLabel(widget);
+  const tooltipUnit = unit || extractUnitFromLabel(metricLabel);
   const points = rows.map((row, index) => ({
     x: padX + (index / Math.max(1, rows.length - 1)) * (width - padX * 2),
     y:
       padTop + ((maxValue - row.value) / range) * (height - padTop - padBottom),
     row,
   }));
+  const visiblePoint = pinnedPoint ?? hoveredPoint;
+  const tooltipPosition = visiblePoint
+    ? resolveLineTooltipPosition(visiblePoint)
+    : null;
+  const activeTooltip = visiblePoint
+    ? tooltipUnit
+      ? {
+          title: visiblePoint.label,
+          value: `${formatAnalyticsNumber(visiblePoint.value)} ${tooltipUnit}`,
+        }
+      : {
+          title: visiblePoint.label,
+          value: `${metricLabel}: ${formatAnalyticsNumber(visiblePoint.value)}`,
+        }
+    : null;
 
   return (
-    <div className="ioc-dynamic-line-wrap">
+    <div className="ioc-dynamic-line-wrap" ref={wrapperRef}>
       <div className="ioc-chart-key">
         <span className="ioc-chart-key-dot" />
-        {metricDisplayLabel(widget)}
+        {metricSeriesLabel}
       </div>
-      <svg
-        viewBox={`0 0 ${width} ${height}`}
-        style={{ minWidth: width }}
-        className="ioc-dynamic-line"
-        role="img"
-      >
-        {[0, 1, 2, 3].map((step) => {
-          const y = padTop + (step / 3) * (height - padTop - padBottom);
-          return <line key={step} x1={padX} x2={width - padX} y1={y} y2={y} />;
-        })}
-        <polyline
-          points={points.map((point) => `${point.x},${point.y}`).join(" ")}
-          className="ioc-dynamic-line-path"
-        />
-        {points.map((point, index) => (
-          <g key={`${point.row.label}-${index}`}>
-            <circle cx={point.x} cy={point.y} r="5" tabIndex={0}>
-              <title>
-                {point.row.label} · {metricDisplayLabel(widget)}:{" "}
-                {formatAnalyticsNumber(point.row.value)}
-              </title>
-            </circle>
-            <text x={point.x} y={height - 20} textAnchor="middle">
-              {truncate(point.row.label, 12)}
-            </text>
-          </g>
-        ))}
-      </svg>
+      <div className="ioc-dynamic-line-scroll">
+        <div className="ioc-dynamic-line-canvas" style={{ width }}>
+          <svg
+            viewBox={`0 0 ${width} ${height}`}
+            className="ioc-dynamic-line"
+            role="img"
+            aria-label={metricSeriesLabel}
+          >
+            {[0, 1, 2, 3].map((step) => {
+              const y = padTop + (step / 3) * (height - padTop - padBottom);
+              const tickValue = maxValue - (step / 3) * range;
+              return (
+                <g key={step}>
+                  <line x1={padX} x2={width - padX} y1={y} y2={y} />
+                  <text x={padX - 8} y={y + 3} textAnchor="end">
+                    {formatAnalyticsNumber(tickValue)}
+                  </text>
+                </g>
+              );
+            })}
+            <polyline
+              points={points.map((point) => `${point.x},${point.y}`).join(" ")}
+              className="ioc-dynamic-line-path"
+            />
+            {points.map((point, index) => {
+              return (
+                <g key={`${point.row.label}-${index}`}>
+                  <circle
+                    cx={point.x}
+                    cy={point.y}
+                    r="5"
+                    tabIndex={0}
+                    role="button"
+                    aria-label={`${point.row.label}: ${formatLineMetricValue(point.row.value, tooltipUnit)}`}
+                    onPointerEnter={(event) => {
+                      activeCircleRef.current = event.currentTarget;
+                      setHoveredPoint(
+                        buildLineTooltipPoint(
+                          point.row,
+                          point.x,
+                          point.y,
+                          event.currentTarget,
+                        ),
+                      );
+                    }}
+                    onPointerLeave={() => {
+                      if (!pinnedPoint) activeCircleRef.current = null;
+                      setHoveredPoint(null);
+                    }}
+                    onFocus={(event) => {
+                      activeCircleRef.current = event.currentTarget;
+                      setHoveredPoint(
+                        buildLineTooltipPoint(
+                          point.row,
+                          point.x,
+                          point.y,
+                          event.currentTarget,
+                        ),
+                      );
+                    }}
+                    onBlur={() => setHoveredPoint(null)}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      activeCircleRef.current = event.currentTarget;
+                      setPinnedPoint(
+                        buildLineTooltipPoint(
+                          point.row,
+                          point.x,
+                          point.y,
+                          event.currentTarget,
+                        ),
+                      );
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        activeCircleRef.current = event.currentTarget;
+                        setPinnedPoint(
+                          buildLineTooltipPoint(
+                            point.row,
+                            point.x,
+                            point.y,
+                            event.currentTarget,
+                          ),
+                        );
+                      }
+                    }}
+                  >
+                    <title>
+                      {point.row.label}
+                      {"\n"}
+                      {metricLabel}: {formatLineMetricValue(point.row.value, tooltipUnit)}
+                    </title>
+                  </circle>
+                  <text x={point.x} y={height - 20} textAnchor="middle">
+                    {truncate(point.row.label, 18)}
+                  </text>
+                </g>
+              );
+            })}
+          </svg>
+        </div>
+      </div>
+      {visiblePoint &&
+        activeTooltip &&
+        tooltipPosition &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div
+            ref={tooltipRef}
+            className={`ioc-line-point-tooltip ioc-line-point-tooltip--${tooltipPosition.placement} ${
+              pinnedPoint ? "ioc-line-point-tooltip--pinned" : ""
+            }`}
+            role={pinnedPoint ? "dialog" : "tooltip"}
+            style={
+              {
+                left: `${tooltipPosition.left}px`,
+                top: `${tooltipPosition.top}px`,
+                "--tooltip-arrow-left": `${tooltipPosition.arrowLeft}px`,
+              } as React.CSSProperties
+            }
+          >
+            <div className="ioc-line-point-tooltip-title">
+              {activeTooltip.title}
+            </div>
+            <div className="ioc-line-point-tooltip-value">
+              {activeTooltip.value}
+            </div>
+            {pinnedPoint && (
+              <button
+                type="button"
+                className="ioc-line-point-tooltip-close"
+                aria-label="Đóng tooltip"
+                onClick={() => {
+                  setHoveredPoint(null);
+                  setPinnedPoint(null);
+                  activeCircleRef.current = null;
+                }}
+              >
+                ×
+              </button>
+            )}
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }
@@ -486,6 +670,132 @@ export function TableWidgetRenderer({
       </table>
     </div>
   );
+}
+
+function lineChartRows(
+  widget: DashboardWidget,
+  data: AnalyticsResult,
+): ChartRow[] {
+  if (!isGroupedAnalyticsResult(data)) return [];
+  const dimensionField =
+    widget.dataSourceConfig?.dimensionField ??
+    widget.dataSourceConfig?.groupByFieldCode ??
+    data.groupByFieldCode ??
+    "";
+  return data.rows.map((row) => ({
+    label: formatLineDimensionDisplayValue(
+      dimensionField,
+      row.rawLabel || row.label,
+    ),
+    value: safeNumber(row.value),
+  }));
+}
+
+function formatLineDimensionDisplayValue(
+  fieldKey: string | undefined,
+  rawValue: unknown,
+) {
+  if (rawValue === null || rawValue === undefined || rawValue === "") {
+    return "Không xác định";
+  }
+  const known = getKnownOptionLabel(fieldKey ?? "", rawValue);
+  if (known) return known;
+  const text = String(rawValue).trim();
+  if (!text) return "Không xác định";
+  if (/[À-ỹĐđ]/.test(text) && !text.includes("_")) return text;
+  if (!looksLikeIdentifierValue(text)) return text;
+  return humanizeLineIdentifierValue(text);
+}
+
+function formatLineMetricValue(value: number, unit: string) {
+  return `${formatAnalyticsNumber(value)}${unit ? ` ${unit}` : ""}`;
+}
+
+function buildLineTooltipPoint(
+  row: ChartRow,
+  x: number,
+  y: number,
+  circle: SVGCircleElement,
+): LineChartPoint {
+  const rect = circle.getBoundingClientRect();
+  return {
+    ...row,
+    x,
+    y,
+    viewportX: rect.left + rect.width / 2,
+    viewportY: rect.top + rect.height / 2,
+  };
+}
+
+function resolveLineTooltipPosition(
+  point: LineChartPoint,
+): LineChartTooltipPosition {
+  const viewportWidth =
+    typeof window === "undefined" ? LINE_TOOLTIP_WIDTH : window.innerWidth;
+  const viewportHeight =
+    typeof window === "undefined" ? LINE_TOOLTIP_HEIGHT : window.innerHeight;
+  const left = clamp(
+    point.viewportX - LINE_TOOLTIP_WIDTH / 2,
+    LINE_TOOLTIP_EDGE,
+    viewportWidth - LINE_TOOLTIP_WIDTH - LINE_TOOLTIP_EDGE,
+  );
+  const preferredTop =
+    point.viewportY - LINE_TOOLTIP_HEIGHT - LINE_TOOLTIP_GAP;
+  const preferredBottom = point.viewportY + LINE_TOOLTIP_GAP;
+  const hasTopSpace = preferredTop >= LINE_TOOLTIP_EDGE;
+  const hasBottomSpace =
+    preferredBottom + LINE_TOOLTIP_HEIGHT <= viewportHeight - LINE_TOOLTIP_EDGE;
+  const placement = hasTopSpace || !hasBottomSpace ? "top" : "bottom";
+  const rawTop = placement === "top" ? preferredTop : preferredBottom;
+  const top = clamp(
+    rawTop,
+    LINE_TOOLTIP_EDGE,
+    viewportHeight - LINE_TOOLTIP_HEIGHT - LINE_TOOLTIP_EDGE,
+  );
+  return {
+    left,
+    top,
+    arrowLeft: clamp(point.viewportX - left, 16, LINE_TOOLTIP_WIDTH - 16),
+    placement,
+  };
+}
+
+function extractUnitFromLabel(label: string) {
+  const match = label.match(/\(([^)]+)\)/);
+  return match?.[1]?.trim() ?? "";
+}
+
+function looksLikeIdentifierValue(value: string) {
+  return /[_-]/.test(value) || /^[A-Za-z0-9]+(?:[A-Z][a-z0-9]+)+$/.test(value);
+}
+
+function humanizeLineIdentifierValue(value: string) {
+  const normalized = value
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return normalized
+    .split(" ")
+    .map((word, index) => lineIdentifierWordLabel(word, index))
+    .join(" ");
+}
+
+function lineIdentifierWordLabel(word: string, index: number) {
+  const lower = word.toLocaleLowerCase("vi-VN");
+  if (/^\d+$/.test(lower)) return lower;
+  const labels: Record<string, string> = {
+    vung: index === 0 ? "Vùng" : "vùng",
+    hoa: "hoa",
+    mau: "màu",
+    lua: "lúa",
+    thuy: "thủy",
+    san: "sản",
+  };
+  const mapped = labels[lower] ?? lower;
+  return index === 0
+    ? mapped.charAt(0).toLocaleUpperCase("vi-VN") + mapped.slice(1)
+    : mapped;
 }
 
 function groupedRows(
@@ -584,7 +894,7 @@ function groupSmallSlices(rows: ChartRow[]): ChartRow[] {
   ];
 }
 
-function buildPieSlices(rows: ChartRow[], total: number) {
+function buildPieSlices(rows: ChartRow[], total: number, metricLabel: string) {
   let angle = -90;
   return rows.map((row, index) => {
     const sweep = (row.value / total) * 360;
@@ -598,7 +908,7 @@ function buildPieSlices(rows: ChartRow[], total: number) {
       color: CHART_PALETTE[index % CHART_PALETTE.length],
       fullCircle: sweep >= 359.999,
       path: `M 110 110 L ${startPoint.x} ${startPoint.y} A 94 94 0 ${sweep > 180 ? 1 : 0} 1 ${endPoint.x} ${endPoint.y} Z`,
-      tooltip: `${row.label}: ${formatAnalyticsNumber(row.value)} (${formatPercent(row.value, total)})`,
+      tooltip: `${row.label}\n${metricLabel}: ${formatAnalyticsNumber(row.value)} (${formatPercent(row.value, total)})`,
     };
   });
 }
@@ -640,6 +950,12 @@ function metricDisplayLabel(widget: DashboardWidget) {
   return metric
     ? `${aggregation} ${getWidgetFieldLabel(widget, metric)}`
     : aggregation;
+}
+
+function pureMetricDisplayLabel(widget: DashboardWidget) {
+  const metric =
+    widget.dataSourceConfig?.metricField ?? widget.dataSourceConfig?.fieldCode;
+  return metric ? getWidgetFieldLabel(widget, metric) : "Giá trị";
 }
 
 function dimensionDisplayLabel(widget: DashboardWidget) {
@@ -693,6 +1009,11 @@ function renderKpiIcon(icon: string) {
 function safeNumber(value: unknown) {
   const number = Number(value);
   return Number.isFinite(number) ? number : 0;
+}
+
+function clamp(value: number, min: number, max: number) {
+  if (max < min) return value;
+  return Math.min(max, Math.max(min, value));
 }
 
 function formatPercent(value: number, total: number) {

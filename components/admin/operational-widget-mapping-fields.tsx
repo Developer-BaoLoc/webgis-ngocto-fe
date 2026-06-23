@@ -6,6 +6,7 @@ import {
   GROUPABLE_FIELD_TYPES,
   NUMERIC_FIELD_TYPES,
 } from "@/lib/dashboard/utils";
+import { getFieldLabel } from "@/lib/fields/field-label";
 import type { DataSourceField, WidgetType } from "@/types/api/dashboard";
 
 export type OperationalFieldKey =
@@ -71,7 +72,7 @@ function FieldSelect({
         <option value="">— Chọn trường —</option>
         {fields.map((field) => (
           <option key={field.code} value={field.code}>
-            {field.label}
+            {getFieldLabel(field.code, field)}
           </option>
         ))}
       </select>
@@ -391,7 +392,7 @@ export function OperationalWidgetMappingFields({
                     )
                   }
                 />
-                {field.label}
+                {getFieldLabel(field.code, field)}
               </label>
             ))}
           </div>

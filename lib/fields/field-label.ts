@@ -94,6 +94,40 @@ const FIELD_LABELS: Record<string, string> = {
   muc_do: "Mức độ",
   ma_canh_bao: "Mã cảnh báo",
   loai_canh_bao: "Loại cảnh báo",
+  thoi_gian_bat_dau: "Thời gian bắt đầu",
+  thoi_gian_ket_thuc: "Thời gian kết thúc",
+  ngay_bat_dau: "Ngày bắt đầu",
+  ngay_ket_thuc: "Ngày kết thúc",
+  thang: "Tháng",
+  month: "Tháng",
+  quy: "Quý",
+  quarter: "Quý",
+};
+
+const COMMON_OPTION_LABELS: Record<string, string> = {
+  thuy_san: "Thủy sản",
+  hoa_mau: "Hoa màu",
+  lua: "Lúa",
+  vung_lua: "Vùng lúa",
+  vung_nuoi_thuy_san: "Vùng nuôi thủy sản",
+  vung_trong_hoa_mau: "Vùng trồng hoa màu",
+  thap: "Thấp",
+  trung_binh: "Trung bình",
+  cao: "Cao",
+  khan_cap: "Khẩn cấp",
+  dang_hieu_luc: "Đang hiệu lực",
+  da_ket_thuc: "Đã kết thúc",
+  da_xu_ly: "Đã xử lý",
+  chua_xac_minh: "Chưa xác minh",
+  da_xac_minh: "Đã xác minh",
+  hoan_thanh: "Hoàn thành",
+  dang_thuc_hien: "Đang thực hiện",
+  chua_bat_dau: "Chưa bắt đầu",
+  tam_dung: "Tạm dừng",
+  loi: "Lỗi",
+  trong_trot_lua: "Trồng trọt lúa",
+  cay_an_trai: "Cây ăn trái",
+  san_xuat: "Sản xuất",
 };
 
 const OPTION_LABELS: Record<string, Record<string, string>> = {
@@ -104,6 +138,38 @@ const OPTION_LABELS: Record<string, Record<string, string>> = {
     vung_lua: "Vùng lúa",
     vung_nuoi_thuy_san: "Vùng nuôi thủy sản",
     vung_trong_hoa_mau: "Vùng trồng hoa màu",
+  },
+  muc_do: {
+    thap: "Thấp",
+    trung_binh: "Trung bình",
+    cao: "Cao",
+    khan_cap: "Khẩn cấp",
+  },
+  trang_thai: {
+    dang_hieu_luc: "Đang hiệu lực",
+    da_ket_thuc: "Đã kết thúc",
+    da_xu_ly: "Đã xử lý",
+    hoan_thanh: "Hoàn thành",
+    dang_thuc_hien: "Đang thực hiện",
+    chua_bat_dau: "Chưa bắt đầu",
+    tam_dung: "Tạm dừng",
+    loi: "Lỗi",
+  },
+  loai_hinh_san_xuat: {
+    trong_trot_lua: "Trồng trọt lúa",
+    cay_an_trai: "Cây ăn trái",
+    san_xuat: "Sản xuất",
+  },
+  loai_cay_trong: {
+    lua: "Lúa",
+    hoa_mau: "Hoa màu",
+    cay_an_trai: "Cây ăn trái",
+  },
+  loai_canh_bao: {
+    thoi_tiet: "Thời tiết",
+    dich_benh_thuy_san: "Dịch bệnh thủy sản",
+    moi_truong_nuoc: "Môi trường nước",
+    ngap_ung: "Ngập úng",
   },
   cap_quan_ly: {
     ap: "Ấp",
@@ -188,6 +254,7 @@ const VIETNAMESE_WORDS: Record<string, string> = {
   du: "dữ",
   dung: "dừng",
   duong: "đường",
+  gia: "giá",
   hoan: "hoàn",
   hinh: "hình",
   hoa: "hòa",
@@ -215,8 +282,11 @@ const VIETNAMESE_WORDS: Record<string, string> = {
   thai: "thái",
   thoat: "thoát",
   thuc: "thực",
+  thoi: "thời",
   thuy: "thủy",
+  tich: "tích",
   tinh: "tỉnh",
+  tom: "tôm",
   trang: "trạng",
   trai: "trái",
   trong: "trồng",
@@ -285,6 +355,17 @@ export function getOptionLabel(
   rawValue: unknown,
   metadata?: FieldLabelMetadata | null,
 ): string {
+  return (
+    getKnownOptionLabel(fieldKey, rawValue, metadata) ??
+    humanizeOptionValue(rawValue)
+  );
+}
+
+export function getKnownOptionLabel(
+  fieldKey: string,
+  rawValue: unknown,
+  metadata?: FieldLabelMetadata | null,
+): string | null {
   const metadataLabel = findMetadataOptionLabel(rawValue, metadata);
   if (metadataLabel) return metadataLabel;
 
@@ -292,7 +373,8 @@ export function getOptionLabel(
   const normalizedValue = normalizedKey(String(rawValue ?? ""));
   return (
     OPTION_LABELS[normalizedField]?.[normalizedValue] ??
-    humanizeOptionValue(rawValue)
+    COMMON_OPTION_LABELS[normalizedValue] ??
+    null
   );
 }
 
