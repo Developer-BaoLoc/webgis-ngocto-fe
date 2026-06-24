@@ -32,6 +32,11 @@ export function getDefaultWidgetLayout(
       "activity_history",
       "minimap",
       "activity_feed",
+      "alert_center",
+      "spatial_summary",
+      "spatial_ranking",
+      "thematic_map",
+      "spatial_alert",
       "seasonal_calendar",
     ].includes(widget.widgetType)
   ) {

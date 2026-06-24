@@ -252,7 +252,6 @@ export function MapView({
     showAllLayers,
     layerFilters,
   });
-  console.log("MapView render", { layers });
 
   useMapFeatureInteractions({
     map: mapInstance,

@@ -19,6 +19,7 @@ export type OperationalFieldKey =
   | "groupField"
   | "typeField"
   | "severityField"
+  | "areaField"
   | "progressField"
   | "ownerField"
   | "deadlineField"
@@ -320,6 +321,45 @@ export function OperationalWidgetMappingFields({
               "typeField",
               "Loại cảnh báo",
               "Nhóm nghiệp vụ của cảnh báo.",
+              statusFields,
+            )}
+          </>
+        )}
+
+        {widgetType === "alert_center" && (
+          <>
+            {select(
+              "titleField",
+              "Tiêu đề cảnh báo",
+              "Tên hoặc nội dung chính của từng cảnh báo.",
+              textFields,
+              true,
+            )}
+            {select(
+              "severityField",
+              "Mức độ",
+              "Khẩn cấp, Cao, Trung bình hoặc Thấp.",
+              statusFields,
+              true,
+            )}
+            {select(
+              "areaField",
+              "Khu vực",
+              "Vùng, địa bàn hoặc khu vực phát sinh cảnh báo.",
+              textFields,
+              true,
+            )}
+            {select(
+              "dateField",
+              "Thời gian cảnh báo",
+              "Trường ngày/giờ để sắp xếp cảnh báo mới nhất.",
+              dateFields,
+              true,
+            )}
+            {select(
+              "statusField",
+              "Trạng thái xử lý",
+              "Đang xử lý, đã xử lý hoặc trạng thái nghiệp vụ tương ứng.",
               statusFields,
             )}
           </>

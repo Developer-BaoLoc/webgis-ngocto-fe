@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Component, useEffect, useState } from "react";
 import type { ErrorInfo, ReactNode } from "react";
 import { previewAnalytics } from "@/lib/api/analytics";
+import { advancedQueryToDataSourceConfig } from "@/lib/dashboard/advanced-query";
 import {
   isTopAnalyticsResult,
   type AnalyticsResult,
@@ -28,10 +29,13 @@ import {
   TimelineWidgetRenderer,
 } from "./operational-widget-renderers";
 import {
+  AlertCenterWidgetRenderer,
   ActivityFeedWidgetRenderer,
   MiniMapWidgetRenderer,
   ProgressRingWidgetRenderer,
   SeasonalCalendarWidgetRenderer,
+  SpatialSummaryWidgetRenderer,
+  ThematicMapWidgetRenderer,
   TreemapWidgetRenderer,
 } from "./advanced-widget-renderers";
 
@@ -105,10 +109,13 @@ function AnalyticsWidget({ widget }: { widget: DashboardWidget }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const dataSourceConfig = widget.dataSourceConfig
+      ? advancedQueryToDataSourceConfig(widget.dataSourceConfig)
+      : undefined;
     if (
-      !widget.dataSourceConfig?.datasetId &&
-      !widget.dataSourceConfig?.viewId &&
-      !widget.dataSourceConfig?.layerId
+      !dataSourceConfig?.datasetId &&
+      !dataSourceConfig?.viewId &&
+      !dataSourceConfig?.layerId
     ) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- render immediate configuration feedback
       setLoading(false);
@@ -121,7 +128,7 @@ function AnalyticsWidget({ widget }: { widget: DashboardWidget }) {
     setError(null);
     setData(null);
 
-    previewAnalytics({ dataSourceConfig: widget.dataSourceConfig })
+    previewAnalytics({ dataSourceConfig })
       .then((result) => {
         if (!cancelled) setData(result);
       })
@@ -209,6 +216,38 @@ function WidgetDataContent({
     );
   }
 
+  if (widget.widgetType === "alert_center") {
+    return (
+      <WidgetPanel widget={widget} data={data}>
+        <AlertCenterWidgetRenderer widget={widget} data={data} />
+      </WidgetPanel>
+    );
+  }
+
+  if (widget.widgetType === "spatial_summary") {
+    return (
+      <WidgetPanel widget={widget} data={data}>
+        <SpatialSummaryWidgetRenderer widget={widget} data={data} />
+      </WidgetPanel>
+    );
+  }
+
+  if (widget.widgetType === "thematic_map") {
+    return (
+      <WidgetPanel widget={widget} data={data}>
+        <ThematicMapWidgetRenderer widget={widget} data={data} />
+      </WidgetPanel>
+    );
+  }
+
+  if (widget.widgetType === "spatial_alert") {
+    return (
+      <WidgetPanel widget={widget} data={data}>
+        <AlertCenterWidgetRenderer widget={widget} data={data} />
+      </WidgetPanel>
+    );
+  }
+
   if (widget.widgetType === "treemap") {
     return (
       <WidgetPanel widget={widget} data={data}>
@@ -263,6 +302,7 @@ function WidgetDataContent({
 
   if (
     widget.widgetType === "ranking" ||
+    widget.widgetType === "spatial_ranking" ||
     widget.dataSourceConfig?.aggregation === "top" ||
     isTopAnalyticsResult(data) ||
     widget.displayConfig?.variant === "ranking"

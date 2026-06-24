@@ -375,7 +375,6 @@ async function upsertLineLayer(
   map: MapLibreMap,
   entry: LayerGeoJsonEntry,
   sourceId: string,
-  geojson: FeatureCollection,
 ) {
   const style = extractStyleFromLayer(entry.layer);
   const lineColor = buildColorMatchExpression(
@@ -384,25 +383,8 @@ async function upsertLineLayer(
     style.lineColor ?? entry.layer.color,
   );
   const lineLayerId = `${sourceId}-line`;
-  if (entry.layer.code === "duong") {
-    console.log("[duong-render-trace][frontend:upsertLineLayer:start]", {
-      sourceId,
-      lineLayerId,
-      hasLineLayer: Boolean(map.getLayer(lineLayerId)),
-      featureCount: geojson.features.length,
-      style,
-    });
-  }
 
   if (!map.getLayer(lineLayerId)) {
-    if (entry.layer.code === "duong") {
-      console.log("[duong-render-trace][frontend:add-line-layer]", {
-        lineLayerId,
-        sourceId,
-        lineColor: style.lineColor ?? entry.layer.color,
-        lineWidth: Number(style.lineWidth ?? 3),
-      });
-    }
     map.addLayer({
       id: lineLayerId,
       type: "line",
@@ -429,42 +411,14 @@ async function upsertDataLayer(map: MapLibreMap, entry: LayerGeoJsonEntry) {
     layerIds,
     entry.layer.geometryType,
   );
-  if (entry.layer.code === "duong") {
-    console.log("[duong-render-trace][frontend:upsertDataLayer:start]", {
-      layerId: entry.layer.id,
-      geometryKind: entry.layer.geometryKind,
-      geometryType: entry.layer.geometryType,
-      sourceId,
-      layerIds,
-      hasSource: Boolean(source),
-      hasAllLayers,
-      featureCount: geojson.features.length,
-    });
-  }
 
   if (source && source.type === "geojson" && hasAllLayers) {
-    if (entry.layer.code === "duong") {
-      console.log("[duong-render-trace][frontend:upsertDataLayer:setData]", {
-        sourceId,
-      });
-    }
     (source as GeoJSONSource).setData(geojson);
   } else {
-    if (entry.layer.code === "duong") {
-      console.log("[duong-render-trace][frontend:add-source]", {
-        sourceId,
-        reason: source ? "missing-some-layers" : "missing-source",
-      });
-    }
     removeDataLayerById(map, entry.layer.id, entry.layer.geometryType);
     map.addSource(sourceId, { type: "geojson", data: geojson });
   }
 
-  if (entry.layer.code === "duong") {
-    console.log("[duong-render-trace][frontend:upsertDataLayer:switch]", {
-      geometryType: entry.layer.geometryType,
-    });
-  }
   switch (entry.layer.geometryType) {
     case "polygon":
     case "multipolygon":
@@ -473,7 +427,7 @@ async function upsertDataLayer(map: MapLibreMap, entry: LayerGeoJsonEntry) {
     case "line":
     case "linestring":
     case "multilinestring":
-      await upsertLineLayer(map, entry, sourceId, geojson);
+      await upsertLineLayer(map, entry, sourceId);
       break;
     default:
       await upsertPointLayer(map, entry, sourceId);
@@ -547,13 +501,6 @@ export function applyLayersVisibility(
   hiddenLayerIds: ReadonlySet<string>,
 ) {
   for (const entry of entries) {
-    if (entry.layer.code === "duong") {
-      console.log("[duong-render-trace][frontend:applyLayersVisibility]", {
-        layerId: entry.layer.id,
-        geometryType: entry.layer.geometryType,
-        hidden: hiddenLayerIds.has(entry.layer.id),
-      });
-    }
     setDataLayerVisibility(
       map,
       entry.layer.id,

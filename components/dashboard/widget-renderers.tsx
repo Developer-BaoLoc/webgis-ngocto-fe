@@ -13,6 +13,9 @@ import {
 import {
   AGGREGATION_LABELS,
   formatAnalyticsNumber,
+  formatWidgetValue,
+  formatWidgetValueParts,
+  getWidgetValueUnit,
 } from "@/lib/dashboard/utils";
 import {
   getWidgetDisplayTitle,
@@ -27,7 +30,11 @@ import {
   isGroupedAnalyticsResult,
   isTopAnalyticsResult,
 } from "@/types/api/dashboard";
-import type { AnalyticsResult, DashboardWidget } from "@/types/api/dashboard";
+import type {
+  AnalyticsComparison,
+  AnalyticsResult,
+  DashboardWidget,
+} from "@/types/api/dashboard";
 
 const CHART_PALETTE = [
   "#0ea5e9",
@@ -103,6 +110,45 @@ export function WidgetEmptyState({
   );
 }
 
+export function WidgetValue({
+  value,
+  unit,
+  valueFormat,
+  align = "start",
+}: {
+  value: unknown;
+  unit?: string;
+  valueFormat?: "number" | "currency" | "percent" | "integer";
+  align?: "start" | "end";
+}) {
+  const parts = formatWidgetValueParts(value, { unit, valueFormat });
+  return (
+    <span
+      className={`ioc-widget-value ioc-widget-value--${align}`}
+      aria-label={formatWidgetValue(value, { unit, valueFormat })}
+    >
+      <span className="ioc-widget-value-number">{parts.value}</span>
+      {parts.unit && (
+        <span className="ioc-widget-value-unit">{parts.unit}</span>
+      )}
+    </span>
+  );
+}
+
+function WidgetSvgValue({ value, unit }: { value: unknown; unit?: string }) {
+  const parts = formatWidgetValueParts(value, { unit });
+  return (
+    <>
+      <tspan className="ioc-widget-svg-value-number">{parts.value}</tspan>
+      {parts.unit && (
+        <tspan className="ioc-widget-svg-value-unit" dx="4">
+          {parts.unit}
+        </tspan>
+      )}
+    </>
+  );
+}
+
 export function KpiWidgetRenderer({
   widget,
   data,
@@ -119,7 +165,10 @@ export function KpiWidgetRenderer({
   const value = isGroupedAnalyticsResult(data)
     ? data.rows.reduce((sum, row) => sum + safeNumber(row.value), 0)
     : safeNumber("value" in data ? data.value : 0);
-  const suffix = String(widget.displayConfig?.suffix ?? "").trim();
+  const unit = getWidgetValueUnit(
+    widget,
+    widget.dataSourceConfig?.metricField ?? ("fieldCode" in data ? data.fieldCode : undefined),
+  );
   const icon = resolveKpiIcon(widget);
   const theme = resolveKpiTheme(widget, icon);
 
@@ -131,12 +180,36 @@ export function KpiWidgetRenderer({
           {getWidgetDisplayTitle(widget)}
         </p>
         <p className="ioc-kpi-value">
-          {formatAnalyticsNumber(value)}
-          {suffix && <span className="ioc-kpi-unit">{suffix}</span>}
+          <WidgetValue value={value} unit={unit} />
         </p>
+        {"comparison" in data && data.comparison && (
+          <KpiComparison comparison={data.comparison} />
+        )}
         <p className="ioc-kpi-sub">{getWidgetDescription(widget)}</p>
       </div>
     </article>
+  );
+}
+
+function KpiComparison({
+  comparison,
+}: {
+  comparison: AnalyticsComparison;
+}) {
+  const delta = comparison.delta ?? 0;
+  const tone =
+    delta > 0 ? "ioc-kpi-comparison--up" : delta < 0 ? "ioc-kpi-comparison--down" : "ioc-kpi-comparison--flat";
+  const icon = delta > 0 ? "▲" : delta < 0 ? "▼" : "•";
+  return (
+    <p className={`ioc-kpi-comparison ${tone}`}>
+      <span>
+        {icon}{" "}
+        {typeof comparison.deltaPercent === "number"
+          ? formatWidgetValue(comparison.deltaPercent, { valueFormat: "percent" })
+          : "Chưa có dữ liệu kỳ trước"}
+      </span>
+      <small>{comparison.label}</small>
+    </p>
   );
 }
 
@@ -159,12 +232,18 @@ export function RankingWidgetRenderer({
   if (rows.length === 0) return <WidgetEmptyState />;
 
   const maxValue = Math.max(...rows.map((row) => Math.max(0, row.value)), 0);
-  const suffix = String(widget.displayConfig?.suffix ?? "").trim();
+  const metricField = String(
+    widget.displayConfig?.valueField ??
+      widget.dataSourceConfig?.metricField ??
+      ("fieldCode" in data ? data.fieldCode : undefined) ??
+      "",
+  );
+  const unit = getWidgetValueUnit(widget, metricField);
   const showMedal = widget.displayConfig?.showMedal !== false;
   const showProgressBar = widget.displayConfig?.showProgressBar !== false;
 
   return (
-    <ul className="ioc-top-revenue-rank">
+    <ul className="space-y-2">
       {rows.map((row, index) => {
         const rank = index + 1;
         const progress =
@@ -172,41 +251,62 @@ export function RankingWidgetRenderer({
         return (
           <li
             key={`${row.name}-${index}`}
-            className={`ioc-top-revenue-rank-item ${rank === 1 ? "ioc-top-revenue-rank-item--leader" : ""}`}
+            className={`rounded-lg border px-3 py-2 transition ${
+              rank === 1
+                ? "border-amber-200 bg-amber-50/80 shadow-sm"
+                : "border-slate-200 bg-white"
+            }`}
           >
-            <div className="ioc-top-revenue-rank-head">
+            <div className="flex items-start gap-3">
               <span
-                className={`ioc-top-revenue-rank-badge ioc-top-revenue-rank-badge--${showMedal && rank <= 3 ? rank : "default"}`}
+                className={`flex h-8 w-8 shrink-0 self-center items-center justify-center rounded-full text-sm font-semibold ${
+                  showMedal && rank === 1
+                    ? "bg-amber-100 text-amber-800"
+                    : showMedal && rank === 2
+                      ? "bg-slate-100 text-slate-700"
+                      : showMedal && rank === 3
+                        ? "bg-orange-100 text-orange-800"
+                        : "bg-sky-50 text-sky-700"
+                }`}
                 aria-label={`Hạng ${rank}`}
               >
                 {showMedal && rank <= 3 ? ["🥇", "🥈", "🥉"][rank - 1] : rank}
               </span>
-              <div className="ioc-top-revenue-rank-info">
-                <span className="ioc-top-revenue-rank-name" title={row.name}>
-                  {row.name}
-                </span>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-start justify-between gap-3">
+                  <span
+                    className="truncate text-sm font-semibold text-slate-950"
+                    title={row.name}
+                  >
+                    {row.name}
+                  </span>
+                  <span className="shrink-0 text-right text-sm font-semibold tabular-nums text-slate-950">
+                    <WidgetValue value={row.value} unit={unit} align="end" />
+                  </span>
+                </div>
                 {row.subtitle && (
                   <span
-                    className="ioc-top-revenue-rank-type"
+                    className="mt-0.5 block truncate text-xs text-muted"
                     title={row.subtitle}
                   >
                     {row.subtitle}
                   </span>
                 )}
+                {showProgressBar && (
+                  <div
+                    className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100"
+                    aria-hidden
+                  >
+                    <div
+                      className={`h-full rounded-full ${
+                        rank === 1 ? "bg-amber-500" : "bg-sky-500"
+                      }`}
+                      style={{ width: `${Math.min(100, progress)}%` }}
+                    />
+                  </div>
+                )}
               </div>
-              <span className="ioc-top-revenue-rank-value">
-                {formatAnalyticsNumber(row.value)}
-                {suffix ? ` ${suffix}` : ""}
-              </span>
             </div>
-            {showProgressBar && (
-              <div className="ioc-top-revenue-rank-bar" aria-hidden>
-                <div
-                  className={`ioc-top-revenue-rank-bar-fill ${rank === 1 ? "ioc-top-revenue-rank-bar-fill--leader" : ""}`}
-                  style={{ width: `${Math.min(100, progress)}%` }}
-                />
-              </div>
-            )}
           </li>
         );
       })}
@@ -226,6 +326,9 @@ export function BarChartWidgetRenderer({
   const maxValue = Math.max(...rows.map((row) => Math.abs(row.value)), 1);
   const metricLabel = metricDisplayLabel(widget);
   const dimensionLabel = dimensionDisplayLabel(widget);
+  const metricField =
+    widget.dataSourceConfig?.metricField ?? widget.dataSourceConfig?.fieldCode;
+  const unit = getWidgetValueUnit(widget, metricField);
 
   return (
     <div className="ioc-dynamic-bars">
@@ -242,7 +345,9 @@ export function BarChartWidgetRenderer({
           >
             <div className="ioc-dynamic-bar-meta">
               <span title={row.label}>{row.label}</span>
-              <strong>{formatAnalyticsNumber(row.value)}</strong>
+              <strong>
+                <WidgetValue value={row.value} unit={unit} align="end" />
+              </strong>
             </div>
             <div className="ioc-dynamic-bar-track">
               <div
@@ -257,7 +362,7 @@ export function BarChartWidgetRenderer({
               />
             </div>
             <span className="ioc-chart-tooltip" role="tooltip">
-              {row.label} · {metricLabel}: {formatAnalyticsNumber(row.value)}
+              {row.label} · {metricLabel}: {formatWidgetValue(row.value, { unit })}
             </span>
           </li>
         ))}
@@ -286,7 +391,10 @@ export function PieChartWidgetRenderer({
 
   const active = activeIndex === null ? null : positiveRows[activeIndex];
   const metricLabel = metricDisplayLabel(widget);
-  const slices = buildPieSlices(positiveRows, total, metricLabel);
+  const metricField =
+    widget.dataSourceConfig?.metricField ?? widget.dataSourceConfig?.fieldCode;
+  const unit = getWidgetValueUnit(widget, metricField);
+  const slices = buildPieSlices(positiveRows, total, metricLabel, unit);
 
   return (
     <div className="ioc-dynamic-pie-layout">
@@ -332,7 +440,7 @@ export function PieChartWidgetRenderer({
                 textAnchor="middle"
                 className="ioc-donut-value"
               >
-                {formatAnalyticsNumber(total)}
+                <WidgetSvgValue value={total} unit={unit} />
               </text>
               <text
                 x="110"
@@ -352,7 +460,7 @@ export function PieChartWidgetRenderer({
           >
             <strong>{active.label}</strong>
             <span>
-              {metricLabel}: {formatAnalyticsNumber(active.value)} ·{" "}
+              {metricLabel}: {formatWidgetValue(active.value, { unit })} ·{" "}
               {formatPercent(active.value, total)}
             </span>
           </div>
@@ -370,7 +478,9 @@ export function PieChartWidgetRenderer({
             <span className="ioc-chart-legend-name" title={row.label}>
               {row.label}
             </span>
-            <strong>{formatAnalyticsNumber(row.value)}</strong>
+            <strong>
+              <WidgetValue value={row.value} unit={unit} align="end" />
+            </strong>
             <small>{formatPercent(row.value, total)}</small>
           </li>
         ))}
@@ -415,7 +525,6 @@ export function LineChartWidgetRenderer({
   }, []);
   if (rows.length === 0) return <WidgetEmptyState />;
 
-  const unit = String(widget.displayConfig?.unit ?? "").trim();
   const width = Math.max(520, rows.length * 78);
   const height = 230;
   const padX = 44;
@@ -427,6 +536,9 @@ export function LineChartWidgetRenderer({
   const range = maxValue - minValue || 1;
   const metricLabel = pureMetricDisplayLabel(widget);
   const metricSeriesLabel = metricDisplayLabel(widget);
+  const metricField =
+    widget.dataSourceConfig?.metricField ?? widget.dataSourceConfig?.fieldCode;
+  const unit = getWidgetValueUnit(widget, metricField);
   const tooltipUnit = unit || extractUnitFromLabel(metricLabel);
   const points = rows.map((row, index) => ({
     x: padX + (index / Math.max(1, rows.length - 1)) * (width - padX * 2),
@@ -442,11 +554,11 @@ export function LineChartWidgetRenderer({
     ? tooltipUnit
       ? {
           title: visiblePoint.label,
-          value: `${formatAnalyticsNumber(visiblePoint.value)} ${tooltipUnit}`,
+          value: formatWidgetValue(visiblePoint.value, { unit: tooltipUnit }),
         }
       : {
           title: visiblePoint.label,
-          value: `${metricLabel}: ${formatAnalyticsNumber(visiblePoint.value)}`,
+          value: `${metricLabel}: ${formatWidgetValue(visiblePoint.value)}`,
         }
     : null;
 
@@ -616,6 +728,9 @@ export function TableWidgetRenderer({
     if (data.records.length === 0) return <WidgetEmptyState />;
     const preferred = widget.dataSourceConfig?.displayFields ?? [];
     const allColumns = Object.keys(data.records[0] ?? {});
+    const metricField =
+      widget.dataSourceConfig?.metricField ?? widget.dataSourceConfig?.fieldCode;
+    const unit = getWidgetValueUnit(widget, metricField);
     const columns = [
       ...preferred.filter((field) => allColumns.includes(field)),
       ...allColumns.filter((field) => !preferred.includes(field)),
@@ -635,7 +750,9 @@ export function TableWidgetRenderer({
               <tr key={index}>
                 {columns.map((column) => (
                   <td key={column}>
-                    {displayCellValue(record[column], column)}
+                    {column === metricField && isFiniteNumberLike(record[column])
+                      ? <WidgetValue value={record[column]} unit={unit} />
+                      : displayCellValue(record[column], column)}
                   </td>
                 ))}
               </tr>
@@ -648,6 +765,9 @@ export function TableWidgetRenderer({
 
   const rows = groupedRows(widget, data);
   if (rows.length === 0) return <WidgetEmptyState />;
+  const metricField =
+    widget.dataSourceConfig?.metricField ?? widget.dataSourceConfig?.fieldCode;
+  const unit = getWidgetValueUnit(widget, metricField);
   return (
     <div className="ioc-table-wrap">
       <table className="ioc-table ioc-dynamic-table">
@@ -662,7 +782,7 @@ export function TableWidgetRenderer({
             <tr key={`${row.label}-${index}`}>
               <td title={row.label}>{row.label}</td>
               <td className="text-right font-semibold tabular-nums">
-                {formatAnalyticsNumber(row.value)}
+                <WidgetValue value={row.value} unit={unit} align="end" />
               </td>
             </tr>
           ))}
@@ -708,7 +828,7 @@ function formatLineDimensionDisplayValue(
 }
 
 function formatLineMetricValue(value: number, unit: string) {
-  return `${formatAnalyticsNumber(value)}${unit ? ` ${unit}` : ""}`;
+  return formatWidgetValue(value, { unit });
 }
 
 function buildLineTooltipPoint(
@@ -837,28 +957,34 @@ function buildRankingRows(widget: DashboardWidget, data: AnalyticsResult) {
       data.fieldCode ??
       "value",
   );
+  const configuredNameField = String(
+    widget.displayConfig?.nameField ??
+      widget.displayConfig?.labelField ??
+      "",
+  ).trim();
+  const configuredTypeField = String(widget.displayConfig?.typeField ?? "").trim();
   const displayFields = (widget.dataSourceConfig?.displayFields ?? []).filter(
     (field) => field !== metricField,
   );
 
   return data.records.map((record, index) => {
     const keys = Object.keys(record);
-    const configuredLabelField = String(
-      widget.displayConfig?.labelField ?? "",
-    ).trim();
     const nameField =
-      (configuredLabelField || displayFields[0]) ??
+      (configuredNameField || displayFields[0]) ??
       widget.dataSourceConfig?.dimensionField ??
       keys.find((key) => key !== metricField);
     const subtitleField =
-      displayFields[1] ??
-      keys.find((key) => key !== metricField && key !== nameField);
+      configuredTypeField ||
+      (displayFields.find((field) => field !== nameField) ??
+        keys.find((key) => key !== metricField && key !== nameField));
     return {
       name:
         displayCellValue(nameField ? record[nameField] : null, nameField) ||
         `Mục ${index + 1}`,
       subtitle: subtitleField
-        ? displayCellValue(record[subtitleField], subtitleField)
+        ? getOptionLabel(subtitleField, record[subtitleField], {
+            label: getWidgetFieldLabel(widget, subtitleField),
+          })
         : "",
       value: safeNumber(record[metricField]),
     };
@@ -894,7 +1020,12 @@ function groupSmallSlices(rows: ChartRow[]): ChartRow[] {
   ];
 }
 
-function buildPieSlices(rows: ChartRow[], total: number, metricLabel: string) {
+function buildPieSlices(
+  rows: ChartRow[],
+  total: number,
+  metricLabel: string,
+  unit: string,
+) {
   let angle = -90;
   return rows.map((row, index) => {
     const sweep = (row.value / total) * 360;
@@ -908,7 +1039,7 @@ function buildPieSlices(rows: ChartRow[], total: number, metricLabel: string) {
       color: CHART_PALETTE[index % CHART_PALETTE.length],
       fullCircle: sweep >= 359.999,
       path: `M 110 110 L ${startPoint.x} ${startPoint.y} A 94 94 0 ${sweep > 180 ? 1 : 0} 1 ${endPoint.x} ${endPoint.y} Z`,
-      tooltip: `${row.label}\n${metricLabel}: ${formatAnalyticsNumber(row.value)} (${formatPercent(row.value, total)})`,
+      tooltip: `${row.label}\n${metricLabel}: ${formatWidgetValue(row.value, { unit })} (${formatPercent(row.value, total)})`,
     };
   });
 }
@@ -1009,6 +1140,13 @@ function renderKpiIcon(icon: string) {
 function safeNumber(value: unknown) {
   const number = Number(value);
   return Number.isFinite(number) ? number : 0;
+}
+
+function isFiniteNumberLike(value: unknown) {
+  if (typeof value === "number") return Number.isFinite(value);
+  if (typeof value !== "string") return false;
+  const trimmed = value.trim();
+  return trimmed !== "" && Number.isFinite(Number(trimmed));
 }
 
 function clamp(value: number, min: number, max: number) {

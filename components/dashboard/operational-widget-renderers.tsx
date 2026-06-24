@@ -530,6 +530,12 @@ export function ActivityHistoryWidgetRenderer({
           {visible.map((row, index) => {
             const severity = text(row, config?.severityField);
             const type = text(row, config?.typeField);
+            const description = text(row, config?.descriptionField);
+            const displayType = type
+              ? formatDisplayValue(type, config?.typeField)
+              : description
+                ? formatDisplayValue(description, config?.descriptionField)
+                : "";
             return (
               <li key={index} className="relative pl-7">
                 <span
@@ -563,7 +569,7 @@ export function ActivityHistoryWidgetRenderer({
                   </div>
                   {text(row, config?.descriptionField) && (
                     <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-600">
-                      {text(row, config?.descriptionField)}
+                      {displayType}
                     </p>
                   )}
                   <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -571,11 +577,6 @@ export function ActivityHistoryWidgetRenderer({
                       value={text(row, config?.statusField)}
                       fieldKey={config?.statusField}
                     />
-                    {type && (
-                      <span className="text-[11px] text-slate-500">
-                        {formatDisplayValue(type, config?.typeField)}
-                      </span>
-                    )}
                   </div>
                 </article>
               </li>

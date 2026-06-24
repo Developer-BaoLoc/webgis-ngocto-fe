@@ -12,52 +12,13 @@ export interface LayerGeoJsonEntry {
 export async function loadLayerGeoJsonEntries(
   layers: Layer[],
 ): Promise<LayerGeoJsonEntry[]> {
-  const duongInput = layers.find((layer) => layer.code === "duong");
-  console.log("[duong-render-trace][frontend:loadLayerGeoJsonEntries:input]", {
-    found: Boolean(duongInput),
-    layer: duongInput,
-    inputCount: layers.length,
-  });
-
   const mapLayers = layers
-    .filter((layer) => {
-      const accepted = isMapVisibleLayer(layer);
-      if (layer.code === "duong") {
-        console.log(
-          "[duong-render-trace][frontend:loadLayerGeoJsonEntries:isMapVisibleLayer]",
-          {
-            geometryKind: layer.geometryKind,
-            geometryType: layer.geometryType,
-            layerRole: layer.layerRole,
-            showOnMap: layer.showOnMap,
-            showInMapSidebar: layer.showInMapSidebar,
-            isSpatial: layer.isSpatial,
-            accepted,
-          },
-        );
-      }
-      return accepted;
-    })
+    .filter((layer) => isMapVisibleLayer(layer))
     .sort((a, b) => a.sortOrder - b.sortOrder);
 
   const results = await Promise.allSettled(
     mapLayers.map(async (layer) => {
-      if (layer.code === "duong") {
-        console.log("[duong-render-trace][frontend:geojson-fetch:start]", {
-          layerId: layer.id,
-          endpoint: layer.endpoint,
-          geometryKind: layer.geometryKind,
-          geometryType: layer.geometryType,
-        });
-      }
       const geojson = await getLayerGeoJson(layer.id);
-      if (layer.code === "duong") {
-        console.log("[duong-render-trace][frontend:geojson-fetch:done]", {
-          layerId: layer.id,
-          featureCount: geojson.features.length,
-          firstGeometryType: geojson.features[0]?.geometry?.type ?? null,
-        });
-      }
       return { layer, geojson };
     }),
   );
@@ -68,24 +29,7 @@ export async function loadLayerGeoJsonEntries(
         result.status === "fulfilled",
     )
     .map((result) => result.value)
-    .filter((entry) => {
-      const accepted = entry.geojson.features.length > 0;
-      if (entry.layer.code === "duong") {
-        console.log(
-          "[duong-render-trace][frontend:loadLayerGeoJsonEntries:featuresLength]",
-          {
-            featureCount: entry.geojson.features.length,
-            accepted,
-          },
-        );
-      }
-      return accepted;
-    });
-
-  console.log("[duong-render-trace][frontend:loadLayerGeoJsonEntries:return]", {
-    hasDuongEntry: entries.some((entry) => entry.layer.code === "duong"),
-    entryCount: entries.length,
-  });
+    .filter((entry) => entry.geojson.features.length > 0);
 
   return entries;
 }

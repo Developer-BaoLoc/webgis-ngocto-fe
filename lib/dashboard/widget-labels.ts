@@ -48,8 +48,14 @@ export function buildWidgetAutoTitle(
       )
     : "";
 
-  if (aggregation === "top")
+  if (aggregation === "top") {
+    if (config?.sort?.direction === "asc") {
+      return `${config.limit ?? ""} giá trị thấp nhất theo ${
+        metric || dimension || "dữ liệu"
+      }`.trim();
+    }
     return `Xếp hạng ${metric || dimension || "dữ liệu"}`;
+  }
   if (aggregation === "count") {
     return dimension ? `Số lượng theo ${dimension}` : "Tổng số lượng";
   }

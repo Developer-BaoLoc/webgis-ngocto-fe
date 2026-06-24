@@ -81,7 +81,27 @@ function toGridItem(
 }
 
 function getWidgetMinimumSize(widget: DashboardWidget) {
-  if (widget.widgetType === "stat") return { minW: 2, minH: 2 };
+  if (widget.widgetType === "stat") return { minW: 2, minH: 1 };
+  if (widget.widgetType === "minimap" || widget.widgetType === "thematic_map") {
+    return { minW: 3, minH: 3 };
+  }
+  if (
+    [
+      "alert_center",
+      "activity_feed",
+      "ranking",
+      "spatial_alert",
+      "spatial_ranking",
+      "table",
+    ].includes(widget.widgetType) ||
+    widget.dataSourceConfig?.aggregation === "top"
+  ) {
+    return { minW: 3, minH: 2 };
+  }
+  if (["bar", "pie", "donut", "line", "treemap"].includes(widget.widgetType)) {
+    return { minW: 3, minH: 2 };
+  }
+  if (widget.widgetType === "progress_ring") return { minW: 2, minH: 2 };
   if (
     [
       "timeline",
@@ -89,12 +109,11 @@ function getWidgetMinimumSize(widget: DashboardWidget) {
       "progress",
       "milestone",
       "activity_history",
-      "minimap",
-      "activity_feed",
+      "spatial_summary",
       "seasonal_calendar",
     ].includes(widget.widgetType)
   ) {
-    return { minW: 4, minH: 4 };
+    return { minW: 3, minH: 3 };
   }
-  return { minW: 3, minH: 3 };
+  return { minW: 3, minH: 2 };
 }

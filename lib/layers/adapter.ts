@@ -90,14 +90,5 @@ export function toLayer(item: LayerCatalogItem | LayerDetail): Layer {
     style: item.style,
   };
 
-  if (item.code === "duong") {
-    console.log("[duong-render-trace][frontend:toLayer]", {
-      rawGeometryType: item.geometryType,
-      rawGeometryKind: item.geometryKind,
-      resolvedGeometryKind: geometryKind,
-      layer,
-    });
-  }
-
   return layer;
 }

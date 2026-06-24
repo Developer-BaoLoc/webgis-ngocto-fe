@@ -20,6 +20,11 @@ export type WidgetType =
   | "progress_ring"
   | "activity_feed"
   | "treemap"
+  | "alert_center"
+  | "spatial_summary"
+  | "spatial_ranking"
+  | "thematic_map"
+  | "spatial_alert"
   | "seasonal_calendar";
 
 export type AggregationType =
@@ -30,6 +35,8 @@ export type AggregationType =
   | "max"
   | "top"
   | "records";
+
+export type QueryMode = "simple" | "advanced";
 
 export interface WidgetLayoutConfig {
   x: number;
@@ -45,6 +52,7 @@ export interface AnalyticsFilter {
     | "neq"
     | "in"
     | "contains"
+    | "not_contains"
     | "gt"
     | "gte"
     | "lt"
@@ -54,17 +62,110 @@ export interface AnalyticsFilter {
   value: unknown;
 }
 
+export interface AdvancedQueryRule {
+  fieldCode: string;
+  operator:
+    | "eq"
+    | "neq"
+    | "in"
+    | "contains"
+    | "not_contains"
+    | "gt"
+    | "gte"
+    | "lt"
+    | "lte"
+    | "empty"
+    | "not_empty";
+  value?: unknown;
+}
+
+export interface AdvancedHavingRule {
+  field: string;
+  aggregation: AggregationType;
+  operator: "gt" | "gte" | "lt" | "lte" | "eq" | "neq";
+  value: number;
+}
+
+export interface AdvancedFormulaConfig {
+  enabled: boolean;
+  label: string;
+  unit?: string;
+  expression: string;
+  fields: string[];
+}
+
+export type TimePreset =
+  | "today"
+  | "this_week"
+  | "this_month"
+  | "this_quarter"
+  | "this_year"
+  | "last_7_days"
+  | "last_30_days"
+  | "last_90_days"
+  | "custom";
+
+export type TimeCompareMode =
+  | "none"
+  | "previous_period"
+  | "same_period_last_year";
+
+export interface AdvancedQueryTimeConfig {
+  enabled: boolean;
+  dateField: string;
+  preset: TimePreset;
+  customFrom?: string;
+  customTo?: string;
+  compare?: TimeCompareMode;
+}
+
+export interface AdvancedQueryConfig {
+  version: 1;
+  source: {
+    type: "dataset" | "view" | "layer";
+    id: string;
+  };
+  select: {
+    aggregation: AggregationType;
+    metricField?: string;
+    dimensionField?: string;
+    displayFields?: string[];
+  };
+  filter?: {
+    combinator: "and";
+    rules: AdvancedQueryRule[];
+  };
+  having?: {
+    combinator: "and";
+    rules: AdvancedHavingRule[];
+  };
+  formula?: AdvancedFormulaConfig;
+  time?: AdvancedQueryTimeConfig;
+  sort?: Array<{
+    field: string;
+    direction: "asc" | "desc";
+  }>;
+  limit?: number;
+}
+
 export interface DataSourceConfig {
   name?: string;
   datasetId?: string;
   viewId?: string;
   layerId?: string;
+  queryMode?: QueryMode;
+  advancedQuery?: AdvancedQueryConfig;
   aggregation: AggregationType;
   metricField?: string;
   dimensionField?: string;
   fieldCode?: string;
   groupByFieldCode?: string;
   filters?: AnalyticsFilter[];
+  time?: AdvancedQueryTimeConfig;
+  having?: {
+    combinator: "and";
+    rules: AdvancedHavingRule[];
+  };
   limit?: number;
   displayFields?: string[];
   titleField?: string;
@@ -76,12 +177,24 @@ export interface DataSourceConfig {
   groupField?: string;
   typeField?: string;
   severityField?: string;
+  areaField?: string;
   progressField?: string;
   ownerField?: string;
   deadlineField?: string;
   resultField?: string;
   metricFields?: string[];
   sort?: { field: string; direction: "asc" | "desc" };
+  spatial?: SpatialDataSourceConfig;
+}
+
+export interface SpatialDataSourceConfig {
+  mode: "summary" | "ranking" | "thematic_map" | "alert";
+  sourceLayerId: string;
+  zoneLayerId: string;
+  zoneLabelField?: string;
+  metricAggregation: "count" | "sum" | "avg" | "min" | "max";
+  metricField?: string;
+  limit?: number;
 }
 
 export interface DashboardWidget {
@@ -141,6 +254,7 @@ export interface DataSourceLayer {
   layerId: string;
   layerName: string;
   layerCode?: string;
+  geometryType?: string | null;
   fields: DataSourceField[];
 }
 
@@ -152,6 +266,7 @@ export interface AnalyticsScalarResult {
   value: number;
   fieldCode?: string;
   fieldLabels?: Record<string, string>;
+  comparison?: AnalyticsComparison;
 }
 
 export interface AnalyticsGroupRow {
@@ -169,6 +284,7 @@ export interface AnalyticsGroupedResult {
   fieldCode?: string;
   rows: AnalyticsGroupRow[];
   fieldLabels?: Record<string, string>;
+  comparison?: AnalyticsComparison;
 }
 
 export interface AnalyticsTopResult {
@@ -186,6 +302,16 @@ export interface AnalyticsRecordsResult {
   aggregation: "records";
   records: Array<Record<string, unknown>>;
   fieldLabels?: Record<string, string>;
+}
+
+export interface AnalyticsComparison {
+  currentValue?: number;
+  previousValue?: number;
+  delta?: number;
+  deltaPercent?: number | null;
+  label: string;
+  currentRange?: { from: string; to: string };
+  previousRange?: { from: string; to: string };
 }
 
 export type AnalyticsResult =

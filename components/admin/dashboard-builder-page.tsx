@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { Modal } from "@/components/ui/modal";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { previewAnalytics } from "@/lib/api/analytics";
+import { advancedQueryToDataSourceConfig } from "@/lib/dashboard/advanced-query";
 import { getSavedViews } from "@/lib/api/saved-views";
 import { getDatasets } from "@/lib/api/datasets";
 import {
@@ -30,6 +31,7 @@ import {
   WidgetFormFields,
   emptyWidgetForm,
   formToWidget,
+  validateSpatialWidgetForm,
   widgetToForm,
   type WidgetFormState,
 } from "@/components/admin/dashboard-widget-form";
@@ -41,6 +43,7 @@ import {
 import type {
   DashboardDetail,
   DashboardWidget,
+  AnalyticsResult,
   DataSourceLayer,
 } from "@/types/api/dashboard";
 import type { SavedView } from "@/types/api/saved-view";
@@ -50,6 +53,22 @@ import { getFieldLabel, getOptionLabel } from "@/lib/fields/field-label";
 
 interface DashboardBuilderPageProps {
   dashboardId: string;
+}
+
+function spatialResultIsEmpty(result: AnalyticsResult) {
+  if (isTopAnalyticsResult(result) || isRecordsAnalyticsResult(result)) {
+    return (
+      result.records.length === 0 ||
+      result.records.every((record) => Number(record.value ?? 0) <= 0)
+    );
+  }
+  if (isGroupedAnalyticsResult(result)) {
+    return (
+      result.rows.length === 0 ||
+      result.rows.every((row) => Number(row.value ?? 0) <= 0)
+    );
+  }
+  return false;
 }
 
 async function resolveDraft(dashboardId: string): Promise<DashboardDetail> {
@@ -80,6 +99,7 @@ export function DashboardBuilderPage({
   const [widgetForm, setWidgetForm] =
     useState<WidgetFormState>(emptyWidgetForm());
   const [previewText, setPreviewText] = useState<string | null>(null);
+  const [isPreviewingWidget, setIsPreviewingWidget] = useState(false);
   const [layoutDirty, setLayoutDirty] = useState(false);
 
   const load = useCallback(async () => {
@@ -250,19 +270,36 @@ export function DashboardBuilderPage({
   }
 
   async function handlePreviewWidget() {
-    const widget = formToWidget(widgetForm, 0);
-    if (
-      !widget.dataSourceConfig?.datasetId &&
-      !widget.dataSourceConfig?.viewId &&
-      !widget.dataSourceConfig?.layerId
-    ) {
-      setPreviewText("Chọn Saved View để xem trước");
+    if (isPreviewingWidget) return;
+    const spatialValidationError = validateSpatialWidgetForm(
+      widgetForm,
+      dataSources,
+    );
+    if (spatialValidationError) {
+      setPreviewText(spatialValidationError);
       return;
     }
+    const widget = formToWidget(widgetForm, 0);
+    const dataSourceConfig = widget.dataSourceConfig
+      ? advancedQueryToDataSourceConfig(widget.dataSourceConfig)
+      : undefined;
+    if (
+      !dataSourceConfig?.datasetId &&
+      !dataSourceConfig?.viewId &&
+      !dataSourceConfig?.layerId
+    ) {
+      setPreviewText("Chọn nguồn dữ liệu để xem trước");
+      return;
+    }
+    setIsPreviewingWidget(true);
     try {
       const result = await previewAnalytics({
-        dataSourceConfig: widget.dataSourceConfig,
+        dataSourceConfig,
       });
+      if (dataSourceConfig?.spatial && spatialResultIsEmpty(result)) {
+        setPreviewText("Chưa có dữ liệu không gian phù hợp.");
+        return;
+      }
       if (isTopAnalyticsResult(result)) {
         setPreviewText(`${result.records.length} dòng xếp hạng`);
       } else if (isRecordsAnalyticsResult(result)) {
@@ -291,6 +328,8 @@ export function DashboardBuilderPage({
       }
     } catch (err) {
       setPreviewText(err instanceof Error ? err.message : "Preview thất bại");
+    } finally {
+      setIsPreviewingWidget(false);
     }
   }
 
@@ -426,10 +465,12 @@ export function DashboardBuilderPage({
               widgetForm.widgetType !== "map" && (
                 <button
                   type="button"
+                  disabled={isPreviewingWidget}
                   onClick={() => void handlePreviewWidget()}
-                  className="text-sm text-primary hover:underline"
+                  className="ioc-preview-button"
+                  data-loading={isPreviewingWidget ? "true" : undefined}
                 >
-                  Xem trước dữ liệu
+                  {isPreviewingWidget ? "Đang xem trước..." : "Xem trước dữ liệu"}
                 </button>
               )}
 

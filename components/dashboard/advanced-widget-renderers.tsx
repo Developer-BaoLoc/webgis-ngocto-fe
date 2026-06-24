@@ -1,19 +1,26 @@
 "use client";
 
 import "maplibre-gl/dist/maplibre-gl.css";
+import { useEffect, useState } from "react";
 import {
   formatDisplayValue,
   getStatusBadgeStyle,
 } from "@/lib/dashboard/widget-display";
-import { formatAnalyticsNumber } from "@/lib/dashboard/utils";
+import { formatWidgetValue, getWidgetValueUnit } from "@/lib/dashboard/utils";
 import { getWidgetFieldLabel } from "@/lib/dashboard/widget-labels";
+import {
+  getAdministrativeBoundary,
+  resolveMapView,
+} from "@/lib/api/map-view";
 import {
   isGroupedAnalyticsResult,
   isRecordsAnalyticsResult,
   type AnalyticsResult,
   type DashboardWidget,
 } from "@/types/api/dashboard";
-import { WidgetEmptyState, WidgetPanel } from "./widget-renderers";
+import type { MapViewConfig } from "@/types/api/map-view";
+import type { GeoJsonFeatureCollection } from "@/types/gis.types";
+import { WidgetEmptyState, WidgetPanel, WidgetValue } from "./widget-renderers";
 
 import Link from "next/link";
 import { MapPageContent } from "@/components/map/map-page-content";
@@ -36,12 +43,43 @@ const PALETTE = [
 export function MiniMapWidgetRenderer({ widget }: { widget: DashboardWidget }) {
   const { layers } = useLayerCatalog();
   const { hiddenLayerIds } = useMapLayerVisibility();
+  const [mapView, setMapView] = useState<MapViewConfig | null>(null);
+  const [boundary, setBoundary] = useState<GeoJsonFeatureCollection | null>(
+    null,
+  );
+  const [boundaryError, setBoundaryError] = useState<string | null>(null);
 
   const mapLayers = layers.filter(isMapVisibleLayer);
   const activeLayers = mapLayers.filter((layer) => !hiddenLayerIds.has(layer.id));
 
   const visibleDots = activeLayers.slice(0, 6);
   const overflow = activeLayers.length - visibleDots.length;
+
+  useEffect(() => {
+    let cancelled = false;
+
+    Promise.allSettled([resolveMapView(), getAdministrativeBoundary()]).then(
+      ([mapViewResult, boundaryResult]) => {
+        if (cancelled) return;
+
+        if (mapViewResult.status === "fulfilled") {
+          setMapView(mapViewResult.value);
+        }
+
+        if (boundaryResult.status === "fulfilled") {
+          setBoundary(boundaryResult.value);
+          setBoundaryError(null);
+        } else {
+          setBoundary(null);
+          setBoundaryError("Không tải được ranh giới hành chính.");
+        }
+      },
+    );
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <WidgetPanel widget={widget}>
@@ -52,7 +90,17 @@ export function MiniMapWidgetRenderer({ widget }: { widget: DashboardWidget }) {
         <span className="ioc-map-frame-corner ioc-map-frame-corner--br" aria-hidden />
 
         <div className="ioc-map-panel-body">
-          <MapPageContent embedded />
+          <MapPageContent
+            embedded
+            mapView={mapView}
+            boundary={boundary}
+            boundaryError={boundaryError}
+          />
+          {boundaryError && (
+            <span className="ioc-minimap-boundary-warning">
+              {boundaryError}
+            </span>
+          )}
 
           <div className="ioc-map-float-bar" role="toolbar" aria-label="Điều khiển bản đồ nhỏ">
             <div
@@ -119,8 +167,12 @@ export function ProgressRingWidgetRenderer({
   const ratio = Math.max(0, Math.min(1, rawValue / target));
   const progress = ratio * 100;
   const tone = progress <= 40 ? "rose" : progress <= 70 ? "amber" : "green";
-  const unit = String(widget.displayConfig?.unit ?? "%");
   const metric = widget.dataSourceConfig?.metricField;
+  const unit = getWidgetValueUnit(widget, metric) || "%";
+  const targetText =
+    unit === "%"
+      ? formatWidgetValue(target, { valueFormat: "percent" })
+      : formatWidgetValue(target, { unit });
 
   return (
     <div className={`ioc-progress-ring ioc-progress-ring--${tone}`}>
@@ -141,8 +193,11 @@ export function ProgressRingWidgetRenderer({
           />
         </svg>
         <strong>
-          {formatAnalyticsNumber(rawValue)}
-          <small>{unit}</small>
+          <WidgetValue
+            value={rawValue}
+            unit={unit === "%" ? undefined : unit}
+            valueFormat={unit === "%" ? "percent" : "number"}
+          />
         </strong>
       </div>
       <div className="ioc-progress-ring-copy">
@@ -151,7 +206,7 @@ export function ProgressRingWidgetRenderer({
           {String(
             widget.displayConfig?.subtitle ??
               widget.displayConfig?.description ??
-              `Mục tiêu ${formatAnalyticsNumber(target)}${unit}`,
+              `Mục tiêu ${targetText}`,
           )}
         </span>
       </div>
@@ -215,6 +270,225 @@ export function ActivityFeedWidgetRenderer({
   );
 }
 
+type AlertSeverityKey = "khan_cap" | "cao" | "trung_binh" | "thap";
+
+const ALERT_SEVERITY_STYLES: Record<
+  AlertSeverityKey,
+  { label: string; background: string; bar: string; text: string }
+> = {
+  khan_cap: {
+    label: "Khẩn cấp",
+    background: "#fef2f2",
+    bar: "#ef4444",
+    text: "#991b1b",
+  },
+  cao: {
+    label: "Cao",
+    background: "#fff7ed",
+    bar: "#f97316",
+    text: "#9a3412",
+  },
+  trung_binh: {
+    label: "Trung bình",
+    background: "#fefce8",
+    bar: "#eab308",
+    text: "#854d0e",
+  },
+  thap: {
+    label: "Thấp",
+    background: "#f0fdf4",
+    bar: "#22c55e",
+    text: "#166534",
+  },
+};
+
+export function AlertCenterWidgetRenderer({
+  widget,
+  data,
+}: {
+  widget: DashboardWidget;
+  data: AnalyticsResult;
+}) {
+  const titleField = configField(widget, "titleField");
+  const severityField = configField(widget, "severityField");
+  const areaField = configField(widget, "areaField");
+  const dateField = configField(widget, "dateField");
+  const statusField = configField(widget, "statusField");
+  const limit = Number(
+    widget.dataSourceConfig?.limit ?? widget.displayConfig?.limit ?? 20,
+  );
+  const rows = sortAlertRows(recordRows(data), dateField).slice(0, limit);
+
+  if (!rows.length) {
+    return (
+      <WidgetEmptyState
+        detail={
+          widget.widgetType === "spatial_alert"
+            ? "Chưa có dữ liệu không gian phù hợp."
+            : "Chưa có cảnh báo"
+        }
+      />
+    );
+  }
+
+  return (
+    <ol className="ioc-alert-center-list">
+      {rows.map((row, index) => {
+        const rawSeverity = alertSeverityText(row[severityField]);
+        const severityKey = resolveAlertSeverityKey(rawSeverity);
+        const severityStyle = ALERT_SEVERITY_STYLES[severityKey];
+        const severityLabel = formatAlertSeverityLabel(
+          rawSeverity,
+          severityKey,
+        );
+        const title = titleField
+          ? formatDisplayValue(row[titleField], titleField)
+          : "";
+        const area = areaField
+          ? formatDisplayValue(row[areaField], areaField)
+          : "";
+        const status = statusField
+          ? formatDisplayValue(row[statusField], statusField)
+          : "";
+
+        return (
+          <li key={index}>
+            <article
+              className="ioc-alert-center-item"
+              style={{ backgroundColor: severityStyle.background }}
+            >
+              <span
+                aria-hidden="true"
+                className="ioc-alert-center-bar"
+                style={{ backgroundColor: severityStyle.bar }}
+              />
+              <div className="ioc-alert-center-body">
+                <div className="ioc-alert-center-head">
+                  <h4 title={text(row[titleField])}>
+                    {title || `Cảnh báo ${index + 1}`}
+                  </h4>
+                  <span
+                    className="ioc-alert-center-severity"
+                    style={{ color: severityStyle.text }}
+                  >
+                    {severityLabel}
+                  </span>
+                </div>
+                <div className="ioc-alert-center-meta">
+                  {area && <span>{area}</span>}
+                  {dateField && (
+                    <time dateTime={text(row[dateField])}>
+                      {formatRelativeAlertTime(row[dateField])}
+                    </time>
+                  )}
+                  {status && (
+                    <span
+                      className={`ioc-feed-badge ${getStatusBadgeStyle(
+                        text(row[statusField]),
+                      )}`}
+                    >
+                      {status}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </article>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+const THEMATIC_COLORS: Record<string, string> = {
+  very_low: "#dcfce7",
+  low: "#bbf7d0",
+  medium: "#fde68a",
+  high: "#fdba74",
+  very_high: "#ef4444",
+};
+
+export function SpatialSummaryWidgetRenderer({
+  widget,
+  data,
+}: {
+  widget: DashboardWidget;
+  data: AnalyticsResult;
+}) {
+  const rows = isGroupedAnalyticsResult(data) ? data.rows : [];
+  if (!rows.length || rows.every((row) => safeNumber(row.value) <= 0)) {
+    return <WidgetEmptyState detail="Chưa có dữ liệu không gian phù hợp." />;
+  }
+  const max = Math.max(...rows.map((row) => safeNumber(row.value)), 1);
+  const unit = getWidgetValueUnit(widget, widget.dataSourceConfig?.metricField);
+  return (
+    <ol className="ioc-spatial-summary-list">
+      {rows.slice(0, Number(widget.dataSourceConfig?.limit ?? 12)).map((row) => {
+        const value = safeNumber(row.value);
+        return (
+          <li key={row.rawLabel || row.label}>
+            <span>{row.label}</span>
+            <div>
+              <i style={{ width: `${Math.max(4, (value / max) * 100)}%` }} />
+            </div>
+            <strong>{formatWidgetValue(value, { unit })}</strong>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+export function ThematicMapWidgetRenderer({
+  widget,
+  data,
+}: {
+  widget: DashboardWidget;
+  data: AnalyticsResult;
+}) {
+  const rows = recordRows(data);
+  if (!rows.length || rows.every((row) => safeNumber(row.value) <= 0)) {
+    return <WidgetEmptyState detail="Chưa có dữ liệu không gian phù hợp." />;
+  }
+  const paths = buildThematicPaths(rows);
+  if (!paths.length) return <WidgetEmptyState detail="Chưa có geometry để hiển thị" />;
+  const unit = getWidgetValueUnit(widget, widget.dataSourceConfig?.metricField);
+  const metricLabel = getWidgetFieldLabel(widget, "value");
+  return (
+    <div className="ioc-thematic-map">
+      <svg viewBox="0 0 320 190" role="img" aria-label="Bản đồ tô màu theo quantile">
+        {paths.map((path, index) => (
+          <path
+            key={`${path.label}-${index}`}
+            d={path.d}
+            fill={THEMATIC_COLORS[path.classKey] ?? "#e2e8f0"}
+            stroke="#ffffff"
+            strokeWidth="1.4"
+          >
+            <title>
+              {path.label}: {metricLabel} {formatWidgetValue(path.value, { unit })}
+            </title>
+          </path>
+        ))}
+      </svg>
+      <div className="ioc-thematic-legend">
+        {[
+          ["very_low", "Rất thấp"],
+          ["low", "Thấp"],
+          ["medium", "Trung bình"],
+          ["high", "Cao"],
+          ["very_high", "Rất cao"],
+        ].map(([key, label]) => (
+          <span key={key}>
+            <i style={{ background: THEMATIC_COLORS[key] }} />
+            {label}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function TreemapWidgetRenderer({
   widget,
   data,
@@ -246,9 +520,9 @@ export function TreemapWidgetRenderer({
   }
   const total = visible.reduce((sum, row) => sum + row.value, 0);
   if (total <= 0) return <WidgetEmptyState />;
-  const unit = String(widget.displayConfig?.unit ?? "").trim();
   const metricField =
     widget.dataSourceConfig?.metricField ?? widget.dataSourceConfig?.fieldCode;
+  const unit = getWidgetValueUnit(widget, metricField);
   const dimensionField =
     widget.dataSourceConfig?.dimensionField ?? data.groupByFieldCode ?? "";
   const metricLabel = metricField
@@ -270,12 +544,11 @@ export function TreemapWidgetRenderer({
                 flexBasis: `${Math.max(18, percent)}%`,
                 background: PALETTE[index % PALETTE.length],
               }}
-              title={`${dimensionLabel}: ${row.label}\n${metricLabel}: ${formatAnalyticsNumber(row.value)}${unit ? ` ${unit}` : ""} (${formatPercent(percent)})`}
+              title={`${dimensionLabel}: ${row.label}\n${metricLabel}: ${formatWidgetValue(row.value, { unit })} (${formatPercent(percent)})`}
             >
               <strong>{row.label}</strong>
               <span>
-                {formatAnalyticsNumber(row.value)}
-                {unit ? ` ${unit}` : ""}
+                <WidgetValue value={row.value} unit={unit} />
               </span>
               <small>{formatPercent(percent)}</small>
             </article>
@@ -485,6 +758,205 @@ function severityClass(value: string) {
   if (/cao|high/.test(normalized)) return "ioc-severity--high";
   if (/trung|medium/.test(normalized)) return "ioc-severity--medium";
   return "ioc-severity--low";
+}
+function normalizeAlertValue(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[đĐ]/g, "d")
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+}
+function resolveAlertSeverityKey(value: string): AlertSeverityKey {
+  const normalized = normalizeAlertValue(value);
+  const compact = normalized.replace(/_/g, "");
+
+  if (
+    normalized === "khan_cap" ||
+    normalized === "khan" ||
+    compact === "khancap" ||
+    (normalized.includes("khan") && normalized.includes("cap")) ||
+    normalized.includes("khan_cap") ||
+    /critical|emergency|urgent/.test(normalized)
+  ) {
+    return "khan_cap";
+  }
+
+  if (normalized === "cao" || normalized === "high") return "cao";
+
+  if (
+    normalized === "trung_binh" ||
+    compact === "trungbinh" ||
+    normalized === "medium"
+  ) {
+    return "trung_binh";
+  }
+
+  if (normalized === "thap" || normalized === "low") return "thap";
+
+  return "thap";
+}
+
+function alertSeverityText(value: unknown) {
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    const record = value as Record<string, unknown>;
+    for (const key of ["label", "name", "displayName", "value", "code"]) {
+      const candidate = record[key];
+      if (typeof candidate === "string" && candidate.trim()) {
+        return candidate.trim();
+      }
+    }
+  }
+  return text(value).trim();
+}
+
+type ThematicPath = {
+  d: string;
+  label: string;
+  classKey: string;
+  classLabel: string;
+  value: number;
+};
+
+function buildThematicPaths(rows: RecordRow[]): ThematicPath[] {
+  const polygons = rows
+    .map((row) => ({
+      row,
+      rings: extractPolygonRings(row.geometry),
+    }))
+    .filter((item) => item.rings.length > 0);
+  const points = polygons.flatMap((item) => item.rings.flat());
+  if (!points.length) return [];
+  const xs = points.map(([x]) => x);
+  const ys = points.map(([, y]) => y);
+  const minX = Math.min(...xs);
+  const maxX = Math.max(...xs);
+  const minY = Math.min(...ys);
+  const maxY = Math.max(...ys);
+  const width = Math.max(0.000001, maxX - minX);
+  const height = Math.max(0.000001, maxY - minY);
+  const scale = Math.min(300 / width, 170 / height);
+  const offsetX = (320 - width * scale) / 2;
+  const offsetY = (190 - height * scale) / 2;
+  const project = ([x, y]: [number, number]) =>
+    [
+      offsetX + (x - minX) * scale,
+      190 - (offsetY + (y - minY) * scale),
+    ] as const;
+  return polygons.map(({ row, rings }) => ({
+    d: rings
+      .map((ring) =>
+        ring
+          .map((point, index) => {
+            const [x, y] = project(point);
+            return `${index === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`;
+          })
+          .join(" ")
+          .concat(" Z"),
+      )
+      .join(" "),
+    label: text(row.area) || "Khu vực",
+    classKey: text(row.classKey),
+    classLabel: text(row.classLabel),
+    value: safeNumber(row.value),
+  }));
+}
+
+function extractPolygonRings(geometry: unknown): Array<Array<[number, number]>> {
+  if (!geometry || typeof geometry !== "object") return [];
+  const geo = geometry as { type?: string; coordinates?: unknown };
+  if (geo.type === "Polygon" && Array.isArray(geo.coordinates)) {
+    return (geo.coordinates as unknown[])
+      .map((ring) => normalizeRing(ring))
+      .filter((ring) => ring.length > 2);
+  }
+  if (geo.type === "MultiPolygon" && Array.isArray(geo.coordinates)) {
+    return (geo.coordinates as unknown[])
+      .flatMap((polygon) => (Array.isArray(polygon) ? polygon : []))
+      .map((ring) => normalizeRing(ring))
+      .filter((ring) => ring.length > 2);
+  }
+  return [];
+}
+
+function normalizeRing(ring: unknown): Array<[number, number]> {
+  if (!Array.isArray(ring)) return [];
+  return ring
+    .map((point) => {
+      if (!Array.isArray(point) || point.length < 2) return null;
+      const x = Number(point[0]);
+      const y = Number(point[1]);
+      return Number.isFinite(x) && Number.isFinite(y)
+        ? ([x, y] as [number, number])
+        : null;
+    })
+    .filter((point): point is [number, number] => Boolean(point));
+}
+
+function formatAlertSeverityLabel(
+  rawSeverity: string,
+  severityKey: AlertSeverityKey,
+) {
+  const trimmed = rawSeverity.trim();
+
+  if (trimmed) {
+    const normalized = normalizeAlertValue(trimmed);
+
+    if (
+      normalized === "khan_cap" ||
+      normalized === "khan" ||
+      normalized.replace(/_/g, "") === "khancap" ||
+      (normalized.includes("khan") && normalized.includes("cap"))
+    ) {
+      return "Khẩn cấp";
+    }
+
+    if (normalized === "cao") return "Cao";
+    if (normalized === "trung_binh" || normalized === "trungbinh") {
+      return "Trung bình";
+    }
+    if (normalized === "thap") return "Thấp";
+
+    // Nếu raw là label tiếng Việt thật, giữ nguyên raw.
+    if (!/[_-]/.test(trimmed)) return trimmed;
+  }
+
+  return ALERT_SEVERITY_STYLES[severityKey].label;
+}
+
+function sortAlertRows(rows: RecordRow[], dateField: string) {
+  if (!dateField) return rows;
+  return [...rows].sort((left, right) => {
+    const leftTime = dateValue(left[dateField])?.getTime() ?? 0;
+    const rightTime = dateValue(right[dateField])?.getTime() ?? 0;
+    return rightTime - leftTime;
+  });
+}
+function formatRelativeAlertTime(value: unknown) {
+  const date = dateValue(value);
+  if (!date) return "Chưa có ngày";
+  const now = new Date();
+  const current = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const target = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const days = Math.floor(
+    (current.getTime() - target.getTime()) / (24 * 60 * 60 * 1000),
+  );
+  if (days === 0) return "Hôm nay";
+  if (days === 1) return "Hôm qua";
+  if (days >= 0 && isSameWeek(target, current)) return "Tuần này";
+  if (days > 1) return `${days} ngày trước`;
+  return formatDate(value);
+}
+function isSameWeek(left: Date, right: Date) {
+  const weekStart = (date: Date) => {
+    const day = date.getDay() || 7;
+    const start = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    start.setDate(start.getDate() - day + 1);
+    return start;
+  };
+  return weekStart(left).getTime() === weekStart(right).getTime();
 }
 function formatPercent(value: number) {
   return `${value.toLocaleString("vi-VN", { maximumFractionDigits: 1 })}%`;

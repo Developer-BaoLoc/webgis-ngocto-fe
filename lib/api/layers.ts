@@ -10,14 +10,7 @@ export async function getLayerCatalog(): Promise<LayerCatalogResponse> {
   const res = await apiFetch<ApiResponse<LayerCatalogResponse>>("/layers", {
     token: null,
   });
-  const catalog = unwrapData(res);
-  const duongLayer = catalog.layers.find((layer) => layer.code === "duong");
-  console.log("[duong-render-trace][frontend:getLayerCatalog]", {
-    found: Boolean(duongLayer),
-    layer: duongLayer,
-    layerCount: catalog.layers.length,
-  });
-  return catalog;
+  return unwrapData(res);
 }
 
 export async function getLayers(): Promise<Layer[]> {
@@ -74,11 +67,5 @@ export async function getLayerGeoJson(
   >(path, { token: options?.token });
 
   const geojson = unwrapData(res);
-  console.log("[duong-render-trace][frontend:getLayerGeoJson]", {
-    layerId,
-    path,
-    featureCount: geojson.features.length,
-    firstGeometryType: geojson.features[0]?.geometry?.type ?? null,
-  });
   return geojson;
 }

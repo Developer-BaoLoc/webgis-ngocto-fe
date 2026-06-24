@@ -1,4 +1,5 @@
 import { apiFetch } from "./client";
+import { advancedQueryToDataSourceConfig } from "@/lib/dashboard/advanced-query";
 import { unwrapData, type ApiResponse } from "@/types/api/common";
 import type {
   AnalyticsPreviewPayload,
@@ -12,7 +13,7 @@ export async function queryAnalytics(
   const res = await apiFetch<ApiResponse<AnalyticsResult>>("/analytics/query", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(config),
+    body: JSON.stringify(advancedQueryToDataSourceConfig(config)),
   });
   return unwrapData(res);
 }
@@ -20,12 +21,15 @@ export async function queryAnalytics(
 export async function previewAnalytics(
   payload: AnalyticsPreviewPayload,
 ): Promise<AnalyticsResult> {
+  const dataSourceConfig = advancedQueryToDataSourceConfig(
+    payload.dataSourceConfig,
+  );
   const res = await apiFetch<ApiResponse<AnalyticsResult>>(
     "/analytics/preview",
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ ...payload, dataSourceConfig }),
     },
   );
   return unwrapData(res);

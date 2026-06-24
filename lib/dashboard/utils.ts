@@ -22,6 +22,65 @@ export function formatAnalyticsNumber(value: number): string {
   return value.toLocaleString("vi-VN", { maximumFractionDigits: 2 });
 }
 
+export function formatWidgetValue(
+  value: unknown,
+  options?: {
+    unit?: string;
+    metricLabel?: string;
+    valueFormat?: "number" | "currency" | "percent" | "integer";
+    compact?: boolean;
+  },
+): string {
+  const parts = formatWidgetValueParts(value, options);
+  if (parts.value === "—") return parts.value;
+  if (parts.unit === "%") return `${parts.value}%`;
+  return parts.unit ? `${parts.value} ${parts.unit}` : parts.value;
+}
+
+export function formatWidgetValueParts(
+  value: unknown,
+  options?: {
+    unit?: string;
+    metricLabel?: string;
+    valueFormat?: "number" | "currency" | "percent" | "integer";
+    compact?: boolean;
+  },
+): { value: string; unit: string } {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return { value: "—", unit: "" };
+  const valueFormat = options?.valueFormat ?? "number";
+  const formatted =
+    valueFormat === "integer"
+      ? Math.round(parsed).toLocaleString("vi-VN")
+      : parsed.toLocaleString("vi-VN", {
+          maximumFractionDigits: valueFormat === "percent" ? 1 : 2,
+          notation: options?.compact ? "compact" : "standard",
+        });
+  if (valueFormat === "percent") return { value: formatted, unit: "%" };
+  const unit = options?.unit?.trim();
+  return { value: formatted, unit: unit ?? "" };
+}
+
+export function getWidgetValueUnit(
+  widget: Pick<DashboardWidget, "displayConfig" | "dataSourceConfig">,
+  metricField?: string,
+): string {
+  const displayUnit = stringValue(widget.displayConfig?.unit);
+  if (displayUnit) return displayUnit;
+  const formulaUnit =
+    metricField === "__formula" ||
+    widget.dataSourceConfig?.metricField === "__formula" ||
+    widget.dataSourceConfig?.fieldCode === "__formula"
+      ? stringValue(widget.dataSourceConfig?.advancedQuery?.formula?.unit)
+      : "";
+  if (formulaUnit) return formulaUnit;
+  return stringValue(widget.displayConfig?.suffix);
+}
+
+function stringValue(value: unknown) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
 export const WIDGET_TYPE_LABELS: Record<string, string> = {
   stat: "Thống kê",
   bar: "Biểu đồ cột",
@@ -42,6 +101,11 @@ export const WIDGET_TYPE_LABELS: Record<string, string> = {
   progress_ring: "Vòng tiến độ",
   activity_feed: "Dòng hoạt động",
   treemap: "Treemap",
+  alert_center: "Trung tâm cảnh báo",
+  spatial_summary: "Thống kê theo khu vực",
+  spatial_ranking: "Top khu vực",
+  thematic_map: "Bản đồ tô màu",
+  spatial_alert: "Cảnh báo không gian",
   seasonal_calendar: "Lịch mùa vụ",
 };
 
