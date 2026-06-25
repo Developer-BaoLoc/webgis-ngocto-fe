@@ -8,6 +8,13 @@ export interface SchemaField {
   displaySchema: Record<string, unknown>;
   sortOrder: number;
   isActive?: boolean;
+  dictionaryItems?: Array<{
+    value?: string;
+    code?: string;
+    label?: string;
+    name?: string;
+    sortOrder?: number;
+  }>;
 }
 
 export interface LayerSchema {

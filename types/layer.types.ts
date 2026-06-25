@@ -1,5 +1,6 @@
 import type { GeometryKind } from "@/types/api/layer-catalog";
 import type { LayerStyle } from "@/types/api/admin";
+import type { SchemaField } from "@/types/api/schema";
 
 export interface Layer {
   id: string;
@@ -19,6 +20,7 @@ export interface Layer {
   color: string;
   sortOrder: number;
   style?: Record<string, unknown> | LayerStyle;
+  fields?: SchemaField[];
 }
 
 export const geometryKindLabels: Record<string, string> = {

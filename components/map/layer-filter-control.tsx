@@ -162,11 +162,12 @@ function CategoryFilterControl({
   const [optionSearch, setOptionSearch] = useState("");
   const selectedValues = value.values ?? [];
   const matchingOptions = useMemo(() => {
-    const query = optionSearch.trim().toLocaleLowerCase("vi-VN");
+    const query = normalizeFilterSearch(optionSearch);
     if (!query) return field.options;
-    return field.options.filter((option) =>
-      option.label.toLocaleLowerCase("vi-VN").includes(query),
-    );
+    return field.options.filter((option) => {
+      const searchable = option.searchText || `${option.label} ${option.value}`;
+      return normalizeFilterSearch(searchable).includes(query);
+    });
   }, [field.options, optionSearch]);
   const visibleOptions = matchingOptions.slice(0, OPTION_RENDER_LIMIT);
 
@@ -238,6 +239,15 @@ function CategoryFilterControl({
       )}
     </div>
   );
+}
+
+function normalizeFilterSearch(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[Đđ]/g, "d")
+    .toLocaleLowerCase("vi-VN")
+    .trim();
 }
 
 function SearchIcon() {

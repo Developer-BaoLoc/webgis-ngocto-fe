@@ -1,4 +1,5 @@
 import type { MapViewConfig, MapViewConfigInput } from "@/types/api/map-view";
+import type { SchemaField } from "@/types/api/schema";
 
 export type GeometryKind = "point" | "polygon" | "line" | "linestring" | "none" | string;
 
@@ -24,6 +25,7 @@ export interface LayerCatalogItem {
   sortOrder: number;
   endpoint: string;
   style?: Record<string, unknown>;
+  fields?: SchemaField[];
   layerRole?: string;
   isSpatial?: boolean;
   showOnMap?: boolean;

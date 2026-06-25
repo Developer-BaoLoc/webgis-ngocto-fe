@@ -4,7 +4,12 @@ import type {
   GeoJsonFeatureCollection,
 } from "@/types/gis.types";
 import type { Layer } from "@/types/layer.types";
-import { getFieldLabel, getOptionLabel } from "@/lib/fields/field-label";
+import {
+  getFieldLabel,
+  getKnownOptionLabel,
+  humanizeOptionValue,
+  type FieldLabelMetadata,
+} from "@/lib/fields/field-label";
 
 export type LayerFilterFieldType =
   | "text"
@@ -34,6 +39,7 @@ export type LayerFilters = Record<string, LayerFilterState>;
 export interface LayerFilterOption {
   value: string;
   label: string;
+  searchText: string;
   count: number;
 }
 
@@ -389,6 +395,85 @@ function optionLabel(value: string, type: LayerFilterFieldType) {
   return value;
 }
 
+export function resolveLayerFieldLabel(layer: Layer, fieldKey: string) {
+  const metadata = getLayerFieldMetadata(layer, fieldKey);
+  const metadataLabel = readFieldMetadataLabel(metadata);
+  const label = metadataLabel ?? getFieldLabel(fieldKey, metadata);
+
+  if (
+    process.env.NODE_ENV === "development" &&
+    !metadataLabel &&
+    label === getFieldLabel(fieldKey)
+  ) {
+    console.warn("[MapFilter] missing metadata label", {
+      layer: layer.code ?? layer.id,
+      fieldKey,
+    });
+  }
+
+  return label;
+}
+
+export function resolveLayerOptionLabel(
+  layer: Layer,
+  fieldKey: string,
+  rawValue: unknown,
+) {
+  const metadata = getLayerFieldMetadata(layer, fieldKey);
+  const known = getKnownOptionLabel(fieldKey, rawValue, metadata);
+  if (known) return known;
+
+  const rawText = String(rawValue ?? "").trim();
+  if (!rawText) return "(Trống)";
+
+  // Keep already-readable DB values intact; only humanize enum-like codes as a last resort.
+  if (/[À-ỹĐđ]/.test(rawText) || /\s/.test(rawText)) return rawText;
+  if (/^[a-z0-9]+(?:[_-][a-z0-9]+)+$/i.test(rawText)) {
+    return humanizeOptionValue(rawText);
+  }
+  return rawText;
+}
+
+function getLayerFieldMetadata(
+  layer: Layer,
+  fieldKey: string,
+): FieldLabelMetadata | null {
+  const metadata = readMetadataFields(layer);
+  const normalized = normalizeFieldKey(fieldKey);
+  return (
+    metadata.find(
+      (field) =>
+        field.key === fieldKey || normalizeFieldKey(field.key) === normalized,
+    ) ?? null
+  );
+}
+
+function readFieldMetadataLabel(metadata: FieldLabelMetadata | null) {
+  if (!metadata) return null;
+  const dataSchema = asRecord(metadata.dataSchema);
+  const uiSchema = asRecord(metadata.uiSchema);
+  for (const candidate of [
+    metadata.label,
+    metadata.name,
+    dataSchema?.label,
+    dataSchema?.title,
+    uiSchema?.label,
+    uiSchema?.title,
+    metadata.displayName,
+  ]) {
+    if (typeof candidate === "string" && candidate.trim()) {
+      return candidate.trim();
+    }
+  }
+  return null;
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
 export function getLayerFilterFields(
   entry: LayerGeoJsonEntry | undefined,
 ): LayerFilterField[] {
@@ -447,18 +532,22 @@ export function getLayerFilterFields(
         : [];
     fields.push({
       key,
-      label: getFieldLabel(key, meta),
+      label: resolveLayerFieldLabel(entry.layer, key),
       type,
       uniqueCount: counts.size,
       options: [...counts.entries()]
-        .map(([value, count]) => ({
-          value,
-          label:
+        .map(([value, count]) => {
+          const label =
             type === "boolean"
               ? optionLabel(value, type)
-              : getOptionLabel(key, value, meta),
-          count,
-        }))
+              : resolveLayerOptionLabel(entry.layer, key, value);
+          return {
+            value,
+            label,
+            searchText: `${label} ${value}`,
+            count,
+          };
+        })
         .sort((a, b) =>
           a.label.localeCompare(b.label, "vi", { numeric: true }),
         ),

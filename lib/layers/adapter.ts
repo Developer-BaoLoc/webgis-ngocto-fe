@@ -88,6 +88,7 @@ export function toLayer(item: LayerCatalogItem | LayerDetail): Layer {
     color: getLayerColor(item.code),
     sortOrder: item.sortOrder,
     style: item.style,
+    fields: item.fields ?? [],
   };
 
   return layer;

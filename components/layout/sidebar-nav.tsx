@@ -226,7 +226,7 @@ export function SidebarNav() {
           onClick={toggle}
           title={collapsed ? "Mở rộng menu" : "Thu gọn menu"}
           aria-label={collapsed ? "Mở rộng menu" : "Thu gọn menu"}
-          className="absolute top-1/2 -right-3 z-[70] flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-surface text-muted shadow-sm transition-colors hover:bg-slate-50 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          className="absolute top-[50vh] -right-3 z-[70] flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-surface text-muted shadow-sm transition-colors hover:bg-slate-50 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         >
           <CollapseIcon collapsed={collapsed} />
         </button>
