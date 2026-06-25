@@ -140,7 +140,7 @@ body {
 .dashboard-view-grid-item {
   min-width: 0;
   overflow: hidden;
-  border-radius: 1rem;
+  /* border-radius: 1rem; */
 }
 
 .dashboard-grid-editor-container .react-grid-item > .react-resizable-handle {
@@ -3535,7 +3535,7 @@ body {
 }
 
 .ioc-kpi--dashboard {
-  min-height: 9.5rem;
+  /* min-height: 9.5rem; */
   padding: 1rem 1.125rem 1rem 1.25rem;
 }
 
