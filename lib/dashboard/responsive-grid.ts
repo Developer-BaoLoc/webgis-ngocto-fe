@@ -2,18 +2,22 @@ import type { LayoutItem, ResponsiveLayouts } from "react-grid-layout";
 import type { DashboardWidget } from "@/types/api/dashboard";
 import { getDefaultWidgetLayout } from "@/lib/dashboard/grid-layout";
 
-export type DashboardBreakpoint = "lg" | "md" | "sm";
+export type DashboardBreakpoint = "lg" | "md" | "sm" | "xs" | "xxs";
 
 export const DASHBOARD_BREAKPOINTS: Record<DashboardBreakpoint, number> = {
-  lg: 1200,
+  lg: 1024,
   md: 768,
-  sm: 0,
+  sm: 560,
+  xs: 420,
+  xxs: 0,
 };
 
 export const DASHBOARD_COLUMNS: Record<DashboardBreakpoint, number> = {
   lg: 12,
   md: 8,
-  sm: 4,
+  sm: 6,
+  xs: 4,
+  xxs: 2,
 };
 
 export function dashboardWidgetGridId(widget: DashboardWidget, index: number) {
@@ -33,7 +37,21 @@ export function buildDashboardResponsiveLayouts(
     sm: widgets.map((widget, index) =>
       toGridItem(widget, index, DASHBOARD_COLUMNS.sm),
     ),
+    xs: widgets.map((widget, index) =>
+      toGridItem(widget, index, DASHBOARD_COLUMNS.xs),
+    ),
+    xxs: widgets.map((widget, index) =>
+      toGridItem(widget, index, DASHBOARD_COLUMNS.xxs),
+    ),
   };
+}
+
+export function getDashboardBreakpointForWidth(width: number) {
+  if (width >= DASHBOARD_BREAKPOINTS.lg) return "lg";
+  if (width >= DASHBOARD_BREAKPOINTS.md) return "md";
+  if (width >= DASHBOARD_BREAKPOINTS.sm) return "sm";
+  if (width >= DASHBOARD_BREAKPOINTS.xs) return "xs";
+  return "xxs";
 }
 
 export function scaleGridValue(

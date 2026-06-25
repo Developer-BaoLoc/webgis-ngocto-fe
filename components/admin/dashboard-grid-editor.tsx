@@ -1,11 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ResponsiveGridLayout,
   useContainerWidth,
   type Layout,
 } from "react-grid-layout";
+import { useSidebar } from "@/components/layout/sidebar-provider";
 import { DashboardWidgetCard } from "@/components/dashboard/dashboard-widget-card";
 import { getWidgetDisplayTitle } from "@/lib/dashboard/widget-labels";
 import type { DashboardWidget } from "@/types/api/dashboard";
@@ -14,6 +15,7 @@ import {
   DASHBOARD_BREAKPOINTS,
   DASHBOARD_COLUMNS,
   dashboardWidgetGridId,
+  getDashboardBreakpointForWidth,
   scaleGridValue,
   type DashboardBreakpoint,
 } from "@/lib/dashboard/responsive-grid";
@@ -41,11 +43,49 @@ export function DashboardGridEditor({
   onEdit,
   onDelete,
 }: DashboardGridEditorProps) {
-  const { width, containerRef, mounted } = useContainerWidth({
+  const { width, containerRef, mounted, measureWidth } = useContainerWidth({
     measureBeforeMount: true,
     initialWidth: 1200,
   });
   const [breakpoint, setBreakpoint] = useState<DashboardBreakpoint>("lg");
+  const { collapsed, mobileOpen, isMobile } = useSidebar();
+  const currentBreakpoint = getDashboardBreakpointForWidth(width);
+  const currentColumns = DASHBOARD_COLUMNS[currentBreakpoint];
+
+  useEffect(() => {
+    const frames = [0, 80, 180, 260];
+    const timers = frames.map((delay) =>
+      window.setTimeout(() => {
+        window.requestAnimationFrame(measureWidth);
+      }, delay),
+    );
+    return () => timers.forEach((timer) => window.clearTimeout(timer));
+  }, [collapsed, mobileOpen, isMobile, measureWidth]);
+
+  useEffect(() => {
+    if (
+      process.env.NODE_ENV !== "development" ||
+      window.localStorage.getItem("debug-dashboard-grid") !== "1"
+    ) {
+      return;
+    }
+
+    console.debug("[dashboard-grid:builder]", {
+      containerWidth: containerRef.current?.clientWidth ?? null,
+      gridWidth: width,
+      breakpoint: currentBreakpoint,
+      columns: currentColumns,
+      sidebar: { collapsed, mobileOpen, isMobile },
+    });
+  }, [
+    collapsed,
+    containerRef,
+    currentBreakpoint,
+    currentColumns,
+    isMobile,
+    mobileOpen,
+    width,
+  ]);
 
   const layouts = useMemo(() => {
     return buildDashboardResponsiveLayouts(widgets);
@@ -82,8 +122,20 @@ export function DashboardGridEditor({
           cols={DASHBOARD_COLUMNS}
           layouts={layouts}
           rowHeight={58}
-          margin={{ lg: [16, 16], md: [14, 14], sm: [10, 10] }}
-          containerPadding={{ lg: [0, 0], md: [0, 0], sm: [0, 0] }}
+          margin={{
+            lg: [16, 16],
+            md: [14, 14],
+            sm: [12, 12],
+            xs: [10, 10],
+            xxs: [8, 8],
+          }}
+          containerPadding={{
+            lg: [0, 0],
+            md: [0, 0],
+            sm: [0, 0],
+            xs: [0, 0],
+            xxs: [0, 0],
+          }}
           dragConfig={{
             enabled: !disabled,
             bounded: false,

@@ -3786,7 +3786,7 @@ export function WidgetFormFields({
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium">Metric</label>
+                  <label className="block text-sm font-medium">Trường chỉ số</label>
                   <p className="mb-1 text-xs text-muted">
                     Số lượng, tổng, trung bình, nhỏ nhất hoặc lớn nhất.
                   </p>
@@ -3836,6 +3836,12 @@ export function WidgetFormFields({
                       ))}
                     </select>
                   </div>
+                  {form.spatialMetricAggregation !== "count" && (
+                    <MetricUnitInput
+                      value={form.unit}
+                      onChange={(unit) => onChange({ ...form, unit })}
+                    />
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium">
@@ -3945,12 +3951,10 @@ export function WidgetFormFields({
                   </option>
                 ))}
               </select>
-              {form.widgetType !== "ranking" && form.aggregation !== "top" && (
-                <MetricUnitInput
-                  value={form.unit}
-                  onChange={(unit) => onChange({ ...form, unit })}
-                />
-              )}
+              <MetricUnitInput
+                value={form.unit}
+                onChange={(unit) => onChange({ ...form, unit })}
+              />
               {selectedDataset && numericFields.length === 0 && (
                 <p className="mt-1 text-xs text-amber-700">
                   Bộ dữ liệu chưa có trường số phù hợp để làm chỉ số.
@@ -4121,10 +4125,6 @@ export function WidgetFormFields({
                       </option>
                     ))}
                   </select>
-                  <MetricUnitInput
-                    value={form.unit}
-                    onChange={(unit) => onChange({ ...form, unit })}
-                  />
                 </div>
               </div>
               <div className="flex flex-col gap-2 pb-1 sm:flex-row sm:items-center sm:gap-6">

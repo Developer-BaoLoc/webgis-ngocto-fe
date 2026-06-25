@@ -95,7 +95,7 @@ function AppShellLayout({ children }: AppShellProps) {
       <SidebarNav />
       <MobileSidebarBackdrop />
 
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+      <div className="flex min-h-0 min-w-0 max-w-full flex-1 flex-col">
         {isFullscreen ? (
           <MobileMenuButton floating />
         ) : (
@@ -110,7 +110,7 @@ function AppShellLayout({ children }: AppShellProps) {
 
         <main
           className={cn(
-            "flex min-h-0 flex-1 flex-col",
+            "flex min-h-0 min-w-0 max-w-full flex-1 flex-col",
             isFullscreen
               ? cn(
                   "overflow-hidden p-0",

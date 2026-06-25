@@ -47,6 +47,8 @@ const FIELD_LABELS: Record<string, string> = {
   area: "Khu vực",
   region: "Khu vực",
   loai: "Loại",
+  doi_tuong_nuoi: "Đối tượng nuôi",
+  loai_dia_diem: "Loại địa điểm",
   loai_tom: "Loại tôm",
   loai_hinh_nuoi: "Loại hình nuôi",
   hinh_thuc_nuoi: "Hình thức nuôi",

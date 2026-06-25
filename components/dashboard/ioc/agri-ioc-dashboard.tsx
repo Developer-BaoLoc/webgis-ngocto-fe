@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { agriDashboardData } from "@/lib/dashboard/agri-data";
 import { getCurrentPublishedDashboard } from "@/lib/api/dashboards";
 import { DynamicDashboardView } from "@/components/dashboard/dynamic-dashboard-view";
 import { IocWeatherStrip } from "@/components/dashboard/ioc/ioc-weather-strip";
+import { useStickyAutoHide } from "@/hooks/use-sticky-auto-hide";
 import type { DashboardDetail } from "@/types/api/dashboard";
 import type { MapViewConfig } from "@/types/api/map-view";
 import type { GeoJsonFeatureCollection } from "@/types/gis.types";
@@ -56,6 +57,8 @@ export function AgriIocDashboard(_props: AgriIocDashboardProps) {
   const [dashboard, setDashboard] = useState<DashboardDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const dashboardRef = useRef<HTMLDivElement | null>(null);
+  const headerVisible = useStickyAutoHide(dashboardRef, { threshold: 50 });
 
   useEffect(() => {
     let cancelled = false;
@@ -81,10 +84,17 @@ export function AgriIocDashboard(_props: AgriIocDashboardProps) {
   }, []);
 
   return (
-    <div className="ioc-dashboard ioc-dashboard--command ioc-dashboard--light">
+    <div
+      ref={dashboardRef}
+      className="ioc-dashboard ioc-dashboard--command ioc-dashboard--light"
+    >
       <div className="ioc-grid-bg" aria-hidden />
 
-      <header className="ioc-header ioc-header--compact ioc-header--command ioc-header--hero ioc-header--with-weather">
+      <header
+        className={`ioc-header ioc-header--compact ioc-header--command ioc-header--hero ioc-header--with-weather ${
+          headerVisible ? "ioc-header--visible" : "ioc-header--hidden"
+        }`}
+      >
         <div className="ioc-header-brand">
           <div className="ioc-logo ioc-logo--sm ioc-logo--command">
             <span className="ioc-logo-icon" aria-hidden>

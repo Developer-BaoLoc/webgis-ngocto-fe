@@ -106,14 +106,13 @@ export function SidebarNav() {
   return (
     <aside
       className={cn(
-        "flex shrink-0 flex-col border-r border-border bg-surface transition-[transform,width] duration-200 ease-in-out",
+        "relative z-40 flex shrink-0 flex-col overflow-visible border-r border-border bg-surface transition-[transform,width] duration-200 ease-in-out",
         isMobile
           ? cn(
               "fixed inset-y-0 left-0 z-50 w-[min(18rem,85vw)] shadow-xl",
               mobileOpen ? "translate-x-0" : "-translate-x-full",
             )
           : cn(
-              "relative",
               collapsed ? "w-[4.25rem]" : "w-64",
             ),
       )}
@@ -227,7 +226,7 @@ export function SidebarNav() {
           onClick={toggle}
           title={collapsed ? "Mở rộng menu" : "Thu gọn menu"}
           aria-label={collapsed ? "Mở rộng menu" : "Thu gọn menu"}
-          className="absolute top-1/2 -right-3 z-10 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-surface text-muted shadow-sm transition-colors hover:bg-slate-50 hover:text-foreground"
+          className="absolute top-1/2 -right-3 z-[70] flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-surface text-muted shadow-sm transition-colors hover:bg-slate-50 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         >
           <CollapseIcon collapsed={collapsed} />
         </button>
