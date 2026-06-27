@@ -1,0 +1,138 @@
+import type { DashboardTemplate } from "./types";
+import { fieldPlaceholder as field, layerPlaceholder as layer } from "./placeholders";
+
+const ocopPlaceholders = [
+  {
+    key: "facility_layer",
+    label: "Layer cơ sở OCOP",
+    kind: "layer" as const,
+    required: true,
+    geometryType: "any" as const,
+    scope: "template" as const,
+  },
+  {
+    key: "product_layer",
+    label: "Layer sản phẩm OCOP",
+    kind: "layer" as const,
+    required: true,
+    geometryType: "any" as const,
+    scope: "template" as const,
+  },
+  {
+    key: "facility_name_field",
+    label: "Field tên cơ sở",
+    kind: "field" as const,
+    required: true,
+    fieldTypes: ["text", "string", "select", "category"],
+    sourceKey: "facility_layer",
+  },
+  {
+    key: "product_name_field",
+    label: "Field tên sản phẩm",
+    kind: "field" as const,
+    required: true,
+    fieldTypes: ["text", "string", "select", "category"],
+    sourceKey: "product_layer",
+  },
+  {
+    key: "rating_field",
+    label: "Field xếp hạng OCOP",
+    kind: "dimension_field" as const,
+    required: true,
+    fieldTypes: ["text", "string", "select", "enum", "category", "number", "integer"],
+    sourceKey: "product_layer",
+  },
+  {
+    key: "product_type_field",
+    label: "Field nhóm sản phẩm",
+    kind: "dimension_field" as const,
+    required: false,
+    fieldTypes: ["text", "string", "select", "enum", "category"],
+    sourceKey: "product_layer",
+  },
+];
+
+export const ocopTemplate: DashboardTemplate = {
+  id: "template-ocop",
+  code: "ocop",
+  name: "OCOP",
+  description: "Dashboard nhanh cho cơ sở, sản phẩm và xếp hạng OCOP.",
+  category: "ocop",
+  icon: "badge",
+  tags: ["OCOP", "sản phẩm", "cơ sở"],
+  widgets: [
+    {
+      templateWidgetId: "ocop-facility-count",
+      title: "Số cơ sở OCOP",
+      widgetType: "stat",
+      layoutConfig: { x: 0, y: 0, w: 3, h: 2 },
+      dataSourceConfig: {
+        layerId: layer("facility_layer"),
+        aggregation: "count",
+      },
+      displayConfig: { unit: "cơ sở", theme: "violet" },
+      placeholders: ocopPlaceholders,
+    },
+    {
+      templateWidgetId: "ocop-product-count",
+      title: "Số sản phẩm OCOP",
+      widgetType: "stat",
+      layoutConfig: { x: 3, y: 0, w: 3, h: 2 },
+      dataSourceConfig: {
+        layerId: layer("product_layer"),
+        aggregation: "count",
+      },
+      displayConfig: { unit: "sản phẩm", theme: "amber" },
+      placeholders: ocopPlaceholders,
+    },
+    {
+      templateWidgetId: "ocop-ranking",
+      title: "Xếp hạng sản phẩm/cơ sở",
+      widgetType: "ranking",
+      layoutConfig: { x: 6, y: 0, w: 6, h: 4 },
+      dataSourceConfig: {
+        layerId: layer("product_layer"),
+        aggregation: "top",
+        metricField: field("rating_field"),
+        displayFields: [field("product_name_field"), field("product_type_field"), field("rating_field")],
+        sort: { field: field("rating_field"), direction: "desc" },
+        limit: 5,
+      },
+      displayConfig: {
+        rankingMode: "top",
+        nameField: field("product_name_field"),
+        typeField: field("product_type_field"),
+        unit: "sao",
+        showMedal: true,
+        showProgressBar: true,
+      },
+      placeholders: ocopPlaceholders,
+    },
+    {
+      templateWidgetId: "ocop-products-table",
+      title: "Danh sách sản phẩm",
+      widgetType: "table",
+      layoutConfig: { x: 0, y: 4, w: 6, h: 4 },
+      dataSourceConfig: {
+        layerId: layer("product_layer"),
+        aggregation: "records",
+        displayFields: [field("product_name_field"), field("product_type_field"), field("rating_field")],
+        limit: 10,
+      },
+      placeholders: ocopPlaceholders,
+    },
+    {
+      templateWidgetId: "ocop-rating-pie",
+      title: "Cơ cấu xếp hạng OCOP",
+      widgetType: "pie",
+      layoutConfig: { x: 6, y: 4, w: 6, h: 4 },
+      dataSourceConfig: {
+        layerId: layer("product_layer"),
+        aggregation: "count",
+        dimensionField: field("rating_field"),
+      },
+      displayConfig: { unit: "sản phẩm", showLegend: true },
+      placeholders: ocopPlaceholders,
+    },
+  ],
+};

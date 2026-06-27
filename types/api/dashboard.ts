@@ -153,6 +153,19 @@ export interface DataSourceConfig {
   datasetId?: string;
   viewId?: string;
   layerId?: string;
+  virtualDataset?: {
+    id: string;
+    name: string;
+    type: "virtualDataset";
+    fields: DataSourceField[];
+    records: Array<{
+      name: string;
+      category: string;
+      value: number;
+      sourceType: string;
+      sourceLabel: string;
+    }>;
+  };
   queryMode?: QueryMode;
   advancedQuery?: AdvancedQueryConfig;
   aggregation: AggregationType;

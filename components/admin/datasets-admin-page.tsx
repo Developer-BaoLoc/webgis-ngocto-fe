@@ -28,6 +28,7 @@ import {
   updateDataset,
 } from "@/lib/api/datasets";
 import type { DataSourceLayer } from "@/types/api/dashboard";
+import { useMessage } from "@/providers/message-provider";
 import type {
   Dataset,
   DatasetConfig,
@@ -97,6 +98,7 @@ function ConfigNotice({ children }: { children: React.ReactNode }) {
 }
 
 export function DatasetsAdminPage() {
+  const message = useMessage();
   const [datasets, setDatasets] = useState<Dataset[]>([]);
   const [views, setViews] = useState<SavedView[]>([]);
   const [layers, setLayers] = useState<DataSourceLayer[]>([]);
@@ -219,7 +221,7 @@ export function DatasetsAdminPage() {
         );
         return;
       }
-      if (!confirm(`Xóa bộ dữ liệu “${dataset.name}”?`)) return;
+      if (!(await message.confirm({ title: `Xóa bộ dữ liệu “${dataset.name}”?`, description: "Bộ dữ liệu sẽ bị xóa vĩnh viễn.", confirmLabel: "Xóa bộ dữ liệu", danger: true }))) return;
       await deleteDataset(dataset.id);
       await load();
     } catch (err) {
@@ -279,7 +281,7 @@ export function DatasetsAdminPage() {
     <div className="space-y-6">
       <PageHeader
         title="Bộ dữ liệu"
-        description="Gộp nhiều Saved View thành các trường chuẩn hóa dùng chung cho phân tích và widget."
+        description="Gộp nhiều chế độ xem đã lưu thành các trường chuẩn hóa dùng chung cho phân tích và tiện ích."
         backHref="/quan-tri"
         backLabel="Quản trị"
         action={
@@ -588,7 +590,7 @@ export function DatasetsAdminPage() {
                             })
                           }
                         >
-                          <option value="">Chọn Saved View</option>
+                          <option value="">Chọn chế độ xem đã lưu</option>
                           {views.map((item) => (
                             <option key={item.id} value={item.id}>
                               {item.layerName} / {item.name}
@@ -856,7 +858,7 @@ function DatasetPreview({ result }: { result: DatasetPreviewResult }) {
                   {isEmptyValue(row[field.key]) ? (
                     <span
                       className="rounded bg-slate-100 px-2 py-1 text-xs text-slate-500"
-                      title="Chưa có dữ liệu hoặc mapping trống"
+                      title="Chưa có dữ liệu hoặc liên kết trống"
                     >
                       Chưa có dữ liệu
                     </span>

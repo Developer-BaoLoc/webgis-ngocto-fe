@@ -6,6 +6,12 @@ import { Modal } from "@/components/ui/modal";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { previewAnalytics } from "@/lib/api/analytics";
 import { advancedQueryToDataSourceConfig } from "@/lib/dashboard/advanced-query";
+import {
+  isVirtualDatasetId,
+  previewVirtualDatasetAnalytics,
+  setVirtualDataset,
+  virtualDatasetSnapshotToDataset,
+} from "@/lib/dashboard/virtual-datasets";
 import { getSavedViews } from "@/lib/api/saved-views";
 import { getDatasets } from "@/lib/api/datasets";
 import {
@@ -35,6 +41,15 @@ import {
   widgetToForm,
   type WidgetFormState,
 } from "@/components/admin/dashboard-widget-form";
+import { DashboardAiAssistant } from "@/components/admin/dashboard-ai-assistant";
+import { DashboardTemplateWizard } from "@/components/admin/dashboard-template-wizard";
+import { DashboardTemplateManager } from "@/components/admin/dashboard-template-manager";
+import {
+  dashboardTemplates,
+  type DashboardTemplate,
+  type DashboardTemplatePlaceholderValues,
+} from "@/lib/dashboard/templates";
+import { loadCustomDashboardTemplates } from "@/lib/dashboard/templates/custom-templates";
 import {
   isGroupedAnalyticsResult,
   isRecordsAnalyticsResult,
@@ -45,14 +60,25 @@ import type {
   DashboardWidget,
   AnalyticsResult,
   DataSourceLayer,
+  DataSourceConfig,
 } from "@/types/api/dashboard";
 import type { SavedView } from "@/types/api/saved-view";
 import type { Dataset } from "@/types/api/dataset";
 import { formatAnalyticsNumber } from "@/lib/dashboard/utils";
 import { getFieldLabel, getOptionLabel } from "@/lib/fields/field-label";
+import { useMessage } from "@/providers/message-provider";
+import { pushUndoAction, undoLastAction } from "@/lib/undo/undo-manager";
+import { logAuditAction } from "@/lib/audit/audit-log";
 
 interface DashboardBuilderPageProps {
   dashboardId: string;
+}
+
+function mergeById<T extends { id: string }>(current: T[], incoming?: T[]) {
+  if (!incoming?.length) return current;
+  const byId = new Map(current.map((item) => [item.id, item]));
+  for (const item of incoming) byId.set(item.id, item);
+  return Array.from(byId.values());
 }
 
 function spatialResultIsEmpty(result: AnalyticsResult) {
@@ -87,10 +113,12 @@ async function resolveDraft(dashboardId: string): Promise<DashboardDetail> {
 export function DashboardBuilderPage({
   dashboardId,
 }: DashboardBuilderPageProps) {
+  const message = useMessage();
   const [draft, setDraft] = useState<DashboardDetail | null>(null);
   const [dataSources, setDataSources] = useState<DataSourceLayer[]>([]);
   const [savedViews, setSavedViews] = useState<SavedView[]>([]);
   const [datasets, setDatasets] = useState<Dataset[]>([]);
+  const [virtualDatasets, setVirtualDatasets] = useState<Dataset[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -101,6 +129,33 @@ export function DashboardBuilderPage({
   const [previewText, setPreviewText] = useState<string | null>(null);
   const [isPreviewingWidget, setIsPreviewingWidget] = useState(false);
   const [layoutDirty, setLayoutDirty] = useState(false);
+  const [showTemplateWizard, setShowTemplateWizard] = useState(false);
+  const [showTemplateManager, setShowTemplateManager] = useState(false);
+  const [showAiAssistant, setShowAiAssistant] = useState(false);
+  const [aiGeneratedTemplate, setAiGeneratedTemplate] =
+    useState<DashboardTemplate | null>(null);
+  const [templateWizardInitialCode, setTemplateWizardInitialCode] =
+    useState<string | undefined>(undefined);
+  const [templateWizardInitialValues, setTemplateWizardInitialValues] =
+    useState<DashboardTemplatePlaceholderValues>({});
+  const [templateManagerInitialTab, setTemplateManagerInitialTab] =
+    useState<"save" | "export" | "import" | "custom">("save");
+  const [customTemplates, setCustomTemplates] = useState<DashboardTemplate[]>([]);
+
+  function restoreVirtualDatasetsFromWidgets(widgets: DashboardWidget[]) {
+    const restored = widgets
+      .map((widget) => widget.dataSourceConfig?.virtualDataset)
+      .filter(
+        (dataset): dataset is NonNullable<DataSourceConfig["virtualDataset"]> =>
+          Boolean(dataset),
+      )
+      .map((snapshot) => {
+        const dataset = virtualDatasetSnapshotToDataset(snapshot);
+        if (dataset.virtualDataset) setVirtualDataset(dataset.virtualDataset);
+        return dataset;
+      });
+    setVirtualDatasets((current) => mergeById(current, restored));
+  }
 
   const load = useCallback(async () => {
     setIsLoading(true);
@@ -117,6 +172,7 @@ export function DashboardBuilderPage({
         ...draftData,
         widgets: sortWidgets(normalizedWidgets),
       });
+      restoreVirtualDatasetsFromWidgets(normalizedWidgets);
       setDataSources(sources);
       setSavedViews(views);
       setDatasets(datasetRows);
@@ -135,6 +191,54 @@ export function DashboardBuilderPage({
     void load();
   }, [load]);
 
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- read browser-local custom templates
+    setCustomTemplates(loadCustomDashboardTemplates());
+  }, []);
+
+  function openTemplateManager(tab: "save" | "export" | "import" | "custom") {
+    setTemplateManagerInitialTab(tab);
+    setShowTemplateManager(true);
+  }
+
+  function handleAiTemplateGenerated(
+    template: DashboardTemplate,
+    prepared?: {
+      savedViews?: SavedView[];
+      datasets?: Dataset[];
+      templateValues?: DashboardTemplatePlaceholderValues;
+    },
+  ) {
+    logAuditAction({
+      action: "dashboard.ai_generate",
+      objectType: "dashboard",
+      objectName: template.name,
+      metadata: { widgets: template.widgets.length },
+    });
+    if (prepared?.savedViews?.length) {
+      setSavedViews((current) => mergeById(current, prepared.savedViews));
+    }
+    if (prepared?.datasets?.length) {
+      const virtual = prepared.datasets.filter((dataset) =>
+        isVirtualDatasetId(dataset.id),
+      );
+      const persistent = prepared.datasets.filter(
+        (dataset) => !isVirtualDatasetId(dataset.id),
+      );
+      if (persistent.length) {
+        setDatasets((current) => mergeById(current, persistent));
+      }
+      if (virtual.length) {
+        setVirtualDatasets((current) => mergeById(current, virtual));
+      }
+    }
+    setAiGeneratedTemplate(template);
+    setTemplateWizardInitialCode(template.code);
+    setTemplateWizardInitialValues(prepared?.templateValues ?? {});
+    setShowAiAssistant(false);
+    setShowTemplateWizard(true);
+  }
+
   async function saveDraft(nextDraft: Partial<DashboardDetail>) {
     if (!draft) return false;
     setIsSubmitting(true);
@@ -149,6 +253,12 @@ export function DashboardBuilderPage({
       setDraft({
         ...updated,
         widgets: sortWidgets(updated.widgets),
+      });
+      logAuditAction({
+        action: "dashboard.update",
+        objectType: "dashboard",
+        objectName: updated.name,
+        metadata: { dashboardId, widgets: updated.widgets.length },
       });
       return true;
     } catch (err) {
@@ -167,7 +277,8 @@ export function DashboardBuilderPage({
   }
 
   function fieldLabelsForWidget(widget: DashboardWidget) {
-    const dataset = datasets.find(
+    const allDatasets = [...datasets, ...virtualDatasets];
+    const dataset = allDatasets.find(
       (item) => item.id === widget.dataSourceConfig?.datasetId,
     );
     const view = savedViews.find(
@@ -189,6 +300,17 @@ export function DashboardBuilderPage({
   function openEditWidget(index: number) {
     if (!draft) return;
     const widget = draft.widgets[index];
+    if (
+      process.env.NODE_ENV === "development" &&
+      isVirtualDatasetId(widget.dataSourceConfig?.datasetId) &&
+      !widget.dataSourceConfig?.virtualDataset
+    ) {
+      console.warn("[DashboardWidgetForm] Missing embedded virtualDataset", {
+        widgetId: widget.id,
+        datasetId: widget.dataSourceConfig?.datasetId,
+        dataSourceConfig: widget.dataSourceConfig,
+      });
+    }
     const initialForm = widgetToForm(widget);
     setEditingIndex(index);
     setWidgetForm({
@@ -228,15 +350,88 @@ export function DashboardBuilderPage({
     }
 
     if (await saveDraft({ widgets })) {
+      const action = editingIndex !== null ? "widget.update" : "widget.add";
+      logAuditAction({ action, objectType: "widget", objectName: widget.title, metadata: { dashboardId } });
+      message.success(editingIndex !== null ? "Đã cập nhật widget." : "Đã thêm widget.");
       setLayoutDirty(false);
       closeWidgetModal();
     }
   }
 
   async function handleDeleteWidget(index: number) {
-    if (!draft || !confirm("Xóa widget này?")) return;
+    if (!draft) return;
+    const confirmed = await message.confirm({
+      title: "Xóa widget?",
+      description: "Widget sẽ bị xóa khỏi dashboard draft. Bạn có thể hoàn tác ngay sau khi xóa.",
+      confirmLabel: "Xóa widget",
+      danger: true,
+    });
+    if (!confirmed) return;
+    const previousWidgets = [...draft.widgets];
+    const removed = draft.widgets[index];
     const widgets = draft.widgets.filter((_, i) => i !== index);
-    if (await saveDraft({ widgets })) setLayoutDirty(false);
+    if (await saveDraft({ widgets })) {
+      setLayoutDirty(false);
+      logAuditAction({ action: "widget.remove", objectType: "widget", objectName: removed.title, metadata: { dashboardId } });
+      const undoId = pushUndoAction({
+        label: `Khôi phục ${removed.title}`,
+        undo: async () => {
+          if (await saveDraft({ widgets: previousWidgets })) {
+            message.success(`Đã khôi phục widget “${removed.title}”.`);
+          } else {
+            throw new Error("Không khôi phục được widget.");
+          }
+        },
+      });
+      message.success(`Đã xóa widget “${removed.title}”.`, {
+        duration: 12000,
+        actionLabel: "Hoàn tác",
+        onAction: async () => {
+          try {
+            const restored = await undoLastAction(undoId);
+            if (!restored) message.warning("Thời gian hoàn tác đã hết.");
+          } catch (error) {
+            message.error(error instanceof Error ? error.message : "Không hoàn tác được widget.");
+          }
+        },
+      });
+    }
+  }
+
+  async function handleApplyTemplate(
+    templateWidgets: DashboardWidget[],
+    mode: "append" | "replace",
+  ) {
+    if (!draft) return;
+    const minTemplateY = Math.min(
+      ...templateWidgets.map((widget) => widget.layoutConfig.y),
+      0,
+    );
+    const existingBottom = draft.widgets.reduce(
+      (bottom, widget) =>
+        Math.max(bottom, widget.layoutConfig.y + widget.layoutConfig.h),
+      0,
+    );
+    const widgets =
+      mode === "replace"
+        ? templateWidgets
+        : [
+            ...draft.widgets,
+            ...templateWidgets.map((widget) => ({
+              ...widget,
+              layoutConfig: {
+                ...widget.layoutConfig,
+                y: widget.layoutConfig.y - minTemplateY + existingBottom,
+              },
+            })),
+          ];
+
+    if (await saveDraft({ widgets })) {
+      logAuditAction({ action: "dashboard.update", objectType: "dashboard", objectName: draft.name, metadata: { templateWidgets: templateWidgets.length, mode } });
+      message.success(`Đã ${mode === "replace" ? "thay thế" : "thêm"} ${templateWidgets.length} widget từ mẫu.`);
+      setLayoutDirty(false);
+      setShowTemplateWizard(false);
+    }
   }
 
   function handleGridLayoutChange(layout: DashboardGridItemLayout[]) {
@@ -293,9 +488,15 @@ export function DashboardBuilderPage({
     }
     setIsPreviewingWidget(true);
     try {
-      const result = await previewAnalytics({
-        dataSourceConfig,
-      });
+      const result = isVirtualDatasetId(dataSourceConfig.datasetId)
+        ? await previewVirtualDatasetAnalytics(dataSourceConfig)
+        : await previewAnalytics({
+            dataSourceConfig,
+          });
+      if (!result) {
+        setPreviewText("Dataset tạm không còn trong phiên builder.");
+        return;
+      }
       if (dataSourceConfig?.spatial && spatialResultIsEmpty(result)) {
         setPreviewText("Chưa có dữ liệu không gian phù hợp.");
         return;
@@ -327,19 +528,20 @@ export function DashboardBuilderPage({
         setPreviewText(formatAnalyticsNumber(result.value));
       }
     } catch (err) {
-      setPreviewText(err instanceof Error ? err.message : "Preview thất bại");
+      setPreviewText(err instanceof Error ? err.message : "Xem trước thất bại");
     } finally {
       setIsPreviewingWidget(false);
     }
   }
 
   async function handlePublish() {
-    if (
-      !draft ||
-      !confirm("Xuất bản dashboard? Route /dashboards/:id sẽ dùng bản mới.")
-    ) {
-      return;
-    }
+    if (!draft) return;
+    const confirmed = await message.confirm({
+      title: "Xuất bản dashboard?",
+      description: "Bản đang công khai tại /dashboards/:id sẽ được thay bằng draft hiện tại.",
+      confirmLabel: "Xuất bản",
+    });
+    if (!confirmed) return;
     setIsSubmitting(true);
     try {
       if (layoutDirty) {
@@ -348,9 +550,13 @@ export function DashboardBuilderPage({
         setLayoutDirty(false);
       }
       await publishDashboard(dashboardId);
+      logAuditAction({ action: "dashboard.publish", objectType: "dashboard", objectName: draft.name, metadata: { dashboardId } });
+      message.success("Đã xuất bản dashboard.");
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Xuất bản thất bại");
+      const detail = err instanceof Error ? err.message : "Xuất bản thất bại";
+      setError(detail);
+      message.error(detail);
     } finally {
       setIsSubmitting(false);
     }
@@ -406,6 +612,44 @@ export function DashboardBuilderPage({
                 </button>
                 <button
                   type="button"
+                  onClick={() => {
+                    setTemplateWizardInitialCode(undefined);
+                    setShowTemplateWizard(true);
+                  }}
+                  className="rounded-lg border border-border px-3 py-2 text-sm hover:bg-slate-50"
+                >
+                  Tạo từ mẫu
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowAiAssistant(true)}
+                  className="rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-sm font-medium text-violet-700 hover:bg-violet-100"
+                >
+                  Tạo bằng AI
+                </button>
+                <button
+                  type="button"
+                  onClick={() => openTemplateManager("save")}
+                  className="rounded-lg border border-border px-3 py-2 text-sm hover:bg-slate-50"
+                >
+                  Lưu thành mẫu
+                </button>
+                <button
+                  type="button"
+                  onClick={() => openTemplateManager("export")}
+                  className="rounded-lg border border-border px-3 py-2 text-sm hover:bg-slate-50"
+                >
+                  Xuất mẫu
+                </button>
+                <button
+                  type="button"
+                  onClick={() => openTemplateManager("import")}
+                  className="rounded-lg border border-border px-3 py-2 text-sm hover:bg-slate-50"
+                >
+                  Nhập mẫu
+                </button>
+                <button
+                  type="button"
                   disabled={isSubmitting || draft.widgets.length === 0}
                   onClick={() => void handlePublish()}
                   className="rounded-lg bg-primary px-3 py-2 text-sm font-medium text-white disabled:opacity-60"
@@ -457,7 +701,7 @@ export function DashboardBuilderPage({
               form={widgetForm}
               dataSources={dataSources}
               savedViews={savedViews}
-              datasets={datasets}
+              datasets={[...datasets, ...virtualDatasets]}
               onChange={setWidgetForm}
             />
 
@@ -488,6 +732,65 @@ export function DashboardBuilderPage({
               {isSubmitting ? "Đang lưu..." : "Lưu widget"}
             </button>
           </form>
+        </Modal>
+      )}
+
+      {showTemplateWizard && draft && (
+        <Modal
+          title="Tạo dashboard từ mẫu"
+          onClose={() => setShowTemplateWizard(false)}
+          size="xl"
+        >
+          <DashboardTemplateWizard
+            templates={[
+              ...(aiGeneratedTemplate ? [aiGeneratedTemplate] : []),
+              ...dashboardTemplates,
+              ...customTemplates,
+            ]}
+            customTemplateIds={customTemplates.map((template) => template.id)}
+            aiTemplateIds={
+              aiGeneratedTemplate ? [aiGeneratedTemplate.id] : undefined
+            }
+            initialTemplateCode={templateWizardInitialCode}
+            initialValues={templateWizardInitialValues}
+            dataSources={dataSources}
+            savedViews={savedViews}
+            datasets={[...datasets, ...virtualDatasets]}
+            existingWidgetCount={draft.widgets.length}
+            onCancel={() => setShowTemplateWizard(false)}
+            onApply={(widgets, mode) => void handleApplyTemplate(widgets, mode)}
+          />
+        </Modal>
+      )}
+
+      {showAiAssistant && (
+        <Modal
+          title="Tạo dashboard bằng AI"
+          onClose={() => setShowAiAssistant(false)}
+          size="lg"
+        >
+          <DashboardAiAssistant
+            dataSources={dataSources}
+            savedViews={savedViews}
+            datasets={[...datasets, ...virtualDatasets]}
+            onCancel={() => setShowAiAssistant(false)}
+            onGenerated={handleAiTemplateGenerated}
+          />
+        </Modal>
+      )}
+
+      {showTemplateManager && draft && (
+        <Modal
+          title="Quản lý mẫu dashboard"
+          onClose={() => setShowTemplateManager(false)}
+          size="xl"
+        >
+          <DashboardTemplateManager
+            dashboard={draft}
+            customTemplates={customTemplates}
+            initialTab={templateManagerInitialTab}
+            onTemplatesChange={setCustomTemplates}
+          />
         </Modal>
       )}
     </div>

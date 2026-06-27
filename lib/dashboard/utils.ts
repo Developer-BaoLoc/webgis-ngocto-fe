@@ -92,7 +92,7 @@ export const WIDGET_TYPE_LABELS: Record<string, string> = {
   map: "Bản đồ",
   text: "Văn bản",
   global_filter: "Bộ lọc chung",
-  timeline: "Timeline",
+  timeline: "Dòng thời gian",
   calendar: "Lịch công việc",
   progress: "Tiến độ",
   milestone: "Kết quả triển khai",
@@ -121,15 +121,7 @@ export const AGGREGATION_LABELS: Record<string, string> = {
 
 export const DATE_FIELD_TYPES = new Set(["date", "datetime", "timestamp"]);
 
-export const NUMERIC_FIELD_TYPES = new Set([
-  "integer",
-  "decimal",
-  "number",
-  "currency",
-  "money",
-  "measurement",
-  "quantity",
-]);
+export { NUMERIC_FIELD_TYPES } from "@/lib/fields/field-types";
 
 export const GROUPABLE_FIELD_TYPES = new Set([
   "text",

@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { exportToCSV, exportToExcel } from "@/lib/export/data-export";
+import { useMessage } from "@/providers/message-provider";
 import {
   KpiIconAgriculture,
   KpiIconArea,
@@ -724,6 +726,22 @@ export function TableWidgetRenderer({
   widget: DashboardWidget;
   data: AnalyticsResult;
 }) {
+  const message = useMessage();
+  const [isExporting, setIsExporting] = useState(false);
+
+  async function exportTable(format: "csv" | "excel", rows: Array<Record<string, unknown>>, columns: string[]) {
+    setIsExporting(true);
+    try {
+      const options = { fileName: widget.title, title: widget.title, rows, columns: columns.map((key) => ({ key, label: getWidgetFieldLabel(widget, key) })) };
+      const fileName = format === "csv" ? exportToCSV(options) : await exportToExcel(options);
+      message.success(`Đã xuất ${rows.length} dòng: ${fileName}`);
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : "Không xuất được bảng dữ liệu.");
+    } finally {
+      setIsExporting(false);
+    }
+  }
+
   if (isTopAnalyticsResult(data)) {
     if (data.records.length === 0) return <WidgetEmptyState />;
     const preferred = widget.dataSourceConfig?.displayFields ?? [];
@@ -737,6 +755,10 @@ export function TableWidgetRenderer({
     ];
     return (
       <div className="ioc-table-wrap">
+        <div className="mb-2 flex justify-end gap-1.5">
+          <button type="button" disabled={isExporting} onClick={() => void exportTable("csv", data.records, columns)} className="rounded border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50">CSV</button>
+          <button type="button" disabled={isExporting} onClick={() => void exportTable("excel", data.records, columns)} className="rounded border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50">Excel</button>
+        </div>
         <table className="ioc-table ioc-dynamic-table">
           <thead>
             <tr>
@@ -768,8 +790,13 @@ export function TableWidgetRenderer({
   const metricField =
     widget.dataSourceConfig?.metricField ?? widget.dataSourceConfig?.fieldCode;
   const unit = getWidgetValueUnit(widget, metricField);
+  const exportData = rows.map((row) => ({ group: row.label, value: row.value }));
   return (
     <div className="ioc-table-wrap">
+      <div className="mb-2 flex justify-end gap-1.5">
+        <button type="button" disabled={isExporting} onClick={() => void exportTable("csv", exportData, ["group", "value"])} className="rounded border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50">CSV</button>
+        <button type="button" disabled={isExporting} onClick={() => void exportTable("excel", exportData, ["group", "value"])} className="rounded border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50">Excel</button>
+      </div>
       <table className="ioc-table ioc-dynamic-table">
         <thead>
           <tr>

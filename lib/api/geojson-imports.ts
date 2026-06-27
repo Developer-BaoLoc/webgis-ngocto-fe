@@ -153,7 +153,7 @@ export async function previewGeoJsonImport(
     },
     body: JSON.stringify(buildRequestBody(options)),
   });
-  if (!res.ok) await parseError(res, "Preview GeoJSON thất bại");
+  if (!res.ok) await parseError(res, "Xem trước GeoJSON thất bại");
   const json = (await res.json()) as ApiResponse<GeoJsonImportSummary>;
   return unwrapData(json);
 }

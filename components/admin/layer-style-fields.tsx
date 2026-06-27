@@ -663,7 +663,7 @@ function PointIconStyleFields({
   return (
     <div className="space-y-4 rounded-lg border border-border bg-slate-50/50 p-4">
       <div>
-        <p className="text-sm font-medium text-foreground">Point Layer Style</p>
+        <p className="text-sm font-medium text-foreground">Kiểu hiển thị lớp điểm</p>
         <p className="mt-0.5 text-xs text-muted">
           Dùng một icon chung hoặc chọn icon riêng theo giá trị thuộc tính.
         </p>
@@ -797,7 +797,7 @@ function PointIconStyleFields({
                   <tr>
                     <th className="px-3 py-2">Giá trị</th>
                     <th className="px-3 py-2">Nhãn</th>
-                    <th className="px-3 py-2">Icon</th>
+                    <th className="px-3 py-2">Biểu tượng</th>
                     <th className="w-12 px-3 py-2" />
                   </tr>
                 </thead>
@@ -868,7 +868,7 @@ function PointIconStyleFields({
             </p>
             <LayerRuleIconUpload
               value={style.fallbackIcon}
-              label="Fallback icon"
+              label="Biểu tượng dự phòng"
               onChange={(fallbackIcon) => onChange({ ...style, fallbackIcon })}
             />
           </div>

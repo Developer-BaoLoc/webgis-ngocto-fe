@@ -40,6 +40,7 @@ import {
   TableActions,
   TableBadge,
 } from "@/components/ui/data-table";
+import { useMessage } from "@/providers/message-provider";
 
 interface LayerFormState {
   name: string;
@@ -60,6 +61,7 @@ function emptyForm(sortOrder: number, geometryType = "point"): LayerFormState {
 }
 
 export function LayerAdminPage() {
+  const message = useMessage();
   const router = useRouter();
   const [layers, setLayers] = useState<AdminLayer[]>([]);
   const [geometryTypes, setGeometryTypes] = useState<LayerGeometryTypeMeta[]>(
@@ -166,9 +168,7 @@ export function LayerAdminPage() {
   }
 
   async function handleDelete(layer: AdminLayer) {
-    const confirmed = confirm(
-      `Xóa vĩnh viễn lớp "${layer.name}"?\n\nToàn bộ cấu trúc, bản ghi và dữ liệu trên bản đồ sẽ bị xóa. Không thể hoàn tác.`,
-    );
+    const confirmed = await message.confirm({ title: `Xóa vĩnh viễn lớp “${layer.name}”?`, description: "Toàn bộ cấu trúc, bản ghi và dữ liệu trên bản đồ sẽ bị xóa. Không thể hoàn tác.", confirmLabel: "Xóa vĩnh viễn", danger: true });
     if (!confirmed) return;
 
     setError(null);
@@ -184,6 +184,7 @@ export function LayerAdminPage() {
           : "";
 
       setSuccess(`Đã xóa lớp "${layer.name}"${recordsNote}.`);
+      message.warning(`Đã xóa lớp “${layer.name}”${recordsNote}. Không thể hoàn tác.`);
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Xóa thất bại");

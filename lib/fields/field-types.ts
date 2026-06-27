@@ -1,77 +1,79 @@
-import { getFieldTypeLabel } from "@/lib/i18n/vi";
 import type { FieldTypeMeta } from "@/types/api/metadata";
 
-const POINT_ONLY_TYPES = new Set(["lat_lng"]);
-const POLYGON_ONLY_TYPES = new Set(["area_polygon"]);
-const LINE_ONLY_TYPES = new Set(["line", "linestring"]);
+const NUMERIC_TYPES = new Set([
+  "number",
+  "integer",
+  "decimal",
+  "float",
+  "double",
+  "currency",
+  "money",
+  "numeric",
+  "real",
+  "bigint",
+  "smallint",
+  "measurement",
+  "quantity",
+]);
 
-function normalizeGeometryKind(geometryType: string): string {
-  return geometryType.toLowerCase();
+type FieldLike = {
+  fieldType?: unknown;
+  type?: unknown;
+  dataType?: unknown;
+  columnType?: unknown;
+  dataSchema?: {
+    type?: unknown;
+  } | null;
+};
+
+function normalizeFieldType(type: unknown) {
+  return String(type ?? "").trim().toLowerCase();
 }
 
-function isPolygonKind(kind: string): boolean {
-  return kind === "polygon" || kind === "multipolygon";
+export function isNumericFieldType(type: unknown): boolean {
+  return NUMERIC_TYPES.has(normalizeFieldType(type));
 }
 
-function isLineKind(kind: string): boolean {
-  return kind === "line" || kind === "linestring" || kind === "multilinestring";
+export function isNumericField(fieldOrType: FieldLike | unknown): boolean {
+  if (typeof fieldOrType === "string") {
+    return isNumericFieldType(fieldOrType);
+  }
+  if (!fieldOrType || typeof fieldOrType !== "object") {
+    return false;
+  }
+
+  const field = fieldOrType as FieldLike;
+  return [
+    field.fieldType,
+    field.type,
+    field.dataType,
+    field.columnType,
+    field.dataSchema?.type,
+  ].some(isNumericFieldType);
 }
 
-/** Kiểu trường hình học theo loại lớp — point có lat_lng, polygon có area_polygon, line có line */
+export const NUMERIC_FIELD_TYPES = NUMERIC_TYPES;
+
 export function getFieldTypesForLayerGeometry(
-  geometryType: string | undefined,
+  geometryType: string | null | undefined,
   fieldTypes: FieldTypeMeta[],
 ): FieldTypeMeta[] {
-  const kind = normalizeGeometryKind(geometryType ?? "point");
-  let filtered = fieldTypes;
-
-  if (isPolygonKind(kind)) {
-    filtered = fieldTypes.filter(
-      (type) =>
-        !POINT_ONLY_TYPES.has(type.type) && !LINE_ONLY_TYPES.has(type.type),
-    );
-    if (!filtered.some((type) => type.type === "area_polygon")) {
-      filtered = [
-        ...filtered,
-        {
-          type: "area_polygon",
-          label: getFieldTypeLabel("area_polygon"),
-          uiComponent: "area_polygon",
-        },
-      ];
+  const normalizedGeometry = String(geometryType ?? "").toLowerCase();
+  return fieldTypes.filter((fieldType) => {
+    const type = String(fieldType.type ?? "").toLowerCase();
+    if (type === "lat_lng") {
+      return (
+        !normalizedGeometry ||
+        normalizedGeometry.includes("point") ||
+        normalizedGeometry === "none"
+      );
     }
-    return filtered;
-  }
-
-  if (kind === "point") {
-    return fieldTypes.filter(
-      (type) =>
-        !POLYGON_ONLY_TYPES.has(type.type) && !LINE_ONLY_TYPES.has(type.type),
-    );
-  }
-
-  if (isLineKind(kind)) {
-    filtered = fieldTypes.filter(
-      (type) =>
-        !POINT_ONLY_TYPES.has(type.type) && !POLYGON_ONLY_TYPES.has(type.type),
-    );
-    if (!filtered.some((type) => type.type === "line")) {
-      filtered = [
-        ...filtered,
-        {
-          type: "line",
-          label: getFieldTypeLabel("line"),
-          uiComponent: "line",
-        },
-      ];
+    if (type === "line" || type === "linestring") {
+      return !normalizedGeometry || normalizedGeometry.includes("line");
     }
-    return filtered;
-  }
-
-  return fieldTypes.filter(
-    (type) =>
-      !POINT_ONLY_TYPES.has(type.type) &&
-      !POLYGON_ONLY_TYPES.has(type.type) &&
-      !LINE_ONLY_TYPES.has(type.type),
-  );
+    if (type === "area_polygon") {
+      return !normalizedGeometry || normalizedGeometry.includes("polygon");
+    }
+    return true;
+  });
 }

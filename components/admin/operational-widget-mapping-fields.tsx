@@ -4,9 +4,9 @@ import { inputClass } from "@/components/form/field-wrapper";
 import {
   DATE_FIELD_TYPES,
   GROUPABLE_FIELD_TYPES,
-  NUMERIC_FIELD_TYPES,
 } from "@/lib/dashboard/utils";
 import { getFieldLabel } from "@/lib/fields/field-label";
+import { isNumericField } from "@/lib/fields/field-types";
 import type { DataSourceField, WidgetType } from "@/types/api/dashboard";
 
 export type OperationalFieldKey =
@@ -102,9 +102,7 @@ export function OperationalWidgetMappingFields({
   const dateFields = fields.filter((field) =>
     DATE_FIELD_TYPES.has(field.fieldType.toLocaleLowerCase()),
   );
-  const numericFields = fields.filter((field) =>
-    NUMERIC_FIELD_TYPES.has(field.fieldType.toLocaleLowerCase()),
-  );
+  const numericFields = fields.filter((field) => isNumericField(field));
   const statusFields = textFields.filter((field) =>
     GROUPABLE_FIELD_TYPES.has(field.fieldType.toLocaleLowerCase()),
   );

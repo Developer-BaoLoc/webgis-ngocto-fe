@@ -6,6 +6,7 @@ import {
   useContext,
   type ComponentPropsWithoutRef,
   type ReactNode,
+  type CSSProperties,
 } from "react";
 import { cn } from "@/lib/utils";
 
@@ -129,18 +130,21 @@ export function DataTableHeaderCell({
   className,
   align = "left",
   pinned,
+  style,
 }: {
   children: ReactNode;
   className?: string;
   align?: "left" | "center" | "right";
   /** Cố định cột bên phải — mặc định bật khi align=right và stickyActions */
   pinned?: "right";
+  style?: CSSProperties;
 }) {
   const { stickyHeader, stickyActions } = useDataTableContext();
   const pinRight = pinned === "right" || (stickyActions && align === "right");
 
   return (
     <th
+      style={style}
       className={cn(
         "px-4 py-3.5 text-sm font-semibold text-foreground",
         align === "center" && "text-center",
@@ -291,7 +295,7 @@ export function DataTablePagination({
             <select
               value={pageSize}
               onChange={(e) => onPageSizeChange(Number(e.target.value))}
-              className="rounded-lg border border-border bg-white px-2 py-1.5 text-xs font-medium text-foreground"
+              className="ioc-select-sm w-auto min-w-[4.5rem] font-medium text-foreground"
             >
               {pageSizeOptions.map((size) => (
                 <option key={size} value={size}>

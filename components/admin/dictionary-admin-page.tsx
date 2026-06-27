@@ -32,6 +32,7 @@ import {
   TableActionLink,
   TableActions,
 } from "@/components/ui/data-table";
+import { useMessage } from "@/providers/message-provider";
 
 interface DictionaryFormState {
   name: string;
@@ -44,6 +45,7 @@ function emptyForm(): DictionaryFormState {
 }
 
 export function DictionaryAdminPage() {
+  const message = useMessage();
   const router = useRouter();
   const [dictionaries, setDictionaries] = useState<Dictionary[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -128,12 +130,7 @@ export function DictionaryAdminPage() {
   }
 
   async function handleDelete(dict: Dictionary) {
-    if (
-      !confirm(
-        `Xóa danh mục "${dict.name}" và mọi giá trị bên trong? Các trường đang dùng danh mục này có thể bị lỗi.`,
-      )
-    )
-      return;
+    if (!(await message.confirm({ title: `Xóa danh mục “${dict.name}”?`, description: "Mọi giá trị bên trong sẽ bị xóa. Các trường đang dùng danh mục này có thể bị lỗi và thao tác không thể hoàn tác.", confirmLabel: "Xóa danh mục", danger: true }))) return;
     try {
       await deleteDictionary(dict.code);
       await load();

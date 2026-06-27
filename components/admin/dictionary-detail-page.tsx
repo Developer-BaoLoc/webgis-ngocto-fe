@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { DictionaryBatchValuesInput } from "@/components/admin/dictionary-values-input";
 import { PageHeader } from "@/components/layout/page-header";
+import { useMessage } from "@/providers/message-provider";
 import { Modal } from "@/components/ui/modal";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { inputClass } from "@/components/form/field-wrapper";
@@ -46,6 +47,7 @@ interface DictionaryDetailPageProps {
 }
 
 export function DictionaryDetailPage({ code }: DictionaryDetailPageProps) {
+  const message = useMessage();
   const [dictionary, setDictionary] = useState<Dictionary | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -190,7 +192,7 @@ export function DictionaryDetailPage({ code }: DictionaryDetailPageProps) {
   }
 
   async function handleDelete(item: DictionaryItem) {
-    if (!confirm(`Ẩn giá trị "${item.label}"?`)) return;
+    if (!(await message.confirm({ title: `Ẩn giá trị “${item.label}”?`, description: "Giá trị sẽ không còn xuất hiện trong danh sách chọn mới.", confirmLabel: "Ẩn giá trị", danger: true }))) return;
     try {
       await deleteDictionaryItem(code, item.id);
       await load();

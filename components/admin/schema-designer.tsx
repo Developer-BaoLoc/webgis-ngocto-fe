@@ -20,6 +20,7 @@ import { resolveEditableSchema } from "@/lib/layers/schema-admin";
 import { validateFieldDataSchema } from "@/lib/fields/field-config";
 import { getFieldTypesForLayerGeometry } from "@/lib/fields/field-types";
 import { enrichFieldTypes } from "@/lib/i18n/vi";
+import { useMessage } from "@/providers/message-provider";
 import { cn } from "@/lib/utils";
 import {
   FieldFormModalContent,
@@ -54,6 +55,7 @@ interface SchemaDesignerProps {
 }
 
 export function SchemaDesigner({ layerId }: SchemaDesignerProps) {
+  const message = useMessage();
   const [layer, setLayer] = useState<AdminLayer | null>(null);
   const [draft, setDraft] = useState<SchemaDraft | null>(null);
   const [fieldTypes, setFieldTypes] = useState<FieldTypeMeta[]>([]);
@@ -179,7 +181,8 @@ export function SchemaDesigner({ layerId }: SchemaDesignerProps) {
   }
 
   async function handleDeleteField(field: SchemaField) {
-    if (!draft || !confirm(`Ẩn trường "${field.label}"?`)) return;
+    if (!draft) return;
+    if (!(await message.confirm({ title: `Ẩn trường “${field.label}”?`, description: "Trường sẽ không còn xuất hiện trong biểu mẫu và bảng dữ liệu.", confirmLabel: "Ẩn trường", danger: true }))) return;
     try {
       await deleteSchemaField(draft.id, field.fieldId);
       await load();

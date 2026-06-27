@@ -28,6 +28,21 @@ export async function getLayerRecords(
   };
 }
 
+export async function getAllLayerRecords(
+  layerId: string,
+  query: Omit<RecordsQuery, "page" | "pageSize"> = {},
+): Promise<RecordItem[]> {
+  const pageSize = 200;
+  const first = await getLayerRecords(layerId, { ...query, page: 1, pageSize });
+  const totalPages = first.meta.totalPages ?? Math.max(1, Math.ceil((first.meta.total ?? first.records.length) / pageSize));
+  const records = [...first.records];
+  for (let page = 2; page <= totalPages; page += 1) {
+    const next = await getLayerRecords(layerId, { ...query, page, pageSize });
+    records.push(...next.records);
+  }
+  return records;
+}
+
 export async function getRecord(
   layerId: string,
   recordId: string,

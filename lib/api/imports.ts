@@ -71,7 +71,7 @@ export async function previewImport(
     },
     body: JSON.stringify({ templateCode }),
   });
-  if (!res.ok) await parseError(res, "Preview thất bại");
+  if (!res.ok) await parseError(res, "Xem trước thất bại");
   const json = (await res.json()) as ApiResponse<ImportPreviewResult>;
   return unwrapData(json);
 }

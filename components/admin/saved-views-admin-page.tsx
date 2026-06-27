@@ -27,6 +27,8 @@ import {
   previewSavedView,
   updateSavedView,
 } from "@/lib/api/saved-views";
+import { isNumericField } from "@/lib/fields/field-types";
+import { useMessage } from "@/providers/message-provider";
 import type { DataSourceField, DataSourceLayer } from "@/types/api/dashboard";
 import type { DictionaryItem } from "@/types/api/dictionary";
 import type {
@@ -46,14 +48,6 @@ const TECHNICAL_FIELDS = new Set([
   "created_at",
   "updated_at",
   "deleted_at",
-]);
-const NUMERIC_FIELD_TYPES = new Set([
-  "integer",
-  "number",
-  "decimal",
-  "money",
-  "measurement",
-  "quantity",
 ]);
 const DATE_FIELD_TYPES = new Set(["date", "datetime", "timestamp"]);
 
@@ -134,7 +128,7 @@ function emptyForm(): SavedViewFormState {
 function operatorsForField(field?: DataSourceField): SavedViewFilterOperator[] {
   if (!field) return ["eq"] as SavedViewFilterOperator[];
   if (
-    NUMERIC_FIELD_TYPES.has(field.fieldType) ||
+    isNumericField(field) ||
     DATE_FIELD_TYPES.has(field.fieldType)
   ) {
     return [
@@ -189,6 +183,7 @@ function normalizeViewConfig(
 }
 
 export function SavedViewsAdminPage() {
+  const message = useMessage();
   const [views, setViews] = useState<SavedView[]>([]);
   const [layers, setLayers] = useState<DataSourceLayer[]>([]);
   const [form, setForm] = useState<SavedViewFormState>(emptyForm());
@@ -350,7 +345,7 @@ export function SavedViewsAdminPage() {
       setPreview(result);
       return result;
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Preview thất bại");
+      setError(err instanceof Error ? err.message : "Xem trước thất bại");
       return null;
     } finally {
       setIsPreviewing(false);
@@ -392,11 +387,11 @@ export function SavedViewsAdminPage() {
           .map((item) => item.name)
           .join(", ");
         setError(
-          `View này đang được sử dụng bởi ${usage.widgetCount} widget trong ${usage.dashboards.length} dashboard${dashboardNames ? ` (${dashboardNames})` : ""}. Vui lòng đổi nguồn dữ liệu widget trước khi xóa.`,
+          `Chế độ xem này đang được sử dụng bởi ${usage.widgetCount} tiện ích trong ${usage.dashboards.length} dashboard${dashboardNames ? ` (${dashboardNames})` : ""}. Vui lòng đổi nguồn dữ liệu tiện ích trước khi xóa.`,
         );
         return;
       }
-      if (!confirm(`Xóa Saved View “${view.name}”?`)) return;
+      if (!(await message.confirm({ title: `Xóa chế độ xem “${view.name}”?`, description: "Chế độ xem đã lưu sẽ bị xóa vĩnh viễn.", confirmLabel: "Xóa chế độ xem", danger: true }))) return;
       await deleteSavedView(view.id);
       await load();
     } catch (err) {
@@ -430,8 +425,8 @@ export function SavedViewsAdminPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Saved Views"
-        description="Nguồn dữ liệu đã lọc, sắp xếp và chọn cột để dùng lại trong dashboard widget."
+        title="Chế độ xem đã lưu"
+        description="Nguồn dữ liệu đã lọc, sắp xếp và chọn cột để dùng lại trong tiện ích dashboard."
         backHref="/quan-tri"
         backLabel="Quản trị"
         action={
@@ -440,7 +435,7 @@ export function SavedViewsAdminPage() {
             onClick={openCreate}
             className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white"
           >
-            + Tạo Saved View
+            + Tạo chế độ xem
           </button>
         }
       />
@@ -452,31 +447,31 @@ export function SavedViewsAdminPage() {
       )}
 
       <AdminListPanel
-        title="Danh sách Saved View"
-        description="View riêng chỉ người tạo hoặc admin thấy; view công khai có thể dùng trong toàn tenant."
+        title="Danh sách chế độ xem đã lưu"
+        description="Chế độ xem riêng chỉ người tạo hoặc quản trị viên thấy; chế độ xem công khai có thể dùng trong toàn đơn vị."
         isLoading={isLoading}
         isEmpty={!isLoading && views.length === 0}
-        emptyTitle="Chưa có Saved View"
-        emptyDescription="Tạo view đầu tiên để làm nguồn dữ liệu đáng tin cậy cho widget."
+        emptyTitle="Chưa có chế độ xem đã lưu"
+        emptyDescription="Tạo chế độ xem đầu tiên để làm nguồn dữ liệu đáng tin cậy cho tiện ích."
         emptyAction={
           <button
             type="button"
             onClick={openCreate}
             className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white"
           >
-            + Tạo Saved View
+            + Tạo chế độ xem
           </button>
         }
       >
         <DataTable minWidth="980px">
           <DataTableHead>
             <tr>
-              <DataTableHeaderCell>Tên View</DataTableHeaderCell>
-              <DataTableHeaderCell>Layer</DataTableHeaderCell>
+              <DataTableHeaderCell>Tên chế độ xem</DataTableHeaderCell>
+              <DataTableHeaderCell>Lớp dữ liệu</DataTableHeaderCell>
               <DataTableHeaderCell>Công khai</DataTableHeaderCell>
-              <DataTableHeaderCell>Filter</DataTableHeaderCell>
-              <DataTableHeaderCell>Sort</DataTableHeaderCell>
-              <DataTableHeaderCell>Field hiển thị</DataTableHeaderCell>
+              <DataTableHeaderCell>Bộ lọc</DataTableHeaderCell>
+              <DataTableHeaderCell>Sắp xếp</DataTableHeaderCell>
+              <DataTableHeaderCell>Trường hiển thị</DataTableHeaderCell>
               <DataTableHeaderCell>Cập nhật</DataTableHeaderCell>
               <DataTableHeaderCell align="right">Hành động</DataTableHeaderCell>
             </tr>
@@ -550,7 +545,7 @@ export function SavedViewsAdminPage() {
           <form onSubmit={handleSubmit} className="space-y-6">
             <section className="grid gap-4 sm:grid-cols-2">
               <div>
-                <label className="block text-sm font-medium">1. Tên View</label>
+                <label className="block text-sm font-medium">1. Tên chế độ xem</label>
                 <input
                   className={inputClass}
                   required
@@ -707,7 +702,7 @@ export function SavedViewsAdminPage() {
                             void updateFilterField(index, event.target.value)
                           }
                         >
-                          <option value="">Field</option>
+                          <option value="">Chọn trường</option>
                           {selectableFields.map((item) => (
                             <option key={item.code} value={item.code}>
                               {item.label}
@@ -739,7 +734,7 @@ export function SavedViewsAdminPage() {
                         />
                         <button
                           type="button"
-                          aria-label="Xóa filter"
+                          aria-label="Xóa bộ lọc"
                           className="px-2 text-red-600"
                           onClick={() =>
                             setForm({
@@ -773,7 +768,7 @@ export function SavedViewsAdminPage() {
                         })
                       }
                     >
-                      + Thêm sort
+                      + Thêm sắp xếp
                     </button>
                   </div>
                   {form.sorts.map((sort, index) => (
@@ -796,7 +791,7 @@ export function SavedViewsAdminPage() {
                           })
                         }
                       >
-                        <option value="">Sort by field</option>
+                        <option value="">Sắp xếp theo trường</option>
                         {selectableFields.map((field) => (
                           <option key={field.code} value={field.code}>
                             {field.label}
@@ -822,12 +817,12 @@ export function SavedViewsAdminPage() {
                           })
                         }
                       >
-                        <option value="asc">ASC</option>
-                        <option value="desc">DESC</option>
+                        <option value="asc">Tăng dần</option>
+                        <option value="desc">Giảm dần</option>
                       </select>
                       <button
                         type="button"
-                        aria-label="Xóa sort"
+                        aria-label="Xóa sắp xếp"
                         className="px-2 text-red-600"
                         onClick={() =>
                           setForm({
@@ -892,7 +887,7 @@ export function SavedViewsAdminPage() {
                   }
                 />
                 <span>
-                  <strong className="block">View công khai trong tenant</strong>
+                  <strong className="block">Chế độ xem công khai trong đơn vị</strong>
                   <span className="text-xs text-muted">
                     Nếu bật, mọi người trong tenant có thể thấy và dùng view này
                     khi tạo dashboard/widget. Nếu tắt, view chỉ dành cho người
@@ -916,7 +911,7 @@ export function SavedViewsAdminPage() {
                 disabled={isSubmitting}
                 className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
               >
-                {isSubmitting ? "Đang lưu..." : "7. Lưu Saved View"}
+                {isSubmitting ? "Đang lưu..." : "7. Lưu chế độ xem"}
               </button>
             </div>
             {preview && <PreviewTable result={preview} />}
@@ -926,7 +921,7 @@ export function SavedViewsAdminPage() {
 
       {showListPreview && preview && (
         <Modal
-          title="Preview Saved View"
+          title="Xem trước chế độ xem đã lưu"
           onClose={() => {
             setShowListPreview(false);
             setPreview(null);
@@ -991,7 +986,7 @@ function FilterValueInput({
         <option value="false">Sai</option>
       </select>
     );
-  const type = NUMERIC_FIELD_TYPES.has(field?.fieldType ?? "")
+  const type = isNumericField(field)
     ? "number"
     : DATE_FIELD_TYPES.has(field?.fieldType ?? "")
       ? "date"
@@ -1014,7 +1009,7 @@ function PreviewTable({ result }: { result: SavedViewPreviewResult }) {
     <section className="space-y-3 rounded-xl border border-border bg-slate-50/50 p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h3 className="font-semibold">Preview dữ liệu</h3>
+          <h3 className="font-semibold">Xem trước dữ liệu</h3>
           <p className="text-sm text-muted">
             Tìm thấy {result.total} bản ghi. Đang hiển thị {result.rows.length}{" "}
             dòng đầu tiên.

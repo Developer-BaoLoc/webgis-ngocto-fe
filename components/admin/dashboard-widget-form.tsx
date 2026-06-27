@@ -22,10 +22,16 @@ import {
   formatWidgetValueParts,
   GROUPABLE_FIELD_TYPES,
   getWidgetValueUnit,
-  NUMERIC_FIELD_TYPES,
   WIDGET_TYPE_LABELS,
 } from "@/lib/dashboard/utils";
 import { getFieldLabel, getOptionLabel } from "@/lib/fields/field-label";
+import { isNumericField } from "@/lib/fields/field-types";
+import { useMessage } from "@/providers/message-provider";
+import {
+  isVirtualDataset,
+  isVirtualDatasetId,
+  virtualDatasetSnapshot,
+} from "@/lib/dashboard/virtual-datasets";
 import {
   isGroupedAnalyticsResult,
   isRecordsAnalyticsResult,
@@ -45,6 +51,7 @@ import type {
   TimePreset,
   WidgetType,
 } from "@/types/api/dashboard";
+import type { DataSourceConfig } from "@/types/api/dashboard";
 import type { SavedView } from "@/types/api/saved-view";
 import type { Dataset } from "@/types/api/dataset";
 
@@ -76,6 +83,7 @@ export interface WidgetFormState {
   datasetId: string;
   layerId: string;
   sourceName: string;
+  virtualDataset?: NonNullable<DataSourceConfig["virtualDataset"]>;
   queryMode: QueryMode;
   advancedSourceType: "dataset" | "view" | "layer";
   advancedSourceId: string;
@@ -152,6 +160,7 @@ export function emptyWidgetForm(): WidgetFormState {
     datasetId: "",
     layerId: "",
     sourceName: "",
+    virtualDataset: undefined,
     queryMode: "simple",
     advancedSourceType: "dataset",
     advancedSourceId: "",
@@ -234,6 +243,7 @@ export function widgetToForm(widget: DashboardWidget): WidgetFormState {
     datasetId: widget.dataSourceConfig?.datasetId ?? "",
     layerId: widget.dataSourceConfig?.layerId ?? "",
     sourceName: widget.dataSourceConfig?.name ?? "",
+    virtualDataset: widget.dataSourceConfig?.virtualDataset,
     queryMode: advancedQuery ? "advanced" : "simple",
     advancedSourceType: advancedQuery?.source.type ?? "dataset",
     advancedSourceId: advancedQuery?.source.id ?? "",
@@ -564,7 +574,7 @@ function isTimeFieldType(fieldType?: string) {
 
 function getFilterOperatorsForField(field?: FieldOption): AdvancedFilterOperator[] {
   if (!field) return TEXT_FILTER_OPERATORS;
-  if (NUMERIC_FIELD_TYPES.has(field.fieldType)) return NUMBER_FILTER_OPERATORS;
+  if (isNumericField(field)) return NUMBER_FILTER_OPERATORS;
   if (isDateFieldType(field.fieldType)) return DATE_FILTER_OPERATORS;
   return TEXT_FILTER_OPERATORS;
 }
@@ -981,6 +991,7 @@ function buildSimpleDataSourceConfig(form: WidgetFormState) {
   return {
     ...(form.viewId ? { viewId: form.viewId } : {}),
     ...(form.datasetId ? { datasetId: form.datasetId } : {}),
+    ...(form.virtualDataset ? { virtualDataset: form.virtualDataset } : {}),
     ...(!form.datasetId && !form.viewId && form.layerId
       ? { layerId: form.layerId }
       : {}),
@@ -1385,6 +1396,7 @@ function getFieldsForSource(
 function buildSimpleConfigSnapshot(form: WidgetFormState) {
   return {
     ...(form.datasetId ? { datasetId: form.datasetId } : {}),
+    ...(form.virtualDataset ? { virtualDataset: form.virtualDataset } : {}),
     ...(form.viewId ? { viewId: form.viewId } : {}),
     ...(form.layerId ? { layerId: form.layerId } : {}),
     aggregation: form.aggregation,
@@ -1631,6 +1643,7 @@ export function WidgetFormFields({
   datasets,
   onChange,
 }: WidgetFormFieldsProps) {
+  const message = useMessage();
   const [previewResult, setPreviewResult] = useState<AnalyticsResult | null>(
     null,
   );
@@ -1679,14 +1692,12 @@ export function WidgetFormFields({
         label: getFieldLabel(field.code, field),
       }));
 
-  const numericFields = selectedFields.filter((field) =>
-    NUMERIC_FIELD_TYPES.has(field.fieldType),
-  );
+  const numericFields = selectedFields.filter((field) => isNumericField(field));
   const groupableFields = selectedFields.filter((field) =>
     GROUPABLE_FIELD_TYPES.has(field.fieldType),
   );
   const advancedNumericFields = advancedFields.filter((field) =>
-    NUMERIC_FIELD_TYPES.has(field.fieldType),
+    isNumericField(field),
   );
   const formulaFieldOption: FieldOption | null =
     form.advancedFormulaEnabled && form.advancedFormulaLabel.trim()
@@ -1787,7 +1798,7 @@ export function WidgetFormFields({
   const spatialSourceFields = spatialSourceLayer?.fields ?? [];
   const spatialZoneFields = spatialZoneLayer?.fields ?? [];
   const spatialMetricFields = spatialSourceFields.filter((field) =>
-    NUMERIC_FIELD_TYPES.has(field.fieldType),
+    isNumericField(field),
   );
   const spatialZoneLabelFields = spatialZoneFields.filter((field) =>
     GROUPABLE_FIELD_TYPES.has(field.fieldType),
@@ -2110,21 +2121,21 @@ export function WidgetFormFields({
                   }}
                 >
                   <option value="">— Chọn nguồn —</option>
-                  <optgroup label="Dataset">
+                  <optgroup label="Bộ dữ liệu">
                     {datasets.map((dataset) => (
                       <option key={dataset.id} value={`dataset:${dataset.id}`}>
                         {dataset.name}
                       </option>
                     ))}
                   </optgroup>
-                  <optgroup label="Saved View">
+                  <optgroup label="Chế độ xem đã lưu">
                     {savedViews.map((view) => (
                       <option key={view.id} value={`view:${view.id}`}>
                         {view.layerName} / {view.name}
                       </option>
                     ))}
                   </optgroup>
-                  <optgroup label="Layer">
+                  <optgroup label="Lớp dữ liệu">
                     {dataSources.map((source) => (
                       <option key={source.layerId} value={`layer:${source.layerId}`}>
                         {source.layerName}
@@ -3028,9 +3039,7 @@ export function WidgetFormFields({
                                 <input
                                   className={inputClass}
                                   type={
-                                    NUMERIC_FIELD_TYPES.has(
-                                      field?.fieldType ?? "",
-                                    )
+                                    isNumericField(field)
                                       ? "number"
                                       : isDateFieldType(field?.fieldType)
                                         ? "date"
@@ -3046,9 +3055,7 @@ export function WidgetFormFields({
                                     const nextValue =
                                       filter.operator === "in"
                                         ? event.target.value
-                                        : NUMERIC_FIELD_TYPES.has(
-                                              field?.fieldType ?? "",
-                                            )
+                                        : isNumericField(field)
                                           ? event.target.value === ""
                                             ? ""
                                             : Number(event.target.value)
@@ -3468,15 +3475,15 @@ export function WidgetFormFields({
                 className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white"
                 onClick={() => {
                   if (!form.advancedSourceId) {
-                    window.alert("Chọn nguồn dữ liệu trước khi áp dụng.");
+                    message.warning("Chọn nguồn dữ liệu trước khi áp dụng.");
                     return;
                   }
                   if (formulaValidationError) {
-                    window.alert(formulaValidationError);
+                    message.error(formulaValidationError);
                     return;
                   }
                   if (timeValidationError) {
-                    window.alert(timeValidationError);
+                    message.error(timeValidationError);
                     return;
                   }
                   if (
@@ -3484,14 +3491,14 @@ export function WidgetFormFields({
                     !form.metricField &&
                     !form.advancedFormulaEnabled
                   ) {
-                    window.alert("Chọn trường chỉ số trước khi áp dụng.");
+                    message.warning("Chọn trường chỉ số trước khi áp dụng.");
                     return;
                   }
                   if (
                     requiresAdvancedDimension(form.widgetType) &&
                     !form.dimensionField
                   ) {
-                    window.alert("Chọn trường phân nhóm trước khi áp dụng.");
+                    message.warning("Chọn trường phân nhóm trước khi áp dụng.");
                     return;
                   }
                   onChange({
@@ -3549,10 +3556,13 @@ export function WidgetFormFields({
               value={sourceValue}
               onChange={(e) => {
                 const [kind, id] = e.target.value.split(":");
+                const selectedSourceDataset =
+                  kind === "dataset"
+                    ? datasets.find((dataset) => dataset.id === id)
+                    : undefined;
                 const sourceName =
                   kind === "dataset"
-                    ? (datasets.find((dataset) => dataset.id === id)?.name ??
-                      "")
+                    ? (selectedSourceDataset?.name ?? "")
                     : kind === "view"
                       ? (() => {
                           const view = savedViews.find(
@@ -3587,6 +3597,12 @@ export function WidgetFormFields({
                 onChange({
                   ...form,
                   datasetId: kind === "dataset" ? id : "",
+                  virtualDataset:
+                    selectedSourceDataset &&
+                    isVirtualDataset(selectedSourceDataset) &&
+                    selectedSourceDataset.virtualDataset
+                      ? virtualDatasetSnapshot(selectedSourceDataset.virtualDataset)
+                      : undefined,
                   viewId: kind === "view" ? id : "",
                   layerId: kind === "legacy" ? id : "",
                   advancedSourceType:
@@ -3643,14 +3659,14 @@ export function WidgetFormFields({
                   </option>
                 ))}
               </optgroup>
-              <optgroup label="Saved View">
+              <optgroup label="Chế độ xem đã lưu">
                 {savedViews.map((view) => (
                   <option key={view.id} value={`view:${view.id}`}>
                     {view.layerName} / {view.name}
                   </option>
                 ))}
               </optgroup>
-              <optgroup label="Layer tương thích cũ">
+              <optgroup label="Lớp dữ liệu tương thích cũ">
                 {dataSources.map((source) => (
                   <option
                     key={source.layerId}

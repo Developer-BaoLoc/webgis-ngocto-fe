@@ -20,6 +20,8 @@ import {
   TableBadge,
 } from "@/components/ui/data-table";
 import type { DashboardListItem } from "@/types/api/dashboard";
+import { useMessage } from "@/providers/message-provider";
+import { logAuditAction } from "@/lib/audit/audit-log";
 
 const SCOPE_LABELS: Record<string, string> = {
   private: "Riêng tư",
@@ -29,6 +31,7 @@ const SCOPE_LABELS: Record<string, string> = {
 
 export function DashboardAdminPage() {
   const router = useRouter();
+  const message = useMessage();
   const [dashboards, setDashboards] = useState<DashboardListItem[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -67,9 +70,13 @@ export function DashboardAdminPage() {
       setShowCreate(false);
       setName("");
       setDescription("");
+      logAuditAction({ action: "dashboard.create", objectType: "dashboard", objectName: created.name, metadata: { dashboardId: created.id } });
+      message.success(`Đã tạo dashboard “${created.name}”.`);
       router.push(`/quan-tri/dashboard/${created.id}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Tạo dashboard thất bại");
+      const detail = err instanceof Error ? err.message : "Tạo dashboard thất bại";
+      setError(detail);
+      message.error(detail);
     } finally {
       setIsSubmitting(false);
     }
@@ -146,9 +153,9 @@ export function DashboardAdminPage() {
                 <DataTableCell>
                   <div className="flex flex-wrap gap-1.5">
                     {dashboard.hasPublished ? (
-                      <TableBadge variant="success">Published</TableBadge>
+                      <TableBadge variant="success">Đã xuất bản</TableBadge>
                     ) : (
-                      <TableBadge variant="warning">Draft</TableBadge>
+                      <TableBadge variant="warning">Bản nháp</TableBadge>
                     )}
                   </div>
                 </DataTableCell>

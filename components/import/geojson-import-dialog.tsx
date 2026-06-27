@@ -25,6 +25,7 @@ import type { SchemaField } from "@/types/api/schema";
 import type { GeoJsonGeometry } from "@/types/gis.types";
 import type { ImportColumnSuggestion } from "@/types/api/import";
 import type { FieldTypeMeta } from "@/types/api/metadata";
+import { useMessage } from "@/providers/message-provider";
 
 const GEOJSON_ACCEPT = ".geojson,.json,application/geo+json,application/json";
 const LOCAL_PARSE_LIMIT = 25 * 1024 * 1024;
@@ -272,7 +273,7 @@ async function inspectLocalFile(file: File): Promise<LocalFileInfo> {
       geometryTypes: [],
       propertyKeys: COMMON_OSM_KEYS,
       warning:
-        "File lớn nên trình duyệt không đọc toàn bộ. Số feature và geometry sẽ lấy từ preview backend.",
+        "Tệp lớn nên trình duyệt không đọc toàn bộ. Số đối tượng và hình học sẽ lấy từ bản xem trước của máy chủ.",
     };
   }
 
@@ -328,6 +329,7 @@ export function GeoJsonImportDialog({
   onClose,
   onSuccess,
 }: GeoJsonImportDialogProps) {
+  const message = useMessage();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const boundaryInputRef = useRef<HTMLInputElement>(null);
   const [step, setStep] = useState<Step>("upload");
@@ -459,7 +461,7 @@ export function GeoJsonImportDialog({
           previous,
         ),
       );
-      setNotice({ kind: "success", message: "Upload GeoJSON thành công." });
+      setNotice({ kind: "success", message: "Tải GeoJSON lên thành công." });
       await runPreview(uploaded.importId, "none", null, mappingRows);
       setStep("preview");
     } catch (error) {
@@ -508,11 +510,11 @@ export function GeoJsonImportDialog({
           previous,
         ),
       );
-      setNotice({ kind: "success", message: "Preview GeoJSON đã cập nhật." });
+      setNotice({ kind: "success", message: "Bản xem trước GeoJSON đã cập nhật." });
     } catch (error) {
       setNotice({
         kind: "error",
-        message: error instanceof Error ? error.message : "Preview thất bại",
+        message: error instanceof Error ? error.message : "Xem trước thất bại",
       });
     } finally {
       setIsLoading(false);
@@ -525,11 +527,11 @@ export function GeoJsonImportDialog({
       const parsed = JSON.parse(await fileToRead.text()) as unknown;
       const geometry = extractBoundaryGeometry(parsed);
       if (!geometry) {
-        throw new Error("File boundary phải là Polygon/MultiPolygon GeoJSON");
+        throw new Error("Tệp ranh giới phải là GeoJSON Polygon/MultiPolygon");
       }
       setFilterBoundary(geometry);
       setFilterChoice("polygon");
-      setNotice({ kind: "success", message: "Đã nhận polygon filter." });
+      setNotice({ kind: "success", message: "Đã nhận bộ lọc vùng." });
     } catch (error) {
       setNotice({
         kind: "error",
@@ -549,13 +551,12 @@ export function GeoJsonImportDialog({
     }
 
     const newFields = selectedNewFields(newFieldDrafts);
-    if (
-      !confirm(
-        `Import ${formatNumber(preview.accepted)} features vào lớp ${layerName}?`,
-      )
-    ) {
-      return;
-    }
+    const confirmed = await message.confirm({
+      title: "Xác nhận import GeoJSON",
+      description: `Import ${formatNumber(preview.accepted)} features vào lớp ${layerName}?`,
+      confirmLabel: "Bắt đầu import",
+    });
+    if (!confirmed) return;
 
     setIsLoading(true);
     setNotice({ kind: "info", message: "Đang import GeoJSON..." });
@@ -587,7 +588,7 @@ export function GeoJsonImportDialog({
         durationMs: elapsed,
       });
       setStep("done");
-      setNotice({ kind: "success", message: "Import GeoJSON thành công." });
+      setNotice({ kind: "success", message: "Nhập GeoJSON thành công." });
       onSuccess();
     } catch (error) {
       const elapsed = Date.now() - startedAt;
@@ -623,7 +624,7 @@ export function GeoJsonImportDialog({
       >
         <div className="space-y-5">
           <div className="flex flex-wrap items-center gap-2 border-b border-border pb-4">
-            {["Upload", "Preview", "Filter", "Execute"].map((label, index) => (
+            {["Tải lên", "Xem trước", "Bộ lọc", "Thực hiện"].map((label, index) => (
               <div
                 key={label}
                 className={cn(
@@ -719,7 +720,7 @@ export function GeoJsonImportDialog({
                     value={formatBytes(file.size)}
                   />
                   <Metric
-                    label="Số feature"
+                    label="Số đối tượng"
                     value={
                       localInfo?.featureCount !== undefined
                         ? formatNumber(localInfo.featureCount)
@@ -727,7 +728,7 @@ export function GeoJsonImportDialog({
                     }
                   />
                   <Metric
-                    label="Geometry type"
+                    label="Loại hình học"
                     value={geometryTypes.length ? geometryTypes.join(", ") : "Chưa rõ"}
                   />
                 </div>
@@ -797,7 +798,7 @@ export function GeoJsonImportDialog({
                   onClick={() => runPreview()}
                   className="rounded-lg border border-primary px-4 py-2.5 text-sm font-medium text-primary hover:bg-blue-50 disabled:opacity-50"
                 >
-                  {isLoading ? "Đang preview..." : "Preview lại"}
+                  {isLoading ? "Đang xem trước..." : "Xem trước lại"}
                 </button>
                 <button
                   type="button"
@@ -805,7 +806,7 @@ export function GeoJsonImportDialog({
                   onClick={() => setStep("filter")}
                   className="rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-white hover:bg-primary-dark disabled:opacity-50"
                 >
-                  Tiếp tục chọn filter
+                  Tiếp tục chọn bộ lọc
                 </button>
                 <button
                   type="button"
@@ -897,7 +898,7 @@ export function GeoJsonImportDialog({
                   onClick={() => setStep("preview")}
                   className="rounded-lg border border-border px-4 py-2.5 text-sm font-medium text-muted hover:bg-slate-50"
                 >
-                  Back
+                  Quay lại
                 </button>
                 <button
                   type="button"
@@ -910,7 +911,7 @@ export function GeoJsonImportDialog({
                   }}
                   className="rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-white hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {isLoading ? "Đang lọc..." : "Preview filter"}
+                  {isLoading ? "Đang lọc..." : "Xem trước kết quả lọc"}
                 </button>
               </div>
             </section>
@@ -921,7 +922,7 @@ export function GeoJsonImportDialog({
               <div className="rounded-xl border border-border bg-slate-50 px-4 py-4">
                 <p className="text-sm text-muted">Bạn sắp import</p>
                 <p className="mt-1 text-2xl font-semibold text-foreground">
-                  {formatNumber(preview.accepted)} features
+                  {formatNumber(preview.accepted)} đối tượng
                 </p>
                 <div className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
                   <p>
@@ -1024,7 +1025,7 @@ export function GeoJsonImportDialog({
             setFilterBoundary(areaPolygonToGeoJson(value));
             setFilterChoice("polygon");
             setPolygonPickerOpen(false);
-            setNotice({ kind: "success", message: "Đã vẽ polygon filter." });
+            setNotice({ kind: "success", message: "Đã vẽ bộ lọc vùng." });
           }}
         />
       )}
@@ -1050,11 +1051,11 @@ function SummaryGrid({ preview }: { preview: GeoJsonImportSummary | null }) {
   return (
     <div className="space-y-3">
       <div className="grid gap-3 sm:grid-cols-4">
-        <Metric label="Total" value={formatNumber(preview?.totalFeatures)} />
-        <Metric label="Accepted" value={formatNumber(preview?.accepted)} />
-        <Metric label="Rejected" value={formatNumber(preview?.rejected)} />
+        <Metric label="Tổng số" value={formatNumber(preview?.totalFeatures)} />
+        <Metric label="Được chấp nhận" value={formatNumber(preview?.accepted)} />
+        <Metric label="Bị từ chối" value={formatNumber(preview?.rejected)} />
         <Metric
-          label="Geometry Types"
+          label="Loại hình học"
           value={Object.keys(preview?.geometryTypes ?? {}).join(", ") || "—"}
         />
       </div>
@@ -1063,14 +1064,14 @@ function SummaryGrid({ preview }: { preview: GeoJsonImportSummary | null }) {
         <div className="grid gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3 sm:grid-cols-4">
           <Metric label="Số vùng" value={formatNumber(polygonStats.total)} />
           <Metric
-            label="Polygon hợp lệ"
+            label="Vùng hợp lệ"
             value={formatNumber(polygonStats.valid)}
           />
           <Metric
             label="Tự đóng vòng"
             value={formatNumber(polygonStats.autoClosed)}
           />
-          <Metric label="Polygon lỗi" value={formatNumber(polygonStats.invalid)} />
+          <Metric label="Vùng bị lỗi" value={formatNumber(polygonStats.invalid)} />
         </div>
       )}
     </div>
@@ -1119,7 +1120,7 @@ function PropertyMappingTable({
           <thead className="bg-slate-50 text-left text-xs uppercase text-muted">
             <tr>
               <th className="px-3 py-2">GeoJSON</th>
-              <th className="px-3 py-2">Layer</th>
+              <th className="px-3 py-2">Lớp dữ liệu</th>
               <th className="w-16 px-3 py-2" />
             </tr>
           </thead>
@@ -1133,7 +1134,7 @@ function PropertyMappingTable({
                     onChange={(event) =>
                       updateRow(index, { sourceKey: event.target.value })
                     }
-                    className="h-9 w-full rounded-md border border-border px-2 text-sm"
+                    className="ioc-select h-9"
                     placeholder="name"
                   />
                 </td>
@@ -1145,7 +1146,7 @@ function PropertyMappingTable({
                     }
                     className="h-9 w-full rounded-md border border-border px-2 text-sm"
                   >
-                    <option value="">Không map</option>
+                    <option value="">Không liên kết</option>
                     {fields.map((field) => (
                       <option key={field.code} value={field.code}>
                         {field.code} — {field.label}
@@ -1197,14 +1198,14 @@ function PreviewSample({ preview }: { preview: GeoJsonImportSummary | null }) {
   if (!preview) return null;
   return (
     <div className="space-y-3">
-      <h3 className="text-sm font-semibold text-foreground">Sample records</h3>
+      <h3 className="text-sm font-semibold text-foreground">Bản ghi mẫu</h3>
       <div className="overflow-x-auto rounded-lg border border-border">
         <table className="min-w-full divide-y divide-border text-sm">
           <thead className="bg-slate-50 text-left text-xs uppercase text-muted">
             <tr>
               <th className="px-3 py-2">STT</th>
-              <th className="px-3 py-2">Geometry</th>
-              <th className="px-3 py-2">Properties</th>
+              <th className="px-3 py-2">Hình học</th>
+              <th className="px-3 py-2">Thuộc tính</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border bg-white">
@@ -1281,7 +1282,7 @@ function HistoryTable({
           onClick={onBack}
           className="rounded-lg border border-border px-3 py-2 text-sm font-medium text-muted hover:bg-slate-50"
         >
-          Back
+          Quay lại
         </button>
       </div>
 
@@ -1289,12 +1290,12 @@ function HistoryTable({
         <table className="min-w-full divide-y divide-border text-sm">
           <thead className="bg-slate-50 text-left text-xs uppercase text-muted">
             <tr>
-              <th className="px-3 py-2">Time</th>
-              <th className="px-3 py-2">File</th>
-              <th className="px-3 py-2">Filter</th>
-              <th className="px-3 py-2">Inserted</th>
-              <th className="px-3 py-2">Rejected</th>
-              <th className="px-3 py-2">Status</th>
+              <th className="px-3 py-2">Thời gian</th>
+              <th className="px-3 py-2">Tệp</th>
+              <th className="px-3 py-2">Bộ lọc</th>
+              <th className="px-3 py-2">Đã thêm</th>
+              <th className="px-3 py-2">Bị từ chối</th>
+              <th className="px-3 py-2">Trạng thái</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border bg-white">
@@ -1307,7 +1308,9 @@ function HistoryTable({
                 <td className="px-3 py-2">{item.filterLabel}</td>
                 <td className="px-3 py-2">{formatNumber(item.inserted)}</td>
                 <td className="px-3 py-2">{formatNumber(item.rejected)}</td>
-                <td className="px-3 py-2">{item.status}</td>
+                <td className="px-3 py-2">
+                  {item.status === "Success" ? "Thành công" : "Thất bại"}
+                </td>
               </tr>
             ))}
             {history.length === 0 && (

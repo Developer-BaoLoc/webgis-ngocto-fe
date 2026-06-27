@@ -290,7 +290,7 @@ export function LayerImportDialog({
                 <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
                   <p className="font-medium">
                     {previewState.message ??
-                      "File có lỗi — sửa các dòng bên dưới rồi upload lại."}
+                      "Tệp có lỗi — sửa các dòng bên dưới rồi tải lên lại."}
                   </p>
                   <p className="mt-1">Sửa file Excel và tải lên lại.</p>
                 </div>
@@ -300,7 +300,7 @@ export function LayerImportDialog({
 
             {canImport && (
               <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-                {previewState.message ?? "File hợp lệ — có thể import."}
+                {previewState.message ?? "Tệp hợp lệ — có thể nhập dữ liệu."}
               </div>
             )}
 

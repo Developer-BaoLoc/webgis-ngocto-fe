@@ -20,6 +20,7 @@ import type {
   RelationshipResolveAgainResult,
 } from "@/types/api/metadata";
 import type { SchemaField } from "@/types/api/schema";
+import { useMessage } from "@/providers/message-provider";
 
 interface FieldConfigFormProps {
   fieldType: string;
@@ -136,6 +137,7 @@ function RelationshipConfigForm({
   fieldCode?: string;
   onChange: (dataSchema: Record<string, unknown>) => void;
 }) {
+  const message = useMessage();
   const [layers, setLayers] = useState<AdminLayer[]>([]);
   const [targetFields, setTargetFields] = useState<SchemaField[]>([]);
   const [loadingLayers, setLoadingLayers] = useState(false);
@@ -407,13 +409,12 @@ function RelationshipConfigForm({
       );
       return;
     }
-    if (
-      !confirm(
-        `Resolve lại relationship cho field "${effectiveFieldCode}"? Dữ liệu text khớp sẽ được chuyển thành feature id.`,
-      )
-    ) {
-      return;
-    }
+    const confirmed = await message.confirm({
+      title: "Resolve lại relationship?",
+      description: `Field “${effectiveFieldCode}” sẽ chuyển dữ liệu text khớp thành feature id.`,
+      confirmLabel: "Resolve lại",
+    });
+    if (!confirmed) return;
     setResolving(true);
     setActionError(null);
     setResolveResult(null);
@@ -624,9 +625,9 @@ function RelationshipConfigForm({
               handleRelationTypeChange(event.target.value)
             }
           >
-            <option value="many-to-one">Many-to-One</option>
-            <option value="one-to-many">One-to-Many</option>
-            <option value="many-to-many">Many-to-Many</option>
+            <option value="many-to-one">Nhiều - một</option>
+            <option value="one-to-many">Một - nhiều</option>
+            <option value="many-to-many">Nhiều - nhiều</option>
           </select>
         </div>
 
@@ -649,7 +650,7 @@ function RelationshipConfigForm({
         </div>
 
         <div>
-          <label className="block text-sm font-medium">Foreign Key field</label>
+          <label className="block text-sm font-medium">Trường khóa ngoại</label>
           <input
             className={inputClass}
             value={String(dataSchema.foreignKey ?? "")}
@@ -657,12 +658,12 @@ function RelationshipConfigForm({
             placeholder={effectiveForeignKey}
           />
           <p className="mt-1 text-xs text-muted">
-            Tên field ẩn dùng để lưu ID bản ghi được liên kết. Người dùng thường không cần chỉnh.
+            Tên trường ẩn dùng để lưu ID bản ghi được liên kết. Người dùng thường không cần chỉnh.
           </p>
         </div>
 
         <div>
-          <label className="block text-sm font-medium">Display Field *</label>
+          <label className="block text-sm font-medium">Trường hiển thị *</label>
           <select
             className={inputClass}
             required
@@ -672,7 +673,7 @@ function RelationshipConfigForm({
               patch({ targetDisplayField: event.target.value })
             }
           >
-            <option value="">— Chọn field hiển thị —</option>
+            <option value="">— Chọn trường hiển thị —</option>
             {fieldOptions.map((field) => (
               <option key={field.code} value={field.code}>
                 {field.label}
@@ -680,19 +681,19 @@ function RelationshipConfigForm({
             ))}
           </select>
           <p className="mt-1 text-xs text-muted">
-            Field ở layer đích dùng làm nhãn hiển thị thay cho ID.
+            Trường ở lớp đích dùng làm nhãn hiển thị thay cho ID.
           </p>
         </div>
 
         <div>
-          <label className="block text-sm font-medium">Match Field khi import</label>
+          <label className="block text-sm font-medium">Trường đối chiếu khi nhập dữ liệu</label>
           <select
             className={inputClass}
             disabled={!targetLayerId || loadingFields}
             value={String(dataSchema.matchField ?? "")}
             onChange={(event) => patch({ matchField: event.target.value })}
           >
-            <option value="">Theo Display Field</option>
+            <option value="">Theo trường hiển thị</option>
             {fieldOptions.map((field) => (
               <option key={field.code} value={field.code}>
                 {field.label}
@@ -700,7 +701,7 @@ function RelationshipConfigForm({
             ))}
           </select>
           <p className="mt-1 text-xs text-muted">
-            Khi import text, hệ thống dùng field này để tìm bản ghi cha.
+            Khi nhập văn bản, hệ thống dùng trường này để tìm bản ghi cha.
           </p>
         </div>
 
@@ -724,7 +725,7 @@ function RelationshipConfigForm({
 
       {relationType === "many-to-many" && (
         <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-          Many-to-Many đã lưu được metadata để mở rộng, nhưng UI nhập liệu/import hiện ưu tiên Many-to-One và One-to-Many.
+          Quan hệ nhiều - nhiều đã lưu được siêu dữ liệu để mở rộng, nhưng giao diện nhập dữ liệu hiện ưu tiên quan hệ nhiều - một và một - nhiều.
         </p>
       )}
 
@@ -746,12 +747,12 @@ function RelationshipConfigForm({
                   patch({ popupDisplayMode: event.target.value })
                 }
               >
-                <option value="table">Bảng trên desktop, card trên mobile</option>
-                <option value="cards">Card list</option>
+                <option value="table">Bảng trên máy tính, thẻ trên di động</option>
+                <option value="cards">Danh sách thẻ</option>
               </select>
             </div>
             <div className="sm:col-span-2">
-              <p className="mb-2 text-sm font-medium">Field hiển thị</p>
+              <p className="mb-2 text-sm font-medium">Trường hiển thị</p>
               <div className="grid max-h-40 gap-2 overflow-y-auto rounded-lg border border-border bg-slate-50 p-2 sm:grid-cols-2">
                 {targetFields
                   .filter((field) => field.code !== effectiveForeignKey)

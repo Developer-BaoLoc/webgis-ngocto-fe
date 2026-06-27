@@ -50,7 +50,7 @@ const sections = [
   },
   {
     href: "/quan-tri/saved-views",
-    title: "Saved Views",
+    title: "Chế độ xem đã lưu",
     description:
       "Tạo nguồn dữ liệu đã lọc, sắp xếp và chọn trường để dùng lại trong dashboard widget.",
     accent: "emerald" as const,

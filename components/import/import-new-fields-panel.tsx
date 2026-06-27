@@ -136,7 +136,7 @@ export function validateNewFieldDrafts(
   for (const field of drafts) {
     if (!field.create) continue;
     if (!field.code.trim() || !field.label.trim()) {
-      return `Field "${field.sourceColumn}" cần có code và label.`;
+      return `Trường "${field.sourceColumn}" cần có mã và nhãn.`;
     }
     const selectedType = fieldTypes.find(
       (type) => type.type === field.fieldType,
@@ -243,13 +243,13 @@ export function ImportNewFieldsPanel({
         <table className="min-w-full divide-y divide-border text-sm">
           <thead className="bg-amber-50 text-left text-xs uppercase text-amber-900">
             <tr>
-              <th className="px-3 py-2">Column trong file</th>
+              <th className="px-3 py-2">Cột trong tệp</th>
               <th className="px-3 py-2">Đã tồn tại</th>
-              <th className="px-3 py-2">Tạo field mới</th>
-              <th className="px-3 py-2">Field code</th>
-              <th className="px-3 py-2">Label</th>
+              <th className="px-3 py-2">Tạo trường mới</th>
+              <th className="px-3 py-2">Mã trường</th>
+              <th className="px-3 py-2">Nhãn</th>
               <th className="px-3 py-2">Kiểu dữ liệu</th>
-              <th className="px-3 py-2">Required</th>
+              <th className="px-3 py-2">Bắt buộc</th>
               <th className="px-3 py-2">Cấu hình</th>
               <th className="px-3 py-2">Gợi ý</th>
             </tr>

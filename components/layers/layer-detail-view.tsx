@@ -18,7 +18,8 @@ import {
 } from "@/lib/api/layers";
 import { getFieldTypes, getRelationshipSuggestions } from "@/lib/api/metadata";
 import { downloadLayerImportTemplate } from "@/lib/api/layer-imports";
-import { deleteRecord, getLayerRecords } from "@/lib/api/records";
+import { deleteRecord, getAllLayerRecords } from "@/lib/api/records";
+import { useMessage } from "@/providers/message-provider";
 import { getFieldTypesForLayerGeometry } from "@/lib/fields/field-types";
 import { enrichFieldTypes } from "@/lib/i18n/vi";
 import { toLayer } from "@/lib/layers/adapter";
@@ -33,6 +34,7 @@ interface LayerDetailViewProps {
 }
 
 export function LayerDetailView({ code }: LayerDetailViewProps) {
+  const message = useMessage();
   const [layer, setLayer] = useState<Layer | null>(null);
   const [layerName, setLayerName] = useState("");
   const [layerId, setLayerId] = useState("");
@@ -45,9 +47,6 @@ export function LayerDetailView({ code }: LayerDetailViewProps) {
     RelationshipSuggestion[]
   >([]);
   const [total, setTotal] = useState(0);
-  const [totalPages, setTotalPages] = useState(1);
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -84,9 +83,7 @@ export function LayerDetailView({ code }: LayerDetailViewProps) {
 
       const [schemaData, recordsData, suggestionsData] = await Promise.all([
         getLayerSchema(layerData.id),
-        getLayerRecords(layerData.id, {
-          page,
-          pageSize,
+        getAllLayerRecords(layerData.id, {
           sortBy: "createdAt",
           sortOrder: "desc",
         }),
@@ -94,18 +91,9 @@ export function LayerDetailView({ code }: LayerDetailViewProps) {
       ]);
 
       setSchema(schemaData);
-      setRecords(recordsData.records);
+      setRecords(recordsData);
       setRelationshipSuggestions(suggestionsData);
-      const recordTotal = recordsData.meta.total ?? recordsData.records.length;
-      const pages =
-        recordsData.meta.totalPages ??
-        Math.max(1, Math.ceil(recordTotal / pageSize));
-      setTotal(recordTotal);
-      setTotalPages(pages);
-
-      if (recordsData.records.length === 0 && page > 1) {
-        setPage(page - 1);
-      }
+      setTotal(recordsData.length);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Không tải được dữ liệu lớp");
       setRelationshipSuggestions([]);
@@ -114,20 +102,12 @@ export function LayerDetailView({ code }: LayerDetailViewProps) {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, [code, page, pageSize]);
+  }, [code]);
 
   useEffect(() => {
-    loadData();
+    const timer = window.setTimeout(() => void loadData(), 0);
+    return () => window.clearTimeout(timer);
   }, [loadData]);
-
-  function handlePageChange(nextPage: number) {
-    setPage(nextPage);
-  }
-
-  function handlePageSizeChange(nextPageSize: number) {
-    setPageSize(nextPageSize);
-    setPage(1);
-  }
 
   function openCreate() {
     setEditingRecord(null);
@@ -140,12 +120,22 @@ export function LayerDetailView({ code }: LayerDetailViewProps) {
   }
 
   async function handleDelete(record: RecordItem) {
-    if (!layerId || !confirm("Xóa bản ghi này?")) return;
+    if (!layerId) return;
+    const confirmed = await message.confirm({
+      title: "Xóa bản ghi?",
+      description: "Bản ghi sẽ bị xóa khỏi hệ thống. API hiện chưa hỗ trợ khôi phục sau khi xóa.",
+      confirmLabel: "Xóa bản ghi",
+      danger: true,
+    });
+    if (!confirmed) return;
     try {
       await deleteRecord(layerId, record.id);
       await loadData();
+      message.warning("Đã xóa bản ghi. Không thể hoàn tác sau khi lưu trên server.");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Xóa thất bại");
+      const detail = e instanceof Error ? e.message : "Xóa thất bại";
+      setError(detail);
+      message.error(detail);
     }
   }
 
@@ -157,6 +147,7 @@ export function LayerDetailView({ code }: LayerDetailViewProps) {
   function handleFormSuccess() {
     closeForm();
     loadData();
+    message.success("Đã lưu bản ghi.");
   }
 
   async function handleDownloadTemplate() {
@@ -165,8 +156,11 @@ export function LayerDetailView({ code }: LayerDetailViewProps) {
     setError(null);
     try {
       await downloadLayerImportTemplate(layerId, layerName);
+      message.success("Đã tải file mẫu import.");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Không tải được file mẫu");
+      const detail = e instanceof Error ? e.message : "Không tải được file mẫu";
+      setError(detail);
+      message.error(detail);
     } finally {
       setTemplateLoading(false);
     }
@@ -200,11 +194,6 @@ export function LayerDetailView({ code }: LayerDetailViewProps) {
                     <span className="rounded-full bg-slate-100 px-2.5 py-0.5 font-medium text-foreground">
                       {total} bản ghi
                     </span>
-                    {!isLoading && total > 0 && totalPages > 1 && (
-                      <span>
-                        Trang {page}/{totalPages}
-                      </span>
-                    )}
                     <span className="font-mono uppercase tracking-wide">
                       {code}
                     </span>
@@ -258,13 +247,11 @@ export function LayerDetailView({ code }: LayerDetailViewProps) {
               fields={schema?.fields ?? []}
               records={records}
               total={total}
-              totalPages={totalPages}
-              page={page}
-              pageSize={pageSize}
-              onPageChange={handlePageChange}
-              onPageSizeChange={handlePageSizeChange}
               onEdit={openEdit}
               onDelete={handleDelete}
+              tableName={layerName || code}
+              layerId={layerId}
+              tableId="layer-records"
               isLoading={isLoading}
               isRefreshing={isRefreshing}
               emptyAction={

@@ -6,6 +6,10 @@ import type { ErrorInfo, ReactNode } from "react";
 import { previewAnalytics } from "@/lib/api/analytics";
 import { advancedQueryToDataSourceConfig } from "@/lib/dashboard/advanced-query";
 import {
+  isVirtualDatasetId,
+  previewVirtualDatasetAnalytics,
+} from "@/lib/dashboard/virtual-datasets";
+import {
   isTopAnalyticsResult,
   type AnalyticsResult,
   type DashboardWidget,
@@ -128,9 +132,16 @@ function AnalyticsWidget({ widget }: { widget: DashboardWidget }) {
     setError(null);
     setData(null);
 
-    previewAnalytics({ dataSourceConfig })
+    const request = isVirtualDatasetId(dataSourceConfig.datasetId)
+      ? previewVirtualDatasetAnalytics(dataSourceConfig)
+      : previewAnalytics({ dataSourceConfig });
+
+    request
       .then((result) => {
-        if (!cancelled) setData(result);
+        if (!cancelled) {
+          if (result) setData(result);
+          else setError("Dataset tạm không còn trong phiên builder");
+        }
       })
       .catch((requestError) => {
         if (!cancelled) {
@@ -168,7 +179,7 @@ function AnalyticsWidget({ widget }: { widget: DashboardWidget }) {
   );
 }
 
-function withAnalyticsFieldLabels(
+export function withAnalyticsFieldLabels(
   widget: DashboardWidget,
   data: AnalyticsResult,
 ): DashboardWidget {
@@ -189,7 +200,7 @@ function withAnalyticsFieldLabels(
   };
 }
 
-function WidgetDataContent({
+export function WidgetDataContent({
   widget,
   data,
 }: {

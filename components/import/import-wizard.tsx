@@ -25,7 +25,7 @@ import type {
 const STEPS: { id: ImportWizardStep; label: string }[] = [
   { id: "template", label: "Chọn template" },
   { id: "upload", label: "Upload file" },
-  { id: "preview", label: "Preview" },
+  { id: "preview", label: "Xem trước" },
   { id: "importing", label: "Import" },
   { id: "done", label: "Hoàn tất" },
 ];
@@ -182,8 +182,8 @@ export function ImportWizard() {
   return (
     <div className="space-y-8">
       <PageHeader
-        title="Import dữ liệu"
-        description="Upload Excel → preview 20 dòng → thực hiện import nền"
+        title="Nhập dữ liệu"
+        description="Tải tệp Excel → xem trước 20 dòng → thực hiện nhập dữ liệu nền"
       />
 
       {/* Stepper */}
