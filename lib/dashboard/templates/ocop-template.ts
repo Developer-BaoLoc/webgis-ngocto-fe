@@ -4,7 +4,7 @@ import { fieldPlaceholder as field, layerPlaceholder as layer } from "./placehol
 const ocopPlaceholders = [
   {
     key: "facility_layer",
-    label: "Layer cơ sở OCOP",
+    label: "Lớp dữ liệu cơ sở OCOP",
     kind: "layer" as const,
     required: true,
     geometryType: "any" as const,
@@ -12,7 +12,7 @@ const ocopPlaceholders = [
   },
   {
     key: "product_layer",
-    label: "Layer sản phẩm OCOP",
+    label: "Lớp dữ liệu sản phẩm OCOP",
     kind: "layer" as const,
     required: true,
     geometryType: "any" as const,
@@ -20,7 +20,7 @@ const ocopPlaceholders = [
   },
   {
     key: "facility_name_field",
-    label: "Field tên cơ sở",
+    label: "Trường tên cơ sở",
     kind: "field" as const,
     required: true,
     fieldTypes: ["text", "string", "select", "category"],
@@ -28,7 +28,7 @@ const ocopPlaceholders = [
   },
   {
     key: "product_name_field",
-    label: "Field tên sản phẩm",
+    label: "Trường tên sản phẩm",
     kind: "field" as const,
     required: true,
     fieldTypes: ["text", "string", "select", "category"],
@@ -36,7 +36,7 @@ const ocopPlaceholders = [
   },
   {
     key: "rating_field",
-    label: "Field xếp hạng OCOP",
+    label: "Trường xếp hạng OCOP",
     kind: "dimension_field" as const,
     required: true,
     fieldTypes: ["text", "string", "select", "enum", "category", "number", "integer"],
@@ -44,7 +44,7 @@ const ocopPlaceholders = [
   },
   {
     key: "product_type_field",
-    label: "Field nhóm sản phẩm",
+    label: "Trường nhóm sản phẩm",
     kind: "dimension_field" as const,
     required: false,
     fieldTypes: ["text", "string", "select", "enum", "category"],
@@ -56,7 +56,7 @@ export const ocopTemplate: DashboardTemplate = {
   id: "template-ocop",
   code: "ocop",
   name: "OCOP",
-  description: "Dashboard nhanh cho cơ sở, sản phẩm và xếp hạng OCOP.",
+  description: "Bảng điều khiển nhanh cho cơ sở, sản phẩm và xếp hạng OCOP.",
   category: "ocop",
   icon: "badge",
   tags: ["OCOP", "sản phẩm", "cơ sở"],

@@ -48,6 +48,7 @@ export function SidebarUserPanel({
             type="button"
             onClick={onLogout}
             title="Đăng xuất"
+            aria-label="Đăng xuất"
             className="flex h-8 w-8 items-center justify-center rounded-lg border border-border text-muted transition-colors hover:bg-slate-50 hover:text-foreground"
           >
             <LogoutIcon />

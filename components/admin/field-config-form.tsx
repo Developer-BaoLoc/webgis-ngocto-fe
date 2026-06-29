@@ -411,7 +411,7 @@ function RelationshipConfigForm({
     }
     const confirmed = await message.confirm({
       title: "Resolve lại relationship?",
-      description: `Field “${effectiveFieldCode}” sẽ chuyển dữ liệu text khớp thành feature id.`,
+      description: `Trường “${effectiveFieldCode}” sẽ chuyển dữ liệu văn bản khớp thành ID đối tượng.`,
       confirmLabel: "Resolve lại",
     });
     if (!confirmed) return;
@@ -579,7 +579,7 @@ function RelationshipConfigForm({
                   <p>
                     Hệ thống đã tìm thấy liên kết:{" "}
                     <strong>
-                      {targetLayer?.name ?? "Layer con"}.
+                      {targetLayer?.name ?? "Lớp dữ liệu con"}.
                       {reverseManyToOne.label}
                     </strong>{" "}
                     → <strong>{sourceLayer?.name ?? "layer hiện tại"}</strong>
@@ -632,7 +632,7 @@ function RelationshipConfigForm({
         </div>
 
         <div>
-          <label className="block text-sm font-medium">Target Table / Layer *</label>
+          <label className="block text-sm font-medium">Bảng / lớp dữ liệu đích *</label>
           <select
             className={inputClass}
             required

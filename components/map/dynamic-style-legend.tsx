@@ -6,6 +6,7 @@ import {
 } from "@/lib/layers/dynamic-style";
 import { extractStyleFromLayer } from "@/lib/layers/style";
 import { resolvePublicAssetUrl } from "@/lib/api/assets";
+import { LayerSymbol } from "@/components/layers/layer-symbol";
 import { getFieldLabel, type FieldLabelMetadata } from "@/lib/fields/field-label";
 import type { Layer } from "@/types/layer.types";
 
@@ -28,7 +29,7 @@ export function DynamicStyleLegend({ layers }: { layers: Layer[] }) {
     return (
       <button
         type="button"
-        aria-label="Mở chú giải màu layer"
+        aria-label="Mở chú giải màu lớp dữ liệu"
         className="map-layer-legend-toggle"
         onClick={() => setCollapsed(false)}
       >
@@ -40,7 +41,7 @@ export function DynamicStyleLegend({ layers }: { layers: Layer[] }) {
 
   return (
     <aside
-      aria-label="Chú giải màu layer"
+      aria-label="Chú giải màu lớp dữ liệu"
       className="map-layer-legend"
     >
       <div className="map-layer-legend-header">
@@ -65,12 +66,15 @@ export function DynamicStyleLegend({ layers }: { layers: Layer[] }) {
         );
         return (
           <section key={layer.id} className="map-layer-legend-section">
-            <h3
-              className="map-layer-legend-title"
-              title={layer.name}
-            >
-              {layer.name}
-            </h3>
+            <div className="flex min-w-0 items-center gap-2">
+              <LayerSymbol layer={layer} size="xs" />
+              <h3
+                className="map-layer-legend-title min-w-0 flex-1"
+                title={layer.name}
+              >
+                {layer.name}
+              </h3>
+            </div>
             <p
               className="map-layer-legend-meta"
               title={fieldLabel}

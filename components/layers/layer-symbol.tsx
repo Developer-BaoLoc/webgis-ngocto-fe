@@ -1,10 +1,21 @@
+"use client";
+
+import { useState } from "react";
 import { resolvePublicAssetUrl } from "@/lib/api/assets";
 import { extractStyleFromLayer } from "@/lib/layers/style";
-import type { Layer } from "@/types/layer.types";
+import type { LayerStyle } from "@/types/api/admin";
 import { cn } from "@/lib/utils";
 
-export function getLayerIconUrl(layer: Layer): string | null {
-  if (layer.geometryType !== "point" && layer.geometryKind !== "point") {
+interface LayerSymbolData {
+  geometryType?: string;
+  geometryKind?: string;
+  style?: LayerStyle | Record<string, unknown>;
+  color?: string;
+}
+
+export function getLayerIconUrl(layer: LayerSymbolData): string | null {
+  const geometry = String(layer.geometryType ?? layer.geometryKind ?? "").toLowerCase();
+  if (geometry !== "point" && geometry !== "polygon") {
     return null;
   }
 
@@ -23,15 +34,25 @@ export function LayerSymbol({
   layer,
   size = "md",
 }: {
-  layer: Layer;
-  size?: "sm" | "md" | "lg";
+  layer: LayerSymbolData;
+  size?: "xs" | "sm" | "md" | "lg";
 }) {
   const iconUrl = getLayerIconUrl(layer);
+  const [failedIconUrl, setFailedIconUrl] = useState<string | null>(null);
   const style = extractStyleFromLayer(layer);
+  const geometryKind = String(
+    layer.geometryKind ?? layer.geometryType ?? "",
+  ).toLowerCase();
   const boxClass =
-    size === "sm" ? "h-8 w-8" : size === "lg" ? "h-12 w-12" : "h-10 w-10";
+    size === "xs"
+      ? "h-6 w-6"
+      : size === "sm"
+        ? "h-8 w-8"
+        : size === "lg"
+          ? "h-12 w-12"
+          : "h-10 w-10";
 
-  if (iconUrl) {
+  if (iconUrl && failedIconUrl !== iconUrl) {
     return (
       <span
         className={cn(
@@ -39,21 +60,26 @@ export function LayerSymbol({
           boxClass,
         )}
       >
-        <img src={iconUrl} alt="" className="h-[85%] w-[85%] object-contain" />
+        <img
+          src={iconUrl}
+          alt=""
+          className="h-[85%] w-[85%] object-contain"
+          onError={() => setFailedIconUrl(iconUrl)}
+        />
       </span>
     );
   }
 
-  switch (layer.geometryKind) {
+  switch (geometryKind) {
     case "polygon":
       return (
         <span
           className={cn(
             "shrink-0 rounded-lg border-2 border-white shadow-sm",
-            size === "sm" ? "h-8 w-8" : size === "lg" ? "h-12 w-12" : "h-10 w-10",
+            boxClass,
           )}
           style={{
-            backgroundColor: style.fillColor ?? layer.color,
+            backgroundColor: style.fillColor ?? layer.color ?? "#22c55e80",
             borderColor: style.strokeColor ?? "rgba(255,255,255,0.9)",
           }}
           aria-hidden
@@ -65,13 +91,13 @@ export function LayerSymbol({
         <span
           className={cn(
             "flex shrink-0 items-center rounded-lg bg-slate-50 px-2",
-            size === "sm" ? "h-8 w-8" : size === "lg" ? "h-12 w-12" : "h-10 w-10",
+            boxClass,
           )}
           aria-hidden
         >
           <span
             className="h-1 w-full rounded-full"
-            style={{ backgroundColor: style.lineColor ?? layer.color }}
+            style={{ backgroundColor: style.lineColor ?? layer.color ?? "#2563eb" }}
           />
         </span>
       );
@@ -82,7 +108,7 @@ export function LayerSymbol({
             "shrink-0 rounded-full ring-4 ring-white shadow-sm",
             size === "sm" ? "h-5 w-5" : size === "lg" ? "h-7 w-7" : "h-6 w-6",
           )}
-          style={{ backgroundColor: layer.color }}
+          style={{ backgroundColor: layer.color ?? "#64748b" }}
           aria-hidden
         />
       );

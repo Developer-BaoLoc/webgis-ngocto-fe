@@ -1,4 +1,5 @@
 import type { Layer } from "@/types/layer.types";
+import { LayerSymbol } from "@/components/layers/layer-symbol";
 
 const iconClass = "h-4 w-4 text-muted";
 
@@ -37,10 +38,7 @@ export function GeometryTypeIcon({ type }: { type: string }) {
 export function LayerRow({ layer }: { layer: Layer }) {
   return (
     <div className="flex min-w-0 items-start gap-3">
-      <span
-        className="mt-1.5 h-3 w-3 shrink-0 rounded-sm"
-        style={{ backgroundColor: layer.color }}
-      />
+      <LayerSymbol layer={layer} size="xs" />
       <div className="min-w-0">
         <p className="font-medium text-foreground">{layer.name}</p>
         {layer.description && (

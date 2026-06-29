@@ -8,11 +8,15 @@ import { resolvePublicAssetUrl } from "@/lib/api/assets";
 import type { LayerGeoJsonEntry } from "@/lib/api/map-geojson";
 import { extractStyleFromLayer } from "@/lib/layers/style";
 import { buildColorMatchExpression } from "@/lib/layers/dynamic-style";
+import { withPolygonCenterFeatures } from "@/lib/map/polygon-centers";
 
 const SOURCE_PREFIX = "data-layer-";
 const POINT_ICON_SIZE = 0.07;
 const POINT_CIRCLE_RADIUS = 6;
 const POINT_HIT_RADIUS = 20;
+const POLYGON_CENTER_ICON_SIZE = 0.06;
+const POLYGON_CENTER_RADIUS = 9;
+const POLYGON_CENTER_PROPERTY = "__onegisPolygonCenter";
 const registeredLayerImages = new WeakMap<
   MapLibreMap,
   Map<string, Set<string>>
@@ -29,7 +33,12 @@ function getDataLayerIds(layerId: string, geometryType: string) {
     case "multipolygon":
       return {
         sourceId,
-        layerIds: [`${sourceId}-fill`, `${sourceId}-line`],
+        layerIds: [
+          `${sourceId}-fill`,
+          `${sourceId}-line`,
+          `${sourceId}-center-symbol`,
+          `${sourceId}-center-circle`,
+        ],
       };
     case "line":
     case "linestring":
@@ -51,7 +60,14 @@ function getDataLayerIds(layerId: string, geometryType: string) {
 }
 
 function getLayerIconUrl(layer: LayerGeoJsonEntry["layer"]): string | null {
-  if (layer.geometryType !== "point" && layer.geometryKind !== "point") {
+  const geometry = String(
+    layer.geometryType ?? layer.geometryKind ?? "",
+  ).toLowerCase();
+  if (
+    geometry !== "point" &&
+    geometry !== "polygon" &&
+    geometry !== "multipolygon"
+  ) {
     return null;
   }
 
@@ -75,8 +91,22 @@ async function ensureLayerIcon(
   layerId: string,
   iconUrl: string,
 ): Promise<string | null> {
-  const imageId = getIconImageId(layerId);
+  const imageId = dynamicImageId(layerId, `single:${iconUrl}`);
   return ensureMapImage(map, layerId, imageId, iconUrl);
+}
+
+function shouldShowPolygonCenterIcon(entry: LayerGeoJsonEntry) {
+  const geometry = entry.layer.geometryType.toLowerCase();
+  if (geometry !== "polygon" && geometry !== "multipolygon") return false;
+  const style = extractStyleFromLayer(entry.layer);
+  return Boolean(getLayerIconUrl(entry.layer)) && style.showPolygonCenterIcon !== false;
+}
+
+function sourceGeoJson(entry: LayerGeoJsonEntry): FeatureCollection {
+  return withPolygonCenterFeatures(
+    entry.geojson,
+    shouldShowPolygonCenterIcon(entry),
+  ) as FeatureCollection;
 }
 
 async function ensureMapImage(
@@ -341,6 +371,8 @@ async function upsertPolygonLayer(
   );
   const fillLayerId = `${sourceId}-fill`;
   const lineLayerId = `${sourceId}-line`;
+  const centerSymbolLayerId = `${sourceId}-center-symbol`;
+  const centerCircleLayerId = `${sourceId}-center-circle`;
 
   if (!map.getLayer(fillLayerId)) {
     map.addLayer({
@@ -368,6 +400,63 @@ async function upsertPolygonLayer(
     });
   } else {
     map.setPaintProperty(lineLayerId, "line-color", strokeColor);
+  }
+
+  const iconUrl = getLayerIconUrl(entry.layer);
+  const showCenterIcon = shouldShowPolygonCenterIcon(entry);
+  const iconImageId =
+    showCenterIcon && iconUrl
+      ? await ensureLayerIcon(map, entry.layer.id, iconUrl)
+      : null;
+  const centerFilter: ExpressionSpecification = [
+    "==",
+    ["get", POLYGON_CENTER_PROPERTY],
+    true,
+  ];
+
+  if (showCenterIcon && iconImageId) {
+    if (map.getLayer(centerCircleLayerId)) map.removeLayer(centerCircleLayerId);
+    if (!map.getLayer(centerSymbolLayerId)) {
+      map.addLayer({
+        id: centerSymbolLayerId,
+        type: "symbol",
+        source: sourceId,
+        filter: centerFilter,
+        layout: {
+          "icon-image": iconImageId,
+          "icon-size": POLYGON_CENTER_ICON_SIZE,
+          "icon-anchor": "center",
+          "icon-allow-overlap": true,
+          "icon-ignore-placement": true,
+        },
+      });
+    } else {
+      map.setLayoutProperty(centerSymbolLayerId, "icon-image", iconImageId);
+      map.setLayoutProperty(
+        centerSymbolLayerId,
+        "icon-size",
+        POLYGON_CENTER_ICON_SIZE,
+      );
+    }
+  } else if (showCenterIcon) {
+    if (map.getLayer(centerSymbolLayerId)) map.removeLayer(centerSymbolLayerId);
+    if (!map.getLayer(centerCircleLayerId)) {
+      map.addLayer({
+        id: centerCircleLayerId,
+        type: "circle",
+        source: sourceId,
+        filter: centerFilter,
+        paint: {
+          "circle-radius": POLYGON_CENTER_RADIUS,
+          "circle-color": style.fillColor ?? entry.layer.color,
+          "circle-stroke-width": 2,
+          "circle-stroke-color": style.strokeColor ?? "#ffffff",
+        },
+      });
+    }
+  } else {
+    if (map.getLayer(centerSymbolLayerId)) map.removeLayer(centerSymbolLayerId);
+    if (map.getLayer(centerCircleLayerId)) map.removeLayer(centerCircleLayerId);
   }
 }
 
@@ -404,7 +493,7 @@ async function upsertDataLayer(map: MapLibreMap, entry: LayerGeoJsonEntry) {
     entry.layer.id,
     entry.layer.geometryType,
   );
-  const geojson = entry.geojson as FeatureCollection;
+  const geojson = sourceGeoJson(entry);
   const source = map.getSource(sourceId);
   const hasAllLayers = hasRequiredDataLayers(
     map,
@@ -440,7 +529,11 @@ function hasRequiredDataLayers(
   geometryType: string,
 ) {
   if (!["point", "multipoint"].includes(geometryType.toLowerCase())) {
-    return layerIds.every((id) => Boolean(map.getLayer(id)));
+    const requiredIds = layerIds.filter(
+      (id) =>
+        !id.endsWith("-center-symbol") && !id.endsWith("-center-circle"),
+    );
+    return requiredIds.every((id) => Boolean(map.getLayer(id)));
   }
   const hit = layerIds.find((id) => id.endsWith("-hit"));
   const visual = layerIds.filter(
@@ -475,7 +568,7 @@ export function updateDataLayerSourceData(
   const sourceId = getDataLayerSourceId(entry.layer.id);
   const source = map.getSource(sourceId);
   if (!source || source.type !== "geojson") return false;
-  (source as GeoJSONSource).setData(entry.geojson as FeatureCollection);
+  (source as GeoJSONSource).setData(sourceGeoJson(entry));
   return true;
 }
 

@@ -529,6 +529,7 @@ export function MapView({
       <div ref={containerRef} className={mapClassName} />
       <RecordDetailModal
         data={detailData}
+        layer={layers.find((layer) => layer.id === detailData?.layerId)}
         loading={detailLoading}
         error={detailError}
         destination={detailDestination}

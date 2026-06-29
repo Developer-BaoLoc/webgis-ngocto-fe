@@ -124,7 +124,7 @@ export async function uploadLayerImportFile(
     method: "POST",
     body: formData,
   });
-  if (!res.ok) await parseError(res, "Upload thất bại");
+  if (!res.ok) await parseError(res, "Tải lên thất bại");
   const json = (await res.json()) as ApiResponse<ImportUploadResult>;
   return unwrapData(json);
 }

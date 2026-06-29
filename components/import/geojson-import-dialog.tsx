@@ -467,7 +467,7 @@ export function GeoJsonImportDialog({
     } catch (error) {
       setNotice({
         kind: "error",
-        message: error instanceof Error ? error.message : "Upload thất bại",
+        message: error instanceof Error ? error.message : "Tải lên thất bại",
       });
     } finally {
       setIsLoading(false);
@@ -553,13 +553,13 @@ export function GeoJsonImportDialog({
     const newFields = selectedNewFields(newFieldDrafts);
     const confirmed = await message.confirm({
       title: "Xác nhận import GeoJSON",
-      description: `Import ${formatNumber(preview.accepted)} features vào lớp ${layerName}?`,
+      description: `Nhập ${formatNumber(preview.accepted)} đối tượng vào lớp ${layerName}?`,
       confirmLabel: "Bắt đầu import",
     });
     if (!confirmed) return;
 
     setIsLoading(true);
-    setNotice({ kind: "info", message: "Đang import GeoJSON..." });
+    setNotice({ kind: "info", message: "Đang nhập GeoJSON..." });
     const startedAt = Date.now();
     try {
       const data = await executeGeoJsonImport(layerId, {
@@ -604,7 +604,7 @@ export function GeoJsonImportDialog({
       });
       setNotice({
         kind: "error",
-        message: error instanceof Error ? error.message : "Import thất bại",
+        message: error instanceof Error ? error.message : "Nhập dữ liệu thất bại",
       });
     } finally {
       setIsLoading(false);
@@ -618,7 +618,7 @@ export function GeoJsonImportDialog({
   return (
     <>
       <Modal
-        title={`Import GeoJSON — ${layerName}`}
+        title={`Nhập GeoJSON — ${layerName}`}
         size="xl"
         onClose={onClose}
       >
@@ -735,7 +735,7 @@ export function GeoJsonImportDialog({
               )}
 
               <div className="rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
-                <p className="font-semibold">Import Đường Giao Thông OSM</p>
+                <p className="font-semibold">Nhập đường giao thông OSM</p>
                 <ol className="mt-2 list-decimal space-y-1 pl-5">
                   <li>Tạo layer `duong_giao_thong` với geometry_kind `multilinestring`.</li>
                   <li>Tải `osm-roads-vietnam.geojson`.</li>
@@ -751,7 +751,7 @@ export function GeoJsonImportDialog({
                   onClick={handleUpload}
                   className="rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-white hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {isLoading ? "Đang upload..." : "Upload và preview"}
+                  {isLoading ? "Đang tải lên..." : "Tải lên và xem trước"}
                 </button>
                 <button
                   type="button"
@@ -966,7 +966,7 @@ export function GeoJsonImportDialog({
                   onClick={handleExecute}
                   className="rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-white hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {isLoading ? "Importing..." : "Import"}
+                  {isLoading ? "Đang nhập..." : "Nhập dữ liệu"}
                 </button>
               </div>
             </section>
@@ -975,7 +975,7 @@ export function GeoJsonImportDialog({
           {step === "done" && result && (
             <section className="space-y-5">
               <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-4 text-emerald-900">
-                <p className="font-semibold">Import thành công</p>
+                <p className="font-semibold">Nhập dữ liệu thành công</p>
                 <div className="mt-3 grid gap-2 text-sm sm:grid-cols-3">
                   <p>
                     Inserted: <strong>{formatNumber(result.inserted)}</strong>

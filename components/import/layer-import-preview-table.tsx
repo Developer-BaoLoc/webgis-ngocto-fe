@@ -83,7 +83,7 @@ export function LayerImportPreviewTable({
         {preview.previewCount !== undefined && (
           <>
             <span>·</span>
-            <span>Preview {preview.previewCount} dòng</span>
+            <span>Xem trước {preview.previewCount} dòng</span>
           </>
         )}
         {preview.validCount !== undefined && (

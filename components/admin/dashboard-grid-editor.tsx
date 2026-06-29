@@ -160,7 +160,7 @@ export function DashboardGridEditor({
                   type="button"
                   className="dashboard-grid-drag-handle"
                   title="Giữ và kéo để đổi vị trí"
-                  aria-label={`Kéo widget ${getWidgetDisplayTitle(widget)}`}
+                  aria-label={`Kéo tiện ích ${getWidgetDisplayTitle(widget)}`}
                 >
                   <span aria-hidden>⠿</span>
                   <span className="truncate">

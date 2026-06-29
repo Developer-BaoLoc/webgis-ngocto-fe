@@ -23,6 +23,7 @@ import { useMessage } from "@/providers/message-provider";
 import { getFieldTypesForLayerGeometry } from "@/lib/fields/field-types";
 import { enrichFieldTypes } from "@/lib/i18n/vi";
 import { toLayer } from "@/lib/layers/adapter";
+import { mergeLocalLayerIcon } from "@/lib/layers/local-icons";
 import type { LayerSchema } from "@/types/api/schema";
 import type { FieldTypeMeta, RelationshipSuggestion } from "@/types/api/metadata";
 import type { RecordItem } from "@/types/api/records";
@@ -70,7 +71,7 @@ export function LayerDetailView({ code }: LayerDetailViewProps) {
         getLayerDetailByCode(code),
         getFieldTypes().catch(() => []),
       ]);
-      const layerData = toLayer(detail);
+      const layerData = toLayer(mergeLocalLayerIcon(detail));
       const enrichedTypes = enrichFieldTypes(typeCatalog);
       setLayer(layerData);
       setLayerId(layerData.id);
@@ -231,7 +232,7 @@ export function LayerDetailView({ code }: LayerDetailViewProps) {
           {!schema && !isLoading ? (
             <EmptyState
               title="Lớp chưa có cấu trúc dữ liệu"
-              description="Thiết kế các trường biểu mẫu trước khi thêm hoặc import bản ghi."
+              description="Thiết kế các trường biểu mẫu trước khi thêm hoặc nhập bản ghi."
               action={
                 <Link
                   href="/quan-tri/lop-du-lieu"

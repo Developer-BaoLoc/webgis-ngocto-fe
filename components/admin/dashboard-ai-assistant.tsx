@@ -482,7 +482,7 @@ export function DashboardAiAssistant({
           value={description}
           onChange={(event) => setDescription(event.target.value)}
           rows={5}
-          placeholder="Ví dụ: Tạo dashboard IOC cho cảnh báo nông nghiệp."
+          placeholder="Ví dụ: Tạo bảng điều khiển IOC cho cảnh báo nông nghiệp."
           className="w-full resize-none rounded-xl border border-border px-3 py-2 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15"
         />
       </label>

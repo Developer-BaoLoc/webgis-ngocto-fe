@@ -47,6 +47,7 @@ export interface LayerStyle {
   icon?: string | LayerIconStyle;
   iconAttachmentId?: string;
   iconUrl?: string;
+  showPolygonCenterIcon?: boolean;
   lineColor?: string;
   lineWidth?: number;
   fillColor?: string;

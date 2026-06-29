@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { getPublishedDashboard } from "@/lib/api/dashboards";
 import { DynamicDashboardView } from "@/components/dashboard/dynamic-dashboard-view";
 import type { DashboardDetail } from "@/types/api/dashboard";
@@ -44,13 +45,13 @@ export function DynamicDashboardPage({
   }, [dashboardId]);
 
   if (loading) {
-    return <p className="text-sm text-muted">Đang tải dashboard...</p>;
+    return <LoadingIndicator label="Đang tải bảng điều khiển" />;
   }
 
   if (!dashboard) {
     return (
       <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-800">
-        {error || "Dashboard này chưa được xuất bản."}
+        {error || "Bảng điều khiển này chưa được xuất bản."}
       </div>
     );
   }

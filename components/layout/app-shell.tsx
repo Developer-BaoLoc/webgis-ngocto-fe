@@ -88,8 +88,7 @@ function AppShellLayout({ children }: AppShellProps) {
   return (
     <div
       className={cn(
-        "flex bg-background",
-        isFullscreen ? "h-dvh overflow-hidden" : "min-h-screen",
+        "flex h-dvh min-h-0 overflow-hidden bg-background",
       )}
     >
       <SidebarNav />
@@ -116,7 +115,7 @@ function AppShellLayout({ children }: AppShellProps) {
                   "overflow-hidden p-0",
                   isDashboardHome && "max-md:overflow-y-auto",
                 )
-              : "overflow-auto p-3 sm:p-6 lg:p-8",
+              : "overflow-y-auto overflow-x-hidden p-3 sm:p-6 lg:p-8",
           )}
         >
           {children}

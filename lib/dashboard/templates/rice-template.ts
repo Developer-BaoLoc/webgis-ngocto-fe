@@ -4,7 +4,7 @@ import { fieldPlaceholder as field, layerPlaceholder as layer } from "./placehol
 const ricePlaceholders = [
   {
     key: "rice_layer",
-    label: "Layer vùng lúa",
+    label: "Lớp dữ liệu vùng lúa",
     description: "Lớp vùng/điểm dữ liệu canh tác lúa.",
     kind: "layer" as const,
     required: true,
@@ -13,7 +13,7 @@ const ricePlaceholders = [
   },
   {
     key: "area_field",
-    label: "Field diện tích",
+    label: "Trường diện tích",
     kind: "metric_field" as const,
     required: true,
     fieldTypes: ["number", "integer", "decimal", "currency"],
@@ -21,7 +21,7 @@ const ricePlaceholders = [
   },
   {
     key: "production_field",
-    label: "Field sản lượng",
+    label: "Trường sản lượng",
     kind: "metric_field" as const,
     required: true,
     fieldTypes: ["number", "integer", "decimal", "currency"],
@@ -29,7 +29,7 @@ const ricePlaceholders = [
   },
   {
     key: "cultivation_type_field",
-    label: "Field loại hình canh tác",
+    label: "Trường loại hình canh tác",
     kind: "dimension_field" as const,
     required: true,
     fieldTypes: ["text", "string", "select", "enum", "category"],
@@ -37,7 +37,7 @@ const ricePlaceholders = [
   },
   {
     key: "profit_per_ha_field",
-    label: "Field lợi nhuận/ha",
+    label: "Trường lợi nhuận/ha",
     kind: "metric_field" as const,
     required: true,
     fieldTypes: ["number", "integer", "decimal", "currency"],
@@ -53,7 +53,7 @@ const ricePlaceholders = [
   },
   {
     key: "season_date_field",
-    label: "Field ngày/mùa vụ",
+    label: "Trường ngày/mùa vụ",
     kind: "date_field" as const,
     required: true,
     fieldTypes: ["date", "datetime", "timestamp", "text"],
@@ -61,7 +61,7 @@ const ricePlaceholders = [
   },
   {
     key: "zone_layer",
-    label: "Layer ấp/xã",
+    label: "Lớp dữ liệu ấp/xã",
     kind: "zone_layer" as const,
     required: true,
     geometryType: "polygon" as const,
@@ -69,7 +69,7 @@ const ricePlaceholders = [
   },
   {
     key: "zone_label_field",
-    label: "Field tên ấp/xã",
+    label: "Trường tên ấp/xã",
     kind: "zone_label_field" as const,
     required: true,
     fieldTypes: ["text", "string", "select", "category"],

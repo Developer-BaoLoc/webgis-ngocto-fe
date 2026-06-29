@@ -193,7 +193,7 @@ async function rowsForSource(input: {
 
   if (input.sourceKind === "saved_view") {
     const view = input.savedViews.find((item) => item.id === input.sourceId);
-    if (!view) throw new Error("Không tìm thấy Saved View để profiling.");
+    if (!view) throw new Error("Không tìm thấy chế độ xem đã lưu để phân tích dữ liệu.");
     const result = await previewSavedView({
       layerId: view.layerId,
       config: { ...view.config, previewLimit: SAMPLE_SIZE },
@@ -202,7 +202,7 @@ async function rowsForSource(input: {
   }
 
   const dataset = input.datasets.find((item) => item.id === input.sourceId);
-  if (!dataset) throw new Error("Không tìm thấy Dataset để profiling.");
+  if (!dataset) throw new Error("Không tìm thấy bộ dữ liệu để phân tích.");
   const embedded = dataset as Dataset & {
     virtualDataset?: { records?: Array<Record<string, unknown>> };
   };

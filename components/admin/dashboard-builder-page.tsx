@@ -44,6 +44,7 @@ import {
 import { DashboardAiAssistant } from "@/components/admin/dashboard-ai-assistant";
 import { DashboardTemplateWizard } from "@/components/admin/dashboard-template-wizard";
 import { DashboardTemplateManager } from "@/components/admin/dashboard-template-manager";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import {
   dashboardTemplates,
   type DashboardTemplate,
@@ -362,7 +363,7 @@ export function DashboardBuilderPage({
     if (!draft) return;
     const confirmed = await message.confirm({
       title: "Xóa widget?",
-      description: "Widget sẽ bị xóa khỏi dashboard draft. Bạn có thể hoàn tác ngay sau khi xóa.",
+      description: "Tiện ích sẽ bị xóa khỏi bản nháp bảng điều khiển. Bạn có thể hoàn tác ngay sau khi xóa.",
       confirmLabel: "Xóa widget",
       danger: true,
     });
@@ -494,7 +495,7 @@ export function DashboardBuilderPage({
             dataSourceConfig,
           });
       if (!result) {
-        setPreviewText("Dataset tạm không còn trong phiên builder.");
+        setPreviewText("Bộ dữ liệu tạm không còn trong phiên thiết kế.");
         return;
       }
       if (dataSourceConfig?.spatial && spatialResultIsEmpty(result)) {
@@ -572,7 +573,7 @@ export function DashboardBuilderPage({
             : "Đang tải..."
         }
         backHref="/quan-tri/dashboard"
-        backLabel="Dashboard"
+        backLabel="Bảng điều khiển"
       />
 
       {error && (
@@ -582,7 +583,7 @@ export function DashboardBuilderPage({
       )}
 
       {isLoading ? (
-        <p className="text-sm text-muted">Đang tải...</p>
+        <LoadingIndicator />
       ) : draft ? (
         <>
           <Card>
@@ -737,7 +738,7 @@ export function DashboardBuilderPage({
 
       {showTemplateWizard && draft && (
         <Modal
-          title="Tạo dashboard từ mẫu"
+          title="Tạo bảng điều khiển từ mẫu"
           onClose={() => setShowTemplateWizard(false)}
           size="xl"
         >
@@ -765,7 +766,7 @@ export function DashboardBuilderPage({
 
       {showAiAssistant && (
         <Modal
-          title="Tạo dashboard bằng AI"
+          title="Tạo bảng điều khiển bằng AI"
           onClose={() => setShowAiAssistant(false)}
           size="lg"
         >
@@ -781,7 +782,7 @@ export function DashboardBuilderPage({
 
       {showTemplateManager && draft && (
         <Modal
-          title="Quản lý mẫu dashboard"
+          title="Quản lý mẫu bảng điều khiển"
           onClose={() => setShowTemplateManager(false)}
           size="xl"
         >

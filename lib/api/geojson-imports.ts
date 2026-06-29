@@ -136,7 +136,7 @@ export async function uploadGeoJsonImportFile(
     method: "POST",
     body: formData,
   });
-  if (!res.ok) await parseError(res, "Upload GeoJSON thất bại");
+  if (!res.ok) await parseError(res, "Tải GeoJSON lên thất bại");
   const json = (await res.json()) as ApiResponse<GeoJsonImportUploadResult>;
   return unwrapData(json);
 }
@@ -170,7 +170,7 @@ export async function executeGeoJsonImport(
     },
     body: JSON.stringify(buildRequestBody(options)),
   });
-  if (!res.ok) await parseError(res, "Import GeoJSON thất bại");
+  if (!res.ok) await parseError(res, "Nhập GeoJSON thất bại");
   const json = (await res.json()) as ApiResponse<GeoJsonImportSummary>;
   return unwrapData(json);
 }

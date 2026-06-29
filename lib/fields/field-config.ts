@@ -117,7 +117,7 @@ export const FALLBACK_CONFIG_FIELDS: Record<string, ConfigFieldMeta[]> = {
     },
     {
       key: "targetLayerId",
-      label: "Target Table / Layer",
+      label: "Bảng / lớp dữ liệu đích",
       required: true,
       type: "layer",
     },
@@ -129,14 +129,14 @@ export const FALLBACK_CONFIG_FIELDS: Record<string, ConfigFieldMeta[]> = {
     },
     {
       key: "targetDisplayField",
-      label: "Display Field",
+      label: "Trường hiển thị",
       required: true,
       type: "field",
       sourceLayerKey: "targetLayerId",
     },
     {
       key: "matchField",
-      label: "Match Field khi import",
+      label: "Trường đối chiếu khi nhập dữ liệu",
       required: false,
       type: "field",
       sourceLayerKey: "targetLayerId",

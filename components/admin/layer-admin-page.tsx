@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/layout/page-header";
 import { LayerStyleFields } from "@/components/admin/layer-style-fields";
+import { LayerSymbol } from "@/components/layers/layer-symbol";
 import { Modal } from "@/components/ui/modal";
 import { AdminListPanel } from "@/components/ui/admin-list-panel";
 import { inputClass } from "@/components/form/field-wrapper";
@@ -41,6 +42,10 @@ import {
   TableBadge,
 } from "@/components/ui/data-table";
 import { useMessage } from "@/providers/message-provider";
+import {
+  mergeLocalLayerIcon,
+  saveLocalLayerIcon,
+} from "@/lib/layers/local-icons";
 
 interface LayerFormState {
   name: string;
@@ -83,7 +88,11 @@ export function LayerAdminPage() {
         getAdminLayers(),
         getLayerGeometryTypes().catch(() => []),
       ]);
-      setLayers(adminLayers.filter((layer) => layer.isActive !== false));
+      setLayers(
+        adminLayers
+          .filter((layer) => layer.isActive !== false)
+          .map(mergeLocalLayerIcon),
+      );
       setGeometryTypes(enrichGeometryTypes(types));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Không tải được danh sách");
@@ -149,14 +158,28 @@ export function LayerAdminPage() {
           sortOrder: form.sortOrder,
           style: buildStylePayload(form.geometryType, form.style),
         });
+        if (form.geometryType === "polygon") {
+          if (!saveLocalLayerIcon(editing.id, form.style)) {
+            message.warning(
+              "Lớp đã được lưu nhưng trình duyệt không lưu được icon đại diện.",
+            );
+          }
+        }
       } else {
-        await createLayer({
+        const created = await createLayer({
           name: form.name,
           description: form.description || null,
           geometryType: form.geometryType,
           sortOrder: form.sortOrder,
           style: buildStylePayload(form.geometryType, form.style),
         });
+        if (form.geometryType === "polygon") {
+          if (!saveLocalLayerIcon(created.id, form.style)) {
+            message.warning(
+              "Lớp đã được tạo nhưng trình duyệt không lưu được icon đại diện.",
+            );
+          }
+        }
       }
       setShowForm(false);
       await load();
@@ -231,7 +254,7 @@ export function LayerAdminPage() {
 
       <AdminListPanel
         title="Danh sách lớp"
-        description="Quản lý loại hình học, icon hiển thị và liên kết tới thiết kế cấu trúc trường."
+        description="Quản lý loại hình học, biểu tượng hiển thị và liên kết tới thiết kế cấu trúc trường."
         isLoading={isLoading}
         isEmpty={!isLoading && layers.length === 0}
         emptyTitle="Chưa có lớp nào"
@@ -261,7 +284,12 @@ export function LayerAdminPage() {
 
               return (
                 <DataTableRow key={layer.id}>
-                  <DataTableCell variant="primary">{layer.name}</DataTableCell>
+                  <DataTableCell variant="primary">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <LayerSymbol layer={layer} size="xs" />
+                      <span className="truncate">{layer.name}</span>
+                    </div>
+                  </DataTableCell>
                   <DataTableCell variant="muted">
                     {layerTypeLabel(layer)}
                   </DataTableCell>
@@ -372,7 +400,9 @@ export function LayerAdminPage() {
               </div>
             </div>
 
-            {selectedMeta && selectedMeta.styleFields.length > 0 && (
+            {selectedMeta &&
+              (selectedMeta.styleFields.length > 0 ||
+                form.geometryType === "polygon") && (
               <LayerStyleFields
                 fields={selectedMeta.styleFields}
                 style={form.style}

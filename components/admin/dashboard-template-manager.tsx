@@ -60,7 +60,7 @@ export function DashboardTemplateManager({
   function saveTemplate() {
     clearFeedback();
     if (exportBlocked) {
-      setError("Dashboard hiện tại còn placeholder chưa resolve, không thể lưu mẫu.");
+      setError("Bảng điều khiển hiện tại còn vị trí chưa được liên kết, không thể lưu mẫu.");
       return;
     }
     try {
@@ -76,7 +76,7 @@ export function DashboardTemplateManager({
   async function copyJson() {
     clearFeedback();
     if (exportBlocked) {
-      setError("Dashboard hiện tại còn placeholder chưa resolve, không thể xuất mẫu.");
+      setError("Bảng điều khiển hiện tại còn vị trí chưa được liên kết, không thể xuất mẫu.");
       return;
     }
     try {
@@ -91,7 +91,7 @@ export function DashboardTemplateManager({
   function downloadJson() {
     clearFeedback();
     if (exportBlocked) {
-      setError("Dashboard hiện tại còn placeholder chưa resolve, không thể xuất mẫu.");
+      setError("Bảng điều khiển hiện tại còn vị trí chưa được liên kết, không thể xuất mẫu.");
       return;
     }
     const blob = new Blob([exportJson], { type: "application/json" });

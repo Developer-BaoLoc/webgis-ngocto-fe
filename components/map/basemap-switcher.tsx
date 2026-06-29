@@ -25,8 +25,16 @@ export function BasemapSwitcher({ value, onChange, compact = false }: BasemapSwi
       }
     }
 
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpen(false);
+    }
+
     document.addEventListener("mousedown", handlePointerDown);
-    return () => document.removeEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
   }, [open]);
 
   return (

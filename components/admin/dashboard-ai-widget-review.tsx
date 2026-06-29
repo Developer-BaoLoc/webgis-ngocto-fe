@@ -160,7 +160,7 @@ export function DashboardAiWidgetReview({
                       <option key={item.widgetType} value={item.widgetType}>{item.label}</option>
                     ))}
                   </optgroup>
-                  <optgroup label="Loại widget khác">
+                  <optgroup label="Loại tiện ích khác">
                     {allTypes.filter((item) => !recommendedTypes.has(item.widgetType)).map((item) => (
                       <option key={item.widgetType} value={item.widgetType}>{item.label}</option>
                     ))}
@@ -169,7 +169,7 @@ export function DashboardAiWidgetReview({
               </label>
 
               <dl className="mt-3 space-y-2 text-xs">
-                <div><dt className="font-medium text-slate-700">Field/metric dự kiến</dt><dd className="mt-0.5 break-words text-slate-500">{describeWidgetFields(widget)}</dd></div>
+                <div><dt className="font-medium text-slate-700">Trường/chỉ số dự kiến</dt><dd className="mt-0.5 break-words text-slate-500">{describeWidgetFields(widget)}</dd></div>
                 <div><dt className="font-medium text-slate-700">Lý do chọn</dt><dd className="mt-0.5 text-slate-500">{widget.widgetTypeReason || recommended.find((item) => item.widgetType === widget.widgetType)?.reason || `Phù hợp cách hiển thị ${WIDGET_TYPE_LABELS[widget.widgetType] ?? widget.widgetType}.`}</dd></div>
                 {profileReason ? <div><dt className="font-medium text-sky-700">Nhận định từ dữ liệu</dt><dd className="mt-0.5 text-sky-700">{profileReason}</dd></div> : null}
               </dl>

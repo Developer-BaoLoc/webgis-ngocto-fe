@@ -10,9 +10,9 @@ export const iocTemplate: DashboardTemplate = {
   icon: "dashboard",
   tags: ["IOC", "tổng quan", "bản đồ", "cảnh báo"],
   requirements: [
-    { label: "Layer nguồn", kind: "layer", required: true },
-    { label: "Layer phân vùng", kind: "layer", required: true },
-    { label: "Field tên vùng", kind: "field", required: true },
+    { label: "Lớp dữ liệu nguồn", kind: "layer", required: true },
+    { label: "Lớp dữ liệu phân vùng", kind: "layer", required: true },
+    { label: "Trường tên vùng", kind: "field", required: true },
   ],
   widgets: [
     {
@@ -28,7 +28,7 @@ export const iocTemplate: DashboardTemplate = {
       placeholders: [
         {
           key: "source_layer",
-          label: "Layer nguồn",
+          label: "Lớp dữ liệu nguồn",
           description: "Lớp dữ liệu chính cần theo dõi.",
           kind: "layer",
           required: true,
@@ -66,7 +66,7 @@ export const iocTemplate: DashboardTemplate = {
       placeholders: [
         {
           key: "alert_layer",
-          label: "Layer cảnh báo",
+          label: "Lớp dữ liệu cảnh báo",
           kind: "layer",
           required: true,
           geometryType: "any",
@@ -74,7 +74,7 @@ export const iocTemplate: DashboardTemplate = {
         },
         {
           key: "alert_title_field",
-          label: "Field tiêu đề cảnh báo",
+          label: "Trường tiêu đề cảnh báo",
           kind: "field",
           required: true,
           fieldTypes: ["text", "string", "textarea"],
@@ -82,7 +82,7 @@ export const iocTemplate: DashboardTemplate = {
         },
         {
           key: "alert_severity_field",
-          label: "Field mức độ",
+          label: "Trường mức độ",
           kind: "field",
           required: true,
           fieldTypes: ["select", "enum", "category", "text", "string"],
@@ -90,7 +90,7 @@ export const iocTemplate: DashboardTemplate = {
         },
         {
           key: "alert_area_field",
-          label: "Field khu vực",
+          label: "Trường khu vực",
           kind: "field",
           required: false,
           fieldTypes: ["select", "enum", "category", "text", "string"],
@@ -98,7 +98,7 @@ export const iocTemplate: DashboardTemplate = {
         },
         {
           key: "alert_date_field",
-          label: "Field ngày cảnh báo",
+          label: "Trường ngày cảnh báo",
           kind: "date_field",
           required: false,
           fieldTypes: ["date", "datetime", "timestamp"],
@@ -106,7 +106,7 @@ export const iocTemplate: DashboardTemplate = {
         },
         {
           key: "alert_status_field",
-          label: "Field trạng thái",
+          label: "Trường trạng thái",
           kind: "field",
           required: false,
           fieldTypes: ["select", "enum", "category", "text", "string"],
@@ -139,7 +139,7 @@ export const iocTemplate: DashboardTemplate = {
       placeholders: [
         {
           key: "source_layer",
-          label: "Layer nguồn",
+          label: "Lớp dữ liệu nguồn",
           description: "Lớp dữ liệu chính cần theo dõi.",
           kind: "layer",
           required: true,
@@ -148,7 +148,7 @@ export const iocTemplate: DashboardTemplate = {
         },
         {
           key: "name_field",
-          label: "Field tên đối tượng",
+          label: "Trường tên đối tượng",
           kind: "field",
           required: true,
           fieldTypes: ["text", "string", "select", "category"],
@@ -156,7 +156,7 @@ export const iocTemplate: DashboardTemplate = {
         },
         {
           key: "type_field",
-          label: "Field nhóm phụ",
+          label: "Trường nhóm phụ",
           kind: "dimension_field",
           required: false,
           fieldTypes: ["text", "string", "select", "category"],
@@ -164,7 +164,7 @@ export const iocTemplate: DashboardTemplate = {
         },
         {
           key: "metric_field",
-          label: "Field chỉ số",
+          label: "Trường chỉ số",
           kind: "metric_field",
           required: true,
           fieldTypes: ["number", "integer", "decimal", "currency"],
@@ -191,7 +191,7 @@ export const iocTemplate: DashboardTemplate = {
       placeholders: [
         {
           key: "source_layer",
-          label: "Layer nguồn",
+          label: "Lớp dữ liệu nguồn",
           description: "Lớp dữ liệu chính cần theo dõi.",
           kind: "layer",
           required: true,
@@ -200,7 +200,7 @@ export const iocTemplate: DashboardTemplate = {
         },
         {
           key: "zone_layer",
-          label: "Layer phân vùng",
+          label: "Lớp dữ liệu phân vùng",
           kind: "zone_layer",
           required: true,
           geometryType: "polygon",
@@ -208,7 +208,7 @@ export const iocTemplate: DashboardTemplate = {
         },
         {
           key: "zone_label_field",
-          label: "Field tên vùng",
+          label: "Trường tên vùng",
           kind: "zone_label_field",
           required: true,
           fieldTypes: ["text", "string", "select", "category"],
@@ -235,7 +235,7 @@ export const iocTemplate: DashboardTemplate = {
       placeholders: [
         {
           key: "alert_layer",
-          label: "Layer cảnh báo",
+          label: "Lớp dữ liệu cảnh báo",
           kind: "layer",
           required: true,
           geometryType: "any",
@@ -243,7 +243,7 @@ export const iocTemplate: DashboardTemplate = {
         },
         {
           key: "zone_layer",
-          label: "Layer phân vùng",
+          label: "Lớp dữ liệu phân vùng",
           kind: "zone_layer",
           required: true,
           geometryType: "polygon",
@@ -251,7 +251,7 @@ export const iocTemplate: DashboardTemplate = {
         },
         {
           key: "zone_label_field",
-          label: "Field tên vùng",
+          label: "Trường tên vùng",
           kind: "zone_label_field",
           required: true,
           fieldTypes: ["text", "string", "varchar", "char", "select", "category"],

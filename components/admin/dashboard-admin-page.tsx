@@ -85,7 +85,7 @@ export function DashboardAdminPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Dashboard"
+        title="Bảng điều khiển"
         backHref="/quan-tri"
         backLabel="Quản trị"
         action={
@@ -114,8 +114,8 @@ export function DashboardAdminPage() {
       )}
 
       <AdminListPanel
-        title="Danh sách dashboard"
-        description="Thiết kế widget và xuất bản tại route dashboard riêng."
+        title="Danh sách bảng điều khiển"
+        description="Thiết kế tiện ích và xuất bản tại đường dẫn bảng điều khiển riêng."
         isLoading={isLoading}
         isEmpty={!isLoading && dashboards.length === 0}
         emptyTitle="Chưa có dashboard"
@@ -181,7 +181,7 @@ export function DashboardAdminPage() {
       </AdminListPanel>
 
       {showCreate && (
-        <Modal title="Tạo dashboard" onClose={() => setShowCreate(false)}>
+        <Modal title="Tạo bảng điều khiển" onClose={() => setShowCreate(false)}>
           <form onSubmit={handleCreate} className="space-y-4">
             <div>
               <label className="block text-sm font-medium">Tên dashboard</label>

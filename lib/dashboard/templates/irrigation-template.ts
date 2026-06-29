@@ -4,7 +4,7 @@ import { fieldPlaceholder as field, layerPlaceholder as layer } from "./placehol
 const irrigationPlaceholders = [
   {
     key: "irrigation_layer",
-    label: "Layer thủy lợi",
+    label: "Lớp dữ liệu thủy lợi",
     description: "Lớp tuyến/kênh/công trình thủy lợi cần theo dõi.",
     kind: "layer" as const,
     required: true,
@@ -13,7 +13,7 @@ const irrigationPlaceholders = [
   },
   {
     key: "length_field",
-    label: "Field chiều dài",
+    label: "Trường chiều dài",
     kind: "metric_field" as const,
     required: true,
     fieldTypes: ["number", "integer", "decimal", "currency"],
@@ -21,7 +21,7 @@ const irrigationPlaceholders = [
   },
   {
     key: "name_field",
-    label: "Field tên công trình/tuyến",
+    label: "Trường tên công trình/tuyến",
     kind: "field" as const,
     required: true,
     fieldTypes: ["text", "string", "select", "category"],
@@ -29,7 +29,7 @@ const irrigationPlaceholders = [
   },
   {
     key: "condition_field",
-    label: "Field tình trạng",
+    label: "Trường tình trạng",
     kind: "dimension_field" as const,
     required: true,
     fieldTypes: ["text", "string", "select", "enum", "category"],
@@ -37,7 +37,7 @@ const irrigationPlaceholders = [
   },
   {
     key: "type_field",
-    label: "Field loại công trình",
+    label: "Trường loại công trình",
     kind: "dimension_field" as const,
     required: false,
     fieldTypes: ["text", "string", "select", "enum", "category"],
@@ -45,7 +45,7 @@ const irrigationPlaceholders = [
   },
   {
     key: "zone_layer",
-    label: "Layer ấp/xã",
+    label: "Lớp dữ liệu ấp/xã",
     kind: "zone_layer" as const,
     required: true,
     geometryType: "polygon" as const,
@@ -53,7 +53,7 @@ const irrigationPlaceholders = [
   },
   {
     key: "zone_label_field",
-    label: "Field tên ấp/xã",
+    label: "Trường tên ấp/xã",
     kind: "zone_label_field" as const,
     required: true,
     fieldTypes: ["text", "string", "select", "category"],

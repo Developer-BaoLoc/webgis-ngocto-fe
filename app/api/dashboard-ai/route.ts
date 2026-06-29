@@ -249,7 +249,7 @@ export async function POST(request: NextRequest) {
             rawResponse,
             errors: validationErrors.length
               ? validationErrors
-              : ["Template JSON không hợp lệ."],
+              : ["Mẫu JSON không hợp lệ."],
           })
         : ""
       : description
@@ -315,7 +315,7 @@ export async function POST(request: NextRequest) {
     if (!parsed.template) {
       return jsonTemplateError(
         422,
-        "AI trả về DashboardTemplate không hợp lệ sau khi tự sửa.",
+        "AI trả về mẫu bảng điều khiển không hợp lệ sau khi tự sửa.",
         parsed.errors,
         text,
         parsed.errors.some((error) => error.includes("JSON không hợp lệ"))

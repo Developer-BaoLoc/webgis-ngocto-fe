@@ -122,7 +122,7 @@ function normalizePreparationPlan(
           reason:
             typeof view.reason === "string" && view.reason.trim()
               ? view.reason.trim()
-              : "AI đề xuất tạo Saved View để chuẩn bị nguồn dữ liệu.",
+              : "AI đề xuất tạo chế độ xem đã lưu để chuẩn bị nguồn dữ liệu.",
         }))
     : undefined;
 
@@ -138,14 +138,14 @@ function normalizePreparationPlan(
             name:
               typeof dataset.name === "string" && dataset.name.trim()
                 ? dataset.name.trim()
-                : "Dataset đề xuất",
+                : "Bộ dữ liệu được đề xuất",
             ...(typeof dataset.description === "string"
               ? { description: dataset.description }
               : {}),
             reason:
               typeof dataset.reason === "string" && dataset.reason.trim()
                 ? dataset.reason.trim()
-                : "AI đề xuất tạo Dataset để hợp nhất dữ liệu trước khi dựng dashboard.",
+                : "AI đề xuất tạo bộ dữ liệu để hợp nhất dữ liệu trước khi dựng bảng điều khiển.",
           };
 
           if (dataset.type === "multiSourceMetricDataset") {

@@ -23,10 +23,10 @@ import type {
 } from "@/types/api/import";
 
 const STEPS: { id: ImportWizardStep; label: string }[] = [
-  { id: "template", label: "Chọn template" },
-  { id: "upload", label: "Upload file" },
+  { id: "template", label: "Chọn mẫu" },
+  { id: "upload", label: "Tải tệp lên" },
   { id: "preview", label: "Xem trước" },
-  { id: "importing", label: "Import" },
+  { id: "importing", label: "Nhập dữ liệu" },
   { id: "done", label: "Hoàn tất" },
 ];
 
@@ -129,7 +129,7 @@ export function ImportWizard() {
       setPreview(normalizePreview(previewData));
       setStep("preview");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Upload thất bại");
+      setError(e instanceof Error ? e.message : "Tải lên thất bại");
     } finally {
       setIsLoading(false);
     }
@@ -148,7 +148,7 @@ export function ImportWizard() {
       setJobId(activeJobId);
       startPolling(activeJobId);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Import thất bại");
+      setError(e instanceof Error ? e.message : "Nhập dữ liệu thất bại");
       setStep("preview");
     } finally {
       setIsLoading(false);
@@ -345,7 +345,7 @@ export function ImportWizard() {
                 onClick={handleUpload}
                 className="rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-white hover:bg-primary-dark disabled:opacity-60"
               >
-                {isLoading ? "Đang upload & preview..." : "Upload và xem preview"}
+                {isLoading ? "Đang tải lên và xem trước..." : "Tải lên và xem trước"}
               </button>
             )}
           </CardContent>
@@ -423,8 +423,8 @@ export function ImportWizard() {
             <h2 className="text-lg font-semibold text-foreground">
               {job.status.toLowerCase() === "failed" ||
               job.status.toLowerCase() === "error"
-                ? "Import thất bại"
-                : "Import hoàn tất"}
+                ? "Nhập dữ liệu thất bại"
+                : "Nhập dữ liệu hoàn tất"}
             </h2>
           </CardHeader>
           <CardContent className="space-y-4">

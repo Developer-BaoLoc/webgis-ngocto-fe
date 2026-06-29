@@ -1,19 +1,10 @@
 import { resolvePublicAssetUrl } from "@/lib/api/assets";
 import { normalizeAttachmentList } from "@/lib/fields/attachments";
 import { normalizeMultiCategoryDisplayText } from "@/lib/fields/multi-category";
+import { extractStyleFromLayer } from "@/lib/layers/style";
 import type { AttachmentRef } from "@/types/api/assets";
 import type { PopupSummaryField } from "@/types/api/records";
-
-const TITLE_PROPERTY_KEYS = [
-  "ten_chu_the",
-  "ten_mo_hinh",
-  "ten",
-  "name",
-  "title",
-  "label",
-  "ten_tram_bom",
-  "ten_vung",
-];
+import type { LayerStyle } from "@/types/api/admin";
 
 const IMAGE_EXT = /\.(jpe?g|png|gif|webp|bmp|svg)$/i;
 const MAX_META_LINES = 3;
@@ -35,6 +26,8 @@ const POPUP_FONT_SIZE: Record<string, string> = {
   large: "18px",
 };
 
+type PopupHeaderTone = "alert" | "polygon" | "line" | "point" | "default";
+
 function escapeHtml(value: string): string {
   return value
     .replace(/&/g, "&amp;")
@@ -46,6 +39,15 @@ function escapeHtml(value: string): string {
 function truncate(value: string, max = 72): string {
   if (value.length <= max) return value;
   return `${value.slice(0, max - 1).trim()}…`;
+}
+
+function getPopupFieldKey(field: PopupSummaryField): string {
+  return [
+    field.code,
+    field.label,
+    field.fieldType ?? "",
+    field.displayValue.replace(/\s+/g, " ").trim(),
+  ].join("::");
 }
 
 function isImageAttachment(item: AttachmentRef): boolean {
@@ -157,18 +159,6 @@ export function extractPopupImages(
   }
 
   return images.filter((item) => Boolean(item.url));
-}
-
-function getFallbackTitle(properties: Record<string, unknown>): string {
-  for (const key of TITLE_PROPERTY_KEYS) {
-    const value = properties[key];
-    if (typeof value === "string" && value.trim()) return value;
-  }
-
-  const summary = parsePopupSummary(properties);
-  if (summary[0]?.displayValue) return summary[0].displayValue;
-
-  return "Chi tiết bản ghi";
 }
 
 function isImageField(
@@ -375,6 +365,211 @@ function formatPopupFieldHtml(field: PopupSummaryField): string {
   return `<p class="map-popup-meta-line">${formatPopupValueHtml(field)}</p>`;
 }
 
+function getLayerIconUrl(style: LayerStyle): string | null {
+  if (style.iconUrl) return resolvePublicAssetUrl(style.iconUrl);
+  const icon = style.icon;
+  if (icon && typeof icon === "object" && icon.url) {
+    return resolvePublicAssetUrl(icon.url);
+  }
+  return null;
+}
+
+function getPopupHeaderTone(options: {
+  layerName: string;
+  layerCode: string;
+  layerRole?: string | null;
+  geometryKind?: string | null;
+}): PopupHeaderTone {
+  const haystack = [
+    options.layerName,
+    options.layerCode,
+    options.layerRole ?? "",
+  ]
+    .join(" ")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+
+  if (/canh bao|alert|warning|su co|rui ro/.test(haystack)) return "alert";
+
+  const geometry = String(options.geometryKind ?? "").toLowerCase();
+  if (geometry === "polygon") return "polygon";
+  if (geometry === "line" || geometry === "linestring") return "line";
+  if (geometry === "point") return "point";
+  return "default";
+}
+
+function buildPopupSubtitleHtml(
+  fields: PopupSummaryField[],
+  excludedKeys: Set<string>,
+): { html: string; usedKeys: Set<string> } {
+  const usedKeys = new Set<string>();
+  const parts = fields
+    .filter((field) => field.fieldType !== "relationship")
+    .filter((field) => !excludedKeys.has(getPopupFieldKey(field)))
+    .map((field) => {
+      let display = field.displayValue;
+      if (field.fieldType === "multi_category") {
+        display = normalizeMultiCategoryDisplayText(display);
+      }
+      return {
+        field,
+        value: truncate(display.replace(/\s+/g, " ").trim(), 28),
+      };
+    })
+    .filter((item) => Boolean(item.value))
+    .slice(0, 3);
+
+  for (const item of parts) {
+    usedKeys.add(getPopupFieldKey(item.field));
+  }
+
+  if (parts.length === 0) return { html: "", usedKeys };
+  return {
+    html: `<p class="map-popup-subtitle">${parts.map((item) => escapeHtml(item.value)).join(" <span>•</span> ")}</p>`,
+    usedKeys,
+  };
+}
+
+function isPriorityMetaField(field: PopupSummaryField): boolean {
+  const key = `${field.code} ${field.label}`
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+  return /(dia chi|address|khu vuc|area|cap nhat|updated|ngay|date)/.test(key);
+}
+
+function getStatusBadgeField(
+  fields: PopupSummaryField[],
+): PopupSummaryField | null {
+  return (
+    fields.find((field) => {
+      const key = `${field.code} ${field.label}`
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase();
+      return /(trang thai|status|muc do|severity|canh bao|risk)/.test(key);
+    }) ?? null
+  );
+}
+
+function buildPopupHeaderMetaHtml(
+  fields: PopupSummaryField[],
+  excludedKeys: Set<string>,
+): { html: string; usedKeys: Set<string> } {
+  const usedKeys = new Set<string>();
+  const parts = fields
+    .filter((field) => field.fieldType !== "relationship")
+    .filter((field) => !excludedKeys.has(getPopupFieldKey(field)))
+    .filter(isPriorityMetaField)
+    .map((field) => {
+      const value =
+        field.fieldType === "multi_category"
+          ? normalizeMultiCategoryDisplayText(field.displayValue)
+          : field.displayValue;
+      return {
+        field,
+        value: truncate(value.replace(/\s+/g, " ").trim(), 32),
+      };
+    })
+    .filter((item) => Boolean(item.value))
+    .slice(0, 2);
+
+  for (const item of parts) {
+    usedKeys.add(getPopupFieldKey(item.field));
+  }
+
+  if (parts.length === 0) return { html: "", usedKeys };
+  return {
+    html: `<p class="map-popup-header-meta">${parts.map((item) => escapeHtml(item.value)).join(" <span>•</span> ")}</p>`,
+    usedKeys,
+  };
+}
+
+function buildPopupLayerMarkHtml(options: {
+  layerName: string;
+  layerColor?: string | null;
+  geometryKind?: string | null;
+  style?: LayerStyle | Record<string, unknown> | null;
+}): string {
+  const style = extractStyleFromLayer({
+    geometryType: options.geometryKind ?? "point",
+    style: options.style as LayerStyle | undefined,
+  });
+  const iconUrl = getLayerIconUrl(style);
+  const fallbackMark = (() => {
+    const geometry = String(options.geometryKind ?? "").toLowerCase();
+    if (geometry === "polygon") {
+      const fillColor = style.fillColor ?? options.layerColor ?? "#22c55e80";
+      const strokeColor = style.strokeColor ?? "#15803d";
+      return `<span class="map-popup-layer-mark-fallback map-popup-layer-mark-fallback--polygon" style="background:${escapeHtml(fillColor)};border-color:${escapeHtml(strokeColor)}"></span>`;
+    }
+    if (geometry === "line" || geometry === "linestring") {
+      const lineColor = style.lineColor ?? options.layerColor ?? "#2563eb";
+      return `<span class="map-popup-layer-mark-fallback map-popup-layer-mark-fallback--line"><span style="background:${escapeHtml(lineColor)}"></span></span>`;
+    }
+    return `<span class="map-popup-layer-mark-fallback map-popup-layer-mark-fallback--point" style="background:${escapeHtml(options.layerColor ?? "#64748b")}"></span>`;
+  })();
+
+  if (iconUrl) {
+    return `<span class="map-popup-layer-mark map-popup-layer-mark--image">
+      <img src="${escapeHtml(iconUrl)}" alt="" loading="lazy" />
+      ${fallbackMark}
+    </span>`;
+  }
+
+  const geometry = String(options.geometryKind ?? "").toLowerCase();
+  if (geometry === "polygon") {
+    const fillColor = style.fillColor ?? options.layerColor ?? "#22c55e80";
+    const strokeColor = style.strokeColor ?? "#15803d";
+    return `<span class="map-popup-layer-mark map-popup-layer-mark--polygon" style="background:${escapeHtml(fillColor)};border-color:${escapeHtml(strokeColor)}"></span>`;
+  }
+  if (geometry === "line" || geometry === "linestring") {
+    const lineColor = style.lineColor ?? options.layerColor ?? "#2563eb";
+    return `<span class="map-popup-layer-mark map-popup-layer-mark--line"><span style="background:${escapeHtml(lineColor)}"></span></span>`;
+  }
+
+  return `<span class="map-popup-layer-mark map-popup-layer-mark--point" style="background:${escapeHtml(options.layerColor ?? "#64748b")}"></span>`;
+}
+
+function buildPopupHeaderHtml(options: {
+  layerName: string;
+  layerCode: string;
+  layerColor?: string | null;
+  layerRole?: string | null;
+  geometryKind?: string | null;
+  style?: LayerStyle | Record<string, unknown> | null;
+  titleHtml: string;
+  galleryHtml: string;
+  subtitleHtml: string;
+  headerMetaHtml: string;
+  statusHtml: string;
+  metaHtml: string;
+  actionsHtml: string;
+}): string {
+  const tone = getPopupHeaderTone(options);
+  const badgeText = tone === "alert" ? "CẢNH BÁO" : "LỚP DỮ LIỆU";
+  const layerMark = buildPopupLayerMarkHtml(options);
+
+  return `<header class="map-popup-header map-popup-header--${tone}">
+    ${options.galleryHtml}
+    <div class="map-popup-header-main">
+      ${layerMark}
+      <div class="map-popup-heading">
+        <div class="map-popup-badge-row">
+          <span class="map-popup-badge">${escapeHtml(options.layerName)}</span>
+          ${options.statusHtml}
+        </div>
+        <h3 class="map-popup-title">${options.titleHtml}</h3>
+        ${options.subtitleHtml}
+        ${options.headerMetaHtml}
+      </div>
+    </div>
+    ${options.metaHtml ? `<div class="map-popup-meta">${options.metaHtml}</div>` : ""}
+    ${options.actionsHtml}
+  </header>`;
+}
+
 function buildPopupGalleryHtml(images: AttachmentRef[]): string {
   if (images.length === 0) return "";
 
@@ -415,6 +610,10 @@ export function buildFeaturePopupHtml(options: {
   layerName: string;
   layerCode: string;
   layerId: string;
+  layerColor?: string | null;
+  layerRole?: string | null;
+  geometryKind?: string | null;
+  style?: LayerStyle | Record<string, unknown> | null;
   recordId?: string;
   properties: Record<string, unknown>;
   destination?: { lat: number; lng: number };
@@ -422,7 +621,7 @@ export function buildFeaturePopupHtml(options: {
   const popupSummary = parsePopupSummary(options.properties);
   const titleField = popupSummary[0];
   const title =
-    titleField?.displayValue ?? getFallbackTitle(options.properties);
+    titleField?.displayValue ?? options.layerName;
   const titleHtml = titleField
     ? formatPopupValueHtml({ ...titleField, displayValue: truncate(title, 48) })
     : escapeHtml(truncate(title, 48));
@@ -433,10 +632,25 @@ export function buildFeaturePopupHtml(options: {
 
   const metaFields = popupSummary
     .slice(popupSummary.length > 1 ? 1 : 0)
-    .filter((field) => !isImageField(options.properties, field))
-    .slice(0, MAX_META_LINES);
+    .filter((field) => !isImageField(options.properties, field));
+
+  const statusField = getStatusBadgeField(metaFields);
+  const usedFieldKeys = new Set<string>();
+  if (statusField) {
+    usedFieldKeys.add(getPopupFieldKey(statusField));
+  }
+  const subtitle = buildPopupSubtitleHtml(metaFields, usedFieldKeys);
+  subtitle.usedKeys.forEach((key) => usedFieldKeys.add(key));
+  const headerMeta = buildPopupHeaderMetaHtml(metaFields, usedFieldKeys);
+  headerMeta.usedKeys.forEach((key) => usedFieldKeys.add(key));
+
+  const statusHtml = statusField?.displayValue?.trim()
+    ? `<span class="map-popup-status-badge">${escapeHtml(truncate(statusField.displayValue.trim(), 24))}</span>`
+    : "";
 
   const metaHtml = metaFields
+    .filter((field) => !usedFieldKeys.has(getPopupFieldKey(field)))
+    .slice(0, MAX_META_LINES)
     .map((field) => formatPopupFieldHtml(field))
     .join("");
 
@@ -447,7 +661,7 @@ export function buildFeaturePopupHtml(options: {
           class="map-popup-action-btn map-popup-detail-btn"
           data-layer-id="${escapeHtml(options.layerId)}"
           data-record-id="${escapeHtml(options.recordId)}"
-        >Chi tiết</button>`
+        >Xem chi tiết</button>`
       : "";
 
   const directionsButton = options.destination
@@ -461,20 +675,27 @@ export function buildFeaturePopupHtml(options: {
 
   const actionsHtml =
     detailButton || directionsButton
-      ? `<div class="map-popup-actions">${directionsButton}${detailButton}</div>`
+      ? `<div class="map-popup-actions">${detailButton}${directionsButton}</div>`
       : "";
+  const headerHtml = buildPopupHeaderHtml({
+    layerName: options.layerName,
+    layerCode: options.layerCode,
+    layerColor: options.layerColor,
+    layerRole: options.layerRole,
+    geometryKind: options.geometryKind,
+    style: options.style,
+    titleHtml,
+    galleryHtml,
+    subtitleHtml: subtitle.html,
+    headerMetaHtml: headerMeta.html,
+    statusHtml,
+    metaHtml,
+    actionsHtml,
+  });
 
   return `
     <article class="map-popup${hasGallery ? " map-popup--with-image" : " map-popup--no-image"}">
-      ${galleryHtml}
-      <div class="map-popup-content">
-        <div class="map-popup-headline">
-          <h3 class="map-popup-title">${titleHtml}</h3>
-          <span class="map-popup-layer">${escapeHtml(options.layerName)}</span>
-        </div>
-        ${metaHtml ? `<div class="map-popup-meta">${metaHtml}</div>` : ""}
-        ${actionsHtml}
-      </div>
+      ${headerHtml}
     </article>
   `;
 }

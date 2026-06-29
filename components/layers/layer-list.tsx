@@ -75,7 +75,7 @@ export function LayerList() {
       <EmptyState
         icon={<LayersIcon />}
         title="Chưa có lớp dữ liệu"
-        description="Khởi động backend và tạo lớp trong mục Quản trị để bắt đầu thu thập dữ liệu GIS."
+        description="Khởi động máy chủ và tạo lớp trong mục Quản trị để bắt đầu thu thập dữ liệu GIS."
       />
     );
   }

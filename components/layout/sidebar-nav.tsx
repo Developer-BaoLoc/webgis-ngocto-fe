@@ -106,7 +106,7 @@ export function SidebarNav() {
   return (
     <aside
       className={cn(
-        "relative z-40 flex shrink-0 flex-col overflow-visible border-r border-border bg-surface transition-[transform,width] duration-200 ease-in-out",
+        "relative top-0 z-40 flex h-dvh min-h-0 shrink-0 flex-col overflow-visible border-r border-border bg-surface transition-[transform,width] duration-200 ease-in-out md:sticky",
         isMobile
           ? cn(
               "fixed inset-y-0 left-0 z-50 w-[min(18rem,85vw)] shadow-xl",

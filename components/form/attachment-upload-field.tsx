@@ -80,7 +80,7 @@ export function AttachmentUploadField({
           : await uploadFieldFilesBatch(files);
       onChange([...items, ...uploaded]);
     } catch (err) {
-      setUploadError(err instanceof Error ? err.message : "Upload thất bại");
+      setUploadError(err instanceof Error ? err.message : "Tải lên thất bại");
     } finally {
       setIsUploading(false);
       e.target.value = "";

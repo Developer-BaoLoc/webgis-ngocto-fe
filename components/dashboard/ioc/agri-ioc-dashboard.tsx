@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { useEffect, useRef, useState } from "react";
 import { agriDashboardData } from "@/lib/dashboard/agri-data";
 import { getCurrentPublishedDashboard } from "@/lib/api/dashboards";
@@ -138,7 +139,7 @@ export function AgriIocDashboard(_props: AgriIocDashboardProps) {
       <main className="relative z-[1] px-3 pb-4 sm:px-4">
         {loading ? (
           <div className="rounded-xl border border-white/70 bg-white/90 px-4 py-10 text-center text-sm text-muted shadow-sm">
-            Đang tải dashboard...
+            <LoadingIndicator label="Đang tải bảng điều khiển" />
           </div>
         ) : dashboard ? (
           <DynamicDashboardView dashboard={dashboard} editable={false} />

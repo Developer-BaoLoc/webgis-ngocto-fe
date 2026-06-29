@@ -223,7 +223,7 @@ export function SavedViewsAdminPage() {
       setLayers(dataSources);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Không tải được Saved Views",
+        err instanceof Error ? err.message : "Không tải được chế độ xem đã lưu",
       );
     } finally {
       setIsLoading(false);
@@ -331,7 +331,7 @@ export function SavedViewsAdminPage() {
       closeModal();
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Lưu Saved View thất bại");
+      setError(err instanceof Error ? err.message : "Lưu chế độ xem thất bại");
     } finally {
       setIsSubmitting(false);
     }
@@ -354,7 +354,7 @@ export function SavedViewsAdminPage() {
 
   async function handlePreviewCurrent() {
     if (!form.layerId) {
-      setError("Chọn Layer trước khi preview");
+      setError("Chọn lớp dữ liệu trước khi xem trước");
       return;
     }
     await runPreview(form.layerId, buildConfig());
@@ -395,7 +395,7 @@ export function SavedViewsAdminPage() {
       await deleteSavedView(view.id);
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Xóa Saved View thất bại");
+      setError(err instanceof Error ? err.message : "Xóa chế độ xem thất bại");
     }
   }
 
@@ -426,7 +426,7 @@ export function SavedViewsAdminPage() {
     <div className="space-y-6">
       <PageHeader
         title="Chế độ xem đã lưu"
-        description="Nguồn dữ liệu đã lọc, sắp xếp và chọn cột để dùng lại trong tiện ích dashboard."
+        description="Nguồn dữ liệu đã lọc, sắp xếp và chọn cột để dùng lại trong tiện ích bảng điều khiển."
         backHref="/quan-tri"
         backLabel="Quản trị"
         action={
@@ -538,7 +538,7 @@ export function SavedViewsAdminPage() {
 
       {showModal && (
         <Modal
-          title={editingId ? "Xem/Sửa Saved View" : "Tạo Saved View"}
+          title={editingId ? "Xem/sửa chế độ xem" : "Tạo chế độ xem"}
           onClose={closeModal}
           size="xl"
         >
@@ -557,7 +557,7 @@ export function SavedViewsAdminPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium">2. Layer</label>
+                <label className="block text-sm font-medium">2. Lớp dữ liệu</label>
                 <select
                   className={inputClass}
                   required
@@ -573,7 +573,7 @@ export function SavedViewsAdminPage() {
                     setPreview(null);
                   }}
                 >
-                  <option value="">— Chọn Layer —</option>
+                  <option value="">— Chọn lớp dữ liệu —</option>
                   {layers.map((layer) => (
                     <option key={layer.layerId} value={layer.layerId}>
                       {layer.layerName}

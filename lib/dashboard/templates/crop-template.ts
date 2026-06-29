@@ -4,7 +4,7 @@ import { fieldPlaceholder as field, layerPlaceholder as layer } from "./placehol
 const cropPlaceholders = [
   {
     key: "crop_layer",
-    label: "Layer vùng hoa màu",
+    label: "Lớp dữ liệu vùng hoa màu",
     description: "Lớp dữ liệu vùng/cơ sở trồng hoa màu.",
     kind: "layer" as const,
     required: true,
@@ -13,7 +13,7 @@ const cropPlaceholders = [
   },
   {
     key: "area_field",
-    label: "Field diện tích",
+    label: "Trường diện tích",
     kind: "metric_field" as const,
     required: true,
     fieldTypes: ["number", "integer", "decimal", "currency"],
@@ -21,7 +21,7 @@ const cropPlaceholders = [
   },
   {
     key: "crop_type_field",
-    label: "Field loại cây trồng",
+    label: "Trường loại cây trồng",
     kind: "dimension_field" as const,
     required: true,
     fieldTypes: ["text", "string", "select", "enum", "category"],
@@ -29,7 +29,7 @@ const cropPlaceholders = [
   },
   {
     key: "profit_field",
-    label: "Field lợi nhuận",
+    label: "Trường lợi nhuận",
     kind: "metric_field" as const,
     required: true,
     fieldTypes: ["number", "integer", "decimal", "currency"],
@@ -37,7 +37,7 @@ const cropPlaceholders = [
   },
   {
     key: "name_field",
-    label: "Field tên vùng/cơ sở",
+    label: "Trường tên vùng/cơ sở",
     kind: "field" as const,
     required: true,
     fieldTypes: ["text", "string", "select", "category"],
@@ -45,7 +45,7 @@ const cropPlaceholders = [
   },
   {
     key: "zone_layer",
-    label: "Layer ấp/xã",
+    label: "Lớp dữ liệu ấp/xã",
     kind: "zone_layer" as const,
     required: true,
     geometryType: "polygon" as const,
@@ -53,7 +53,7 @@ const cropPlaceholders = [
   },
   {
     key: "zone_label_field",
-    label: "Field tên ấp/xã",
+    label: "Trường tên ấp/xã",
     kind: "zone_label_field" as const,
     required: true,
     fieldTypes: ["text", "string", "select", "category"],

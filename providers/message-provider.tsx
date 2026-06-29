@@ -234,16 +234,16 @@ export function MessageProvider({ children }: { children: ReactNode }) {
         ))}
       </div>
 
-      <button ref={centerButtonRef} type="button" onClick={() => { setCenterOpen((open) => !open); setHistory((current) => { const next = current.map((item) => ({ ...item, read: true })); try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next.map(serializableMessage))); } catch { /* History still works in memory. */ } return next; }); }} className="fixed bottom-5 right-5 z-[105] rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-lg hover:bg-slate-50" aria-label="Mở trung tâm thông báo">
+      <button ref={centerButtonRef} type="button" onClick={() => { setCenterOpen((open) => !open); setHistory((current) => { const next = current.map((item) => ({ ...item, read: true })); try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next.map(serializableMessage))); } catch { /* History still works in memory. */ } return next; }); }} className="fixed bottom-4 right-4 z-[105] rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-lg hover:border-sky-300 hover:bg-sky-50 hover:text-sky-800 sm:bottom-5 sm:right-10" aria-label="Mở trung tâm thông báo" aria-expanded={centerOpen} aria-haspopup="dialog">
         Thông báo{unread ? ` (${unread})` : ""}
       </button>
 
       {centerOpen ? (
-        <aside ref={centerRef} className="fixed bottom-16 right-5 z-[110] flex max-h-[min(70vh,42rem)] w-[min(26rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.2)]" aria-label="Trung tâm thông báo">
+        <aside ref={centerRef} role="dialog" className="fixed bottom-16 right-4 z-[110] flex max-h-[min(70vh,42rem)] w-[min(26rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.2)] sm:right-10" aria-label="Trung tâm thông báo">
           <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
             <div className="flex gap-1 rounded-lg bg-slate-100 p-1">
               <button type="button" onClick={() => setCenterTab("messages")} className={`rounded-md px-2.5 py-1 text-xs font-medium ${centerTab === "messages" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"}`}>Thông báo</button>
-              <button type="button" onClick={() => setCenterTab("audit")} className={`rounded-md px-2.5 py-1 text-xs font-medium ${centerTab === "audit" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"}`}>Audit Log</button>
+              <button type="button" onClick={() => setCenterTab("audit")} className={`rounded-md px-2.5 py-1 text-xs font-medium ${centerTab === "audit" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"}`}>Nhật ký thao tác</button>
             </div>
             <button type="button" onClick={() => setCenterOpen(false)} className="rounded p-1 text-xl leading-none text-slate-400 hover:bg-slate-100" aria-label="Đóng trung tâm thông báo">×</button>
           </div>

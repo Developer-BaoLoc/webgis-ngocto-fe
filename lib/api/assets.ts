@@ -90,7 +90,7 @@ async function uploadMultipart<T>(
   });
 
   if (!res.ok) {
-    let message = `Upload thất bại (${res.status})`;
+    let message = `Tải lên thất bại (${res.status})`;
     try {
       const body = (await res.json()) as ApiErrorBody;
       if (body.error?.message) message = body.error.message;

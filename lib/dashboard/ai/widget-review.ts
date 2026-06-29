@@ -249,7 +249,7 @@ export function recommendWidgetTypes(
     recommendations = [
       recommendation(
         "stat",
-        `Field ${fieldLabel(evidence.numeric)} có dữ liệu số, phù hợp hiển thị một KPI tổng hợp.`,
+        `Trường ${fieldLabel(evidence.numeric)} có dữ liệu số, phù hợp hiển thị một KPI tổng hợp.`,
       ),
       ...recommendations.filter((item) => item.widgetType !== "stat"),
     ];
@@ -442,7 +442,7 @@ function buildSpatialConfig(
   widget.placeholders = [
     {
       key: sourceKey,
-      label: "Layer nguồn cần thống kê",
+      label: "Lớp dữ liệu nguồn cần thống kê",
       kind: "layer",
       required: true,
       geometryType: "any",
@@ -450,7 +450,7 @@ function buildSpatialConfig(
     },
     {
       key: zoneKey,
-      label: "Layer phân vùng",
+      label: "Lớp dữ liệu phân vùng",
       kind: "zone_layer",
       required: true,
       geometryType: "polygon",
@@ -583,7 +583,7 @@ export function normalizeTemplateWidgetType(
         required: false,
       });
     }
-    warnings.push("Widget dạng danh sách sẽ map lại các field hiển thị trong Wizard.");
+    warnings.push("Tiện ích dạng danh sách sẽ liên kết lại các trường hiển thị trong trình hướng dẫn.");
   } else {
     const needsDimension = DIMENSION_WIDGETS.has(target);
     const needsMetric = target !== "stat" || config.aggregation !== "count";

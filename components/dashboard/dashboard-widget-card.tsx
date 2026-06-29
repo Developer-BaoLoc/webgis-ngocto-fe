@@ -140,7 +140,7 @@ function AnalyticsWidget({ widget }: { widget: DashboardWidget }) {
       .then((result) => {
         if (!cancelled) {
           if (result) setData(result);
-          else setError("Dataset tạm không còn trong phiên builder");
+          else setError("Bộ dữ liệu tạm không còn trong phiên thiết kế");
         }
       })
       .catch((requestError) => {

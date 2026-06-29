@@ -9,12 +9,15 @@ import { cn } from "@/lib/utils";
 import type { AttachmentRef } from "@/types/api/assets";
 import type { RecordDisplayData, RecordDisplayField } from "@/types/api/records";
 import { openDirections, type MapLatLng } from "@/lib/map/directions";
+import { LayerSymbol } from "@/components/layers/layer-symbol";
+import type { Layer } from "@/types/layer.types";
 
 interface RecordDetailModalProps {
   data: RecordDisplayData | null;
   loading?: boolean;
   error?: string | null;
   destination?: MapLatLng | null;
+  layer?: Layer;
   onClose: () => void;
 }
 
@@ -26,6 +29,82 @@ function getRecordTitle(fields: RecordDisplayField[]): string {
       field.displayValue?.trim(),
   );
   return first?.displayValue?.trim() || "Chi tiết bản ghi";
+}
+
+function getRecordSubtitle(fields: RecordDisplayField[]): string {
+  return fields
+    .filter(
+      (field) =>
+        field.fieldType !== "image" &&
+        field.fieldType !== "file" &&
+        field.fieldType !== "relationship" &&
+        field.displayValue?.trim(),
+    )
+    .slice(1, 4)
+    .map((field) => {
+      const value =
+        field.fieldType === "multi_category"
+          ? normalizeMultiCategoryDisplayText(field.displayValue)
+          : field.displayValue;
+      return value.replace(/\s+/g, " ").trim();
+    })
+    .filter(Boolean)
+    .join(" • ");
+}
+
+function normalizeSearchText(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
+function getRecordStatusField(
+  fields: RecordDisplayField[],
+): RecordDisplayField | null {
+  return (
+    fields.find((field) => {
+      const key = normalizeSearchText(`${field.code} ${field.label}`);
+      return /(trang thai|status|muc do|severity|canh bao|risk)/.test(key);
+    }) ?? null
+  );
+}
+
+function getRecordHeaderMeta(fields: RecordDisplayField[]): string[] {
+  return fields
+    .filter(
+      (field) =>
+        field.fieldType !== "image" &&
+        field.fieldType !== "file" &&
+        field.fieldType !== "relationship" &&
+        field.displayValue?.trim(),
+    )
+    .filter((field) => {
+      const key = normalizeSearchText(`${field.code} ${field.label}`);
+      return /(dia chi|address|khu vuc|area|cap nhat|updated|ngay|date)/.test(
+        key,
+      );
+    })
+    .map((field) =>
+      (field.fieldType === "multi_category"
+        ? normalizeMultiCategoryDisplayText(field.displayValue)
+        : field.displayValue
+      )
+        .replace(/\s+/g, " ")
+        .trim(),
+    )
+    .filter(Boolean)
+    .slice(0, 3);
+}
+
+function isAlertLayer(layer?: Layer, layerName?: string): boolean {
+  const haystack = [layer?.name, layer?.code, layer?.layerRole, layerName]
+    .filter(Boolean)
+    .join(" ")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+  return /canh bao|alert|warning|su co|rui ro/.test(haystack);
 }
 
 function partitionFields(fields: RecordDisplayField[]) {
@@ -62,6 +141,7 @@ export function RecordDetailModal({
   loading = false,
   error = null,
   destination = null,
+  layer,
   onClose,
 }: RecordDetailModalProps) {
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
@@ -69,30 +149,20 @@ export function RecordDetailModal({
   if (!data && !loading && !error) return null;
 
   const title = getRecordTitle(data?.detail ?? []);
+  const subtitle = data ? getRecordSubtitle(data.detail) : "";
+  const statusField = data ? getRecordStatusField(data.detail) : null;
+  const headerMeta = data ? getRecordHeaderMeta(data.detail) : [];
   const { images, files, others } = data
     ? partitionFields(data.detail)
     : { images: [], files: [], others: [] };
   const galleryImages = collectGalleryImages(images);
   const hasGallery = galleryImages.length > 0;
+  const alertLayer = isAlertLayer(layer, data?.layerName);
 
   return (
     <>
       <Modal size="sm" padding={false} onClose={onClose}>
         <article className="relative flex max-h-[85vh] flex-col overflow-hidden bg-white">
-          <button
-            type="button"
-            onClick={onClose}
-            className={cn(
-              "absolute right-2.5 top-2.5 z-20 flex h-7 w-7 items-center justify-center rounded-full transition",
-              hasGallery
-                ? "bg-black/50 text-white hover:bg-black/65"
-                : "border border-border bg-white text-muted hover:bg-slate-50",
-            )}
-            aria-label="Đóng"
-          >
-            <CloseIcon />
-          </button>
-
           {hasGallery && !loading && (
             <DetailHeroGallery
               images={galleryImages}
@@ -101,22 +171,82 @@ export function RecordDetailModal({
           )}
 
           <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
-            <header className="pr-8">
-              <span className="text-[0.6875rem] font-semibold text-emerald-700">
-                {data?.layerName ?? "Đang tải..."}
-              </span>
-              <h2 className="mt-0.5 text-base font-bold leading-snug text-foreground">
-                {loading ? "Đang tải..." : title}
-              </h2>
+            <header
+              className={cn(
+                "relative rounded-2xl border p-3 pr-12 shadow-[0_10px_28px_rgba(15,23,42,0.06)]",
+                alertLayer
+                  ? "border-orange-200/80 bg-gradient-to-br from-orange-50 via-white to-white"
+                  : "border-emerald-200/80 bg-gradient-to-br from-emerald-50 via-white to-white",
+              )}
+            >
+              <button
+                type="button"
+                onClick={onClose}
+                className="absolute right-2.5 top-2.5 z-10 flex h-8 w-8 items-center justify-center rounded-full border border-white/80 bg-white/80 text-slate-600 shadow-sm transition hover:bg-white hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:ring-offset-2"
+                aria-label="Đóng"
+                title="Đóng"
+              >
+                <CloseIcon />
+              </button>
+              <div className="flex min-w-0 items-start gap-3">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/80 bg-white shadow-sm ring-1 ring-slate-900/5">
+                  {layer ? (
+                    <LayerSymbol layer={layer} size="lg" />
+                  ) : (
+                    <span className="h-8 w-8 rounded-xl border border-emerald-200 bg-emerald-100" />
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+                    <span
+                      className={cn(
+                        "inline-flex max-w-full rounded-full border px-2 py-0.5 text-[0.625rem] font-extrabold uppercase tracking-[0.035em]",
+                        alertLayer
+                          ? "border-orange-200 bg-orange-50 text-orange-700"
+                          : "border-emerald-200 bg-emerald-50 text-emerald-700",
+                      )}
+                    >
+                      {alertLayer ? "CẢNH BÁO" : data?.layerName ?? "Đang tải..."}
+                    </span>
+                    {statusField?.displayValue?.trim() ? (
+                      <span className="inline-flex max-w-full truncate rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[0.625rem] font-extrabold text-amber-800">
+                        {statusField.displayValue}
+                      </span>
+                    ) : null}
+                  </div>
+                  <h2 className="mt-2 max-h-[3.4rem] overflow-hidden text-xl font-extrabold leading-tight text-foreground">
+                    {loading ? "Đang tải..." : title}
+                  </h2>
+                  {subtitle ? (
+                    <p className="mt-1 line-clamp-2 text-xs font-semibold leading-relaxed text-muted">
+                      {subtitle}
+                    </p>
+                  ) : null}
+                  {headerMeta.length > 0 ? (
+                    <p className="mt-2 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-[0.7rem] font-bold text-slate-600">
+                      {headerMeta.map((item, index) => (
+                        <span key={`${item}-${index}`} className="max-w-full truncate">
+                          {item}
+                        </span>
+                      ))}
+                    </p>
+                  ) : null}
+                  {/* <span className="mt-1.5 block truncate text-[0.6875rem] font-semibold text-slate-400">
+                    {data?.layerName ?? "Đang tải..."}
+                  </span> */}
+                </div>
+              </div>
               {destination && !loading && (
-                <button
-                  type="button"
-                  onClick={() => openDirections(destination)}
-                  className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs font-semibold text-emerald-800 transition hover:bg-emerald-100"
-                >
-                  <DirectionsIcon className="h-3.5 w-3.5" />
-                  Chỉ đường
-                </button>
+                <div className="mt-3 flex flex-wrap gap-2 border-t border-white/80 pt-3">
+                  <button
+                    type="button"
+                    onClick={() => openDirections(destination)}
+                    className="inline-flex min-h-9 min-w-0 items-center justify-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm transition hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:ring-offset-2 sm:flex-none"
+                  >
+                    <DirectionsIcon className="h-3.5 w-3.5" />
+                    Chỉ đường
+                  </button>
+                </div>
               )}
             </header>
 

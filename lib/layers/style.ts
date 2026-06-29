@@ -32,7 +32,7 @@ function normalizeLayerIcon(style: LayerStyle): LayerStyle {
 
 export function hasLayerIcon(style: LayerStyle): boolean {
   const normalized = normalizeLayerIcon(style);
-  return Boolean(normalized.iconAttachmentId);
+  return Boolean(normalized.iconAttachmentId || normalized.iconUrl);
 }
 
 /** @deprecated use hasLayerIcon */
@@ -85,6 +85,8 @@ export function buildStylePayload(
       return {
         ...meta,
         ...dynamic,
+        ...iconPayload,
+        showPolygonCenterIcon: style.showPolygonCenterIcon !== false,
         fillColor: style.fillColor ?? "#22c55e80",
         strokeColor: style.strokeColor ?? "#15803d",
       };

@@ -111,7 +111,7 @@ export function LayerImportDialog({
       );
       setStep("preview");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Upload thất bại");
+      setError(e instanceof Error ? e.message : "Tải lên thất bại");
     } finally {
       setIsLoading(false);
     }
@@ -157,7 +157,7 @@ export function LayerImportDialog({
         );
         setError(e.message);
       } else {
-        setError(e instanceof Error ? e.message : "Import thất bại");
+        setError(e instanceof Error ? e.message : "Nhập dữ liệu thất bại");
       }
       setStep("preview");
     } finally {
@@ -172,7 +172,7 @@ export function LayerImportDialog({
   const hasValidationErrors = validationErrors.length > 0;
 
   return (
-    <Modal title={`Import Excel — ${layerName}`} size="xl" onClose={onClose}>
+    <Modal title={`Nhập dữ liệu Excel — ${layerName}`} size="xl" onClose={onClose}>
       <div className="space-y-5">
         {error && (
           <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -241,7 +241,7 @@ export function LayerImportDialog({
               >
                 {isLoading
                   ? "Đang upload & preview..."
-                  : "Upload và xem preview"}
+                  : "Tải lên và xem trước"}
               </button>
               <button
                 type="button"
@@ -368,7 +368,7 @@ export function LayerImportDialog({
         {step === "done" && result && (
           <section className="space-y-4">
             <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-4">
-              <p className="font-semibold text-emerald-900">Import hoàn tất</p>
+              <p className="font-semibold text-emerald-900">Nhập dữ liệu hoàn tất</p>
               {result.message && (
                 <p className="mt-1 text-sm text-emerald-800">
                   {result.message}

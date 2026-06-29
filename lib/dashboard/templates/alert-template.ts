@@ -4,7 +4,7 @@ import { fieldPlaceholder as field, layerPlaceholder as layer } from "./placehol
 const alertPlaceholders = [
   {
     key: "alert_layer",
-    label: "Layer cảnh báo",
+    label: "Lớp dữ liệu cảnh báo",
     description: "Lớp chứa các phản ánh/cảnh báo/sự kiện cần xử lý.",
     kind: "layer" as const,
     required: true,
@@ -13,7 +13,7 @@ const alertPlaceholders = [
   },
   {
     key: "alert_title_field",
-    label: "Field tiêu đề",
+    label: "Trường tiêu đề",
     kind: "field" as const,
     required: true,
     fieldTypes: ["text", "string", "textarea"],
@@ -21,7 +21,7 @@ const alertPlaceholders = [
   },
   {
     key: "alert_severity_field",
-    label: "Field mức độ",
+    label: "Trường mức độ",
     kind: "dimension_field" as const,
     required: true,
     fieldTypes: ["select", "enum", "category", "text", "string"],
@@ -29,7 +29,7 @@ const alertPlaceholders = [
   },
   {
     key: "alert_area_field",
-    label: "Field khu vực",
+    label: "Trường khu vực",
     kind: "field" as const,
     required: false,
     fieldTypes: ["select", "enum", "category", "text", "string"],
@@ -37,7 +37,7 @@ const alertPlaceholders = [
   },
   {
     key: "alert_date_field",
-    label: "Field ngày cảnh báo",
+    label: "Trường ngày cảnh báo",
     kind: "date_field" as const,
     required: false,
     fieldTypes: ["date", "datetime", "timestamp", "text"],
@@ -45,7 +45,7 @@ const alertPlaceholders = [
   },
   {
     key: "alert_status_field",
-    label: "Field trạng thái",
+    label: "Trường trạng thái",
     kind: "dimension_field" as const,
     required: false,
     fieldTypes: ["select", "enum", "category", "text", "string"],
@@ -53,7 +53,7 @@ const alertPlaceholders = [
   },
   {
     key: "zone_layer",
-    label: "Layer ấp/xã",
+    label: "Lớp dữ liệu ấp/xã",
     kind: "zone_layer" as const,
     required: true,
     geometryType: "polygon" as const,
@@ -61,7 +61,7 @@ const alertPlaceholders = [
   },
   {
     key: "zone_label_field",
-    label: "Field tên ấp/xã",
+    label: "Trường tên ấp/xã",
     kind: "zone_label_field" as const,
     required: true,
     fieldTypes: ["text", "string", "select", "category"],

@@ -116,6 +116,7 @@ export function DataTableRow({
         "even:bg-slate-50/80",
         "hover:bg-primary/[0.04]",
         "[&_td]:border-b [&_td]:border-slate-200",
+        props.onClick && "cursor-pointer",
         className,
       )}
       {...props}

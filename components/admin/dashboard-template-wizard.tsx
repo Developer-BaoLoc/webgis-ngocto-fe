@@ -288,7 +288,7 @@ function resolveValueLabel(
 function placeholderHelp(placeholder: DashboardTemplatePlaceholder) {
   if (placeholder.description) return placeholder.description;
   if (placeholder.kind === "zone_layer") {
-    return "Layer polygon dùng để gom nhóm kết quả theo ấp/xã/khu vực.";
+    return "Lớp dữ liệu vùng dùng để gom nhóm kết quả theo ấp/xã/khu vực.";
   }
   if (placeholder.kind === "zone_label_field") {
     return "Trường tên vùng sẽ hiển thị trong bản đồ hoặc bảng kết quả.";
@@ -946,7 +946,7 @@ export function DashboardTemplateWizard({
                 ...current,
                 [key]: {
                   status: "error",
-                  message: "Dataset tạm không còn trong phiên builder.",
+                  message: "Bộ dữ liệu tạm không còn trong phiên thiết kế.",
                 },
               }));
               return;

@@ -304,7 +304,7 @@ export function DatasetsAdminPage() {
         isLoading={loading}
         isEmpty={!loading && datasets.length === 0}
         emptyTitle="Chưa có bộ dữ liệu"
-        emptyDescription="Tạo bộ dữ liệu từ một hoặc nhiều Saved View."
+        emptyDescription="Tạo bộ dữ liệu từ một hoặc nhiều chế độ xem đã lưu."
         emptyAction={
           <button
             type="button"

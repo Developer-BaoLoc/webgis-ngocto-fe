@@ -42,7 +42,7 @@ function isWidgetType(value: unknown): value is WidgetType {
 function sanitizeWidget(widget: DashboardWidget, index: number): DashboardTemplateWidget {
   return {
     templateWidgetId: `custom-widget-${index + 1}`,
-    title: widget.title || `Widget ${index + 1}`,
+    title: widget.title || `Tiện ích ${index + 1}`,
     widgetType: widget.widgetType,
     layoutConfig: { ...widget.layoutConfig },
     ...(widget.dataSourceConfig
@@ -67,7 +67,7 @@ export function dashboardToTemplate(input: {
     description:
       input.templateDescription?.trim() ||
       input.description?.trim() ||
-      "Mẫu được lưu từ Dashboard Builder.",
+      "Mẫu được lưu từ trình thiết kế bảng điều khiển.",
     category: "custom",
     icon: "layout-template",
     tags: ["custom"],
@@ -100,16 +100,16 @@ export function validateDashboardTemplateJson(value: unknown): {
 
   if (!id) errors.push("Thiếu id.");
   if (!name) errors.push("Thiếu name.");
-  if (!widgets.length) errors.push("Template phải có widgets.");
+  if (!widgets.length) errors.push("Mẫu phải có danh sách tiện ích.");
 
   const parsedWidgets: DashboardTemplateWidget[] = [];
   widgets.forEach((widget, index) => {
     if (!isRecord(widget)) {
-      errors.push(`Widget ${index + 1} không hợp lệ.`);
+      errors.push(`Tiện ích ${index + 1} không hợp lệ.`);
       return;
     }
     if (!isWidgetType(widget.widgetType)) {
-      errors.push(`Widget ${index + 1} có widgetType không hợp lệ.`);
+      errors.push(`Tiện ích ${index + 1} có loại không hợp lệ.`);
       return;
     }
     const layout = isRecord(widget.layoutConfig) ? widget.layoutConfig : null;
@@ -120,11 +120,11 @@ export function validateDashboardTemplateJson(value: unknown): {
       typeof layout.w !== "number" ||
       typeof layout.h !== "number"
     ) {
-      errors.push(`Widget ${index + 1} thiếu layoutConfig hợp lệ.`);
+      errors.push(`Tiện ích ${index + 1} thiếu cấu hình bố cục hợp lệ.`);
       return;
     }
     if (widget.placeholders !== undefined && !Array.isArray(widget.placeholders)) {
-      errors.push(`Widget ${index + 1} có placeholders không hợp lệ.`);
+      errors.push(`Tiện ích ${index + 1} có vị trí liên kết không hợp lệ.`);
       return;
     }
     if (Array.isArray(widget.placeholders)) {
@@ -179,7 +179,7 @@ export function validateDashboardTemplateJson(value: unknown): {
       title:
         typeof widget.title === "string" && widget.title
           ? widget.title
-          : `Widget ${index + 1}`,
+          : `Tiện ích ${index + 1}`,
       widgetType: widget.widgetType,
       layoutConfig: {
         x: layout.x,

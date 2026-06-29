@@ -118,13 +118,13 @@ export async function applyDashboardAiDataPreparationPlan(
     });
     savedViews.push(created);
     savedViewByTempId.set(view.tempId, created);
-    messages.push(`Đã tạo Saved View: ${created.name}`);
+    messages.push(`Đã tạo chế độ xem đã lưu: ${created.name}`);
   }
 
   for (const dataset of plan.suggestedDatasets ?? []) {
     if (dataset.type === "multiSourceMetricDataset") {
       skipped.push(
-        `Dataset tạm ${dataset.name} cần map trong Wizard, không tạo backend tự động.`,
+        `Bộ dữ liệu tạm ${dataset.name} cần liên kết trong trình hướng dẫn, không tự động tạo trên máy chủ.`,
       );
       continue;
     }
@@ -161,7 +161,7 @@ export async function applyDashboardAiDataPreparationPlan(
       },
     });
     datasets.push(created);
-    messages.push(`Đã tạo Dataset: ${created.name}`);
+    messages.push(`Đã tạo bộ dữ liệu: ${created.name}`);
   }
 
   return { savedViews, datasets, messages, skipped };

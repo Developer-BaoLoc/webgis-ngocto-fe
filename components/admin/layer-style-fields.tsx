@@ -226,6 +226,7 @@ export function LayerStyleFields({
     ...style.fallbackStyle,
   };
   const hasUploadedIcon = Boolean(style.iconAttachmentId || style.iconUrl);
+  const showPolygonIcon = geometryType === "polygon";
 
   function update(key: string, value: string | number) {
     onChange({ ...style, [key]: value });
@@ -326,6 +327,40 @@ export function LayerStyleFields({
         </p>
       </div>
 
+      {showPolygonIcon && (
+        <div className="rounded-lg border border-sky-200 bg-white p-3 shadow-sm">
+          <div className="mb-2">
+            <p className="text-sm font-semibold text-slate-800">
+              Icon đại diện <span className="font-normal text-muted">(không bắt buộc)</span>
+            </p>
+            <p className="mt-0.5 text-xs text-muted">
+              Hiển thị cạnh tên lớp trong danh sách, bộ điều khiển, chi tiết và chú thích. Màu vùng trên bản đồ không thay đổi.
+            </p>
+          </div>
+          <LayerIconUploadField style={style} onChange={onChange} />
+          <label className="mt-3 flex items-start gap-2 rounded-md bg-slate-50 px-3 py-2 text-xs text-slate-700">
+            <input
+              type="checkbox"
+              checked={style.showPolygonCenterIcon !== false}
+              disabled={!hasUploadedIcon}
+              onChange={(event) =>
+                onChange({
+                  ...style,
+                  showPolygonCenterIcon: event.target.checked,
+                })
+              }
+              className="mt-0.5 h-4 w-4 accent-sky-600"
+            />
+            <span>
+              <strong className="block font-medium">Hiển thị icon ở tâm vùng</strong>
+              <span className="text-muted">
+                Mặc định bật khi có icon; có thể tắt mà không xóa file đã tải lên.
+              </span>
+            </span>
+          </label>
+        </div>
+      )}
+
       <div className="grid gap-2 sm:grid-cols-2">
         <label className="flex cursor-pointer gap-2 rounded-lg border border-border bg-white p-3 text-sm">
           <input
@@ -359,7 +394,7 @@ export function LayerStyleFields({
 
       {style.styleMode !== "by_value" ? (
         <div className="grid gap-3 sm:grid-cols-2">
-          {fields.map((field) => (
+          {fields.filter((field) => !showPolygonIcon || !isIconUploadField(field)).map((field) => (
             <div
               key={field.key}
               className={isIconUploadField(field) ? "sm:col-span-2" : undefined}

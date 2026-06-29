@@ -10,6 +10,7 @@ import {
 import { AttachmentImageGallery } from "@/components/ui/attachment-image-gallery";
 import { FloatingPanel } from "@/components/ui/floating-panel";
 import { Modal } from "@/components/ui/modal";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import {
   DataTable,
   DataTableBody,
@@ -582,7 +583,7 @@ export function RecordsTable({
     return (
       <DataTableEmpty
         title="Chưa có bản ghi"
-        description="Tải mẫu Excel, import hoặc thêm bản ghi mới."
+        description="Tải mẫu Excel, nhập dữ liệu hoặc thêm bản ghi mới."
         action={emptyAction}
       />
     );
@@ -770,7 +771,7 @@ export function RecordsTable({
           <button type="button" onClick={() => setExportRequest({ format: "excel", scope: "selected" })} className="rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-sky-800 shadow-sm">Xuất dữ liệu</button>
           <button type="button" onClick={() => void copySelected()} className="rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-sky-800 shadow-sm">Sao chép</button>
           <button type="button" disabled title="Máy chủ chưa hỗ trợ xóa hàng loạt" className="rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-slate-400 opacity-60">Xóa</button>
-          <button type="button" disabled title="Sắp có" className="rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-slate-400 opacity-60">Đổi trạng thái</button>
+          <button type="button" disabled title="Sắp hỗ trợ" className="rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-slate-400 opacity-60">Đổi trạng thái</button>
           <button type="button" disabled title="Sắp hỗ trợ" className="rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-slate-400 opacity-60">Gắn nhãn</button>
           <button type="button" onClick={() => setSelectedIds(new Set())} className="px-2 py-1 text-xs font-medium text-sky-700">Bỏ chọn</button>
         </div>
@@ -778,7 +779,9 @@ export function RecordsTable({
 
       <div className="relative">
         {isRefreshing ? (
-          <div className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-white/60 text-sm text-muted">Đang tải...</div>
+          <div className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-white/70 backdrop-blur-[1px]">
+            <LoadingIndicator label="Đang làm mới dữ liệu" />
+          </div>
         ) : null}
         <DataTable scrollable stickyHeader stickyActions maxHeight="min(68vh,720px)" className="border-0 shadow-none">
           <DataTableHead>

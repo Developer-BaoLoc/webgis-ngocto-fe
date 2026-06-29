@@ -73,9 +73,9 @@ const sections = [
   },
   {
     href: "/quan-tri/datasets",
-    title: "Datasets",
+    title: "Bộ dữ liệu",
     description:
-      "Chuẩn hóa nhiều Saved View thành schema chung cho analytics và dashboard widget.",
+      "Chuẩn hóa nhiều chế độ xem đã lưu thành cấu trúc chung cho phân tích và tiện ích bảng điều khiển.",
     accent: "blue" as const,
     icon: (
       <svg
@@ -96,9 +96,9 @@ const sections = [
   },
   {
     href: "/quan-tri/dashboard",
-    title: "Dashboard",
+    title: "Bảng điều khiển",
     description:
-      "Tạo bảng điều khiển với widget thống kê, biểu đồ và bảng tổng hợp từ Saved View.",
+      "Tạo bảng điều khiển với tiện ích thống kê, biểu đồ và bảng tổng hợp từ chế độ xem đã lưu.",
     accent: "violet" as const,
     icon: (
       <svg
@@ -124,7 +124,7 @@ export default function AdminHubPage() {
     <div className="space-y-8">
       <PageHeader
         title="Quản trị"
-        description="Cấu hình lớp dữ liệu, danh mục dùng chung và dashboard cho hệ thống GIS phường."
+        description="Cấu hình lớp dữ liệu, danh mục dùng chung và bảng điều khiển cho hệ thống GIS phường."
       />
 
       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">

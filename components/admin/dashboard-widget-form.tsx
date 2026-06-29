@@ -402,8 +402,8 @@ export function validateSpatialWidgetForm(
   dataSources: DataSourceLayer[],
 ) {
   if (!isSpatialWidgetType(form.widgetType)) return "";
-  if (!form.spatialSourceLayerId) return "Chọn Layer nguồn trước khi xem trước.";
-  if (!form.spatialZoneLayerId) return "Chọn Layer phân vùng trước khi xem trước.";
+  if (!form.spatialSourceLayerId) return "Chọn lớp dữ liệu nguồn trước khi xem trước.";
+  if (!form.spatialZoneLayerId) return "Chọn lớp dữ liệu phân vùng trước khi xem trước.";
   const sourceLayer = dataSources.find(
     (source) => source.layerId === form.spatialSourceLayerId,
   );
@@ -411,10 +411,10 @@ export function validateSpatialWidgetForm(
     (source) => source.layerId === form.spatialZoneLayerId,
   );
   if (String(sourceLayer?.geometryType ?? "").toLowerCase() === "none") {
-    return "Layer nguồn chưa có hình học.";
+    return "Lớp dữ liệu nguồn chưa có hình học.";
   }
   if (!isPolygonGeometryType(zoneLayer?.geometryType)) {
-    return "Layer phân vùng phải là kiểu vùng.";
+    return "Lớp dữ liệu phân vùng phải là kiểu vùng.";
   }
   if (
     form.spatialMetricAggregation !== "count" &&
@@ -667,7 +667,7 @@ function getFormulaValidationError(
     (field) => !numericCodes.has(field),
   );
   if (unknownField) {
-    return `Field ${unknownField} không thuộc danh sách trường số của nguồn dữ liệu.`;
+    return `Trường ${unknownField} không thuộc danh sách trường số của nguồn dữ liệu.`;
   }
   return "";
 }
@@ -3681,7 +3681,7 @@ export function WidgetFormFields({
               <p className="mt-1 text-xs text-muted">
                 {selectedDataset
                   ? `Bộ dữ liệu: ${selectedDataset.name} · ${selectedFields.length} trường`
-                  : `Layer: ${selectedLayer?.layerName} · ${selectedFields.length} trường`}
+                  : `Lớp dữ liệu: ${selectedLayer?.layerName} · ${selectedFields.length} trường`}
               </p>
             )}
             {savedViews.length === 0 && !form.layerId && (
@@ -3713,7 +3713,7 @@ export function WidgetFormFields({
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
-                  <label className="block text-sm font-medium">Layer nguồn</label>
+                  <label className="block text-sm font-medium">Lớp dữ liệu nguồn</label>
                   <p className="mb-1 text-xs text-muted">
                     Lớp cần thống kê: point, line hoặc polygon.
                   </p>
@@ -3743,7 +3743,7 @@ export function WidgetFormFields({
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium">Layer phân vùng</label>
+                  <label className="block text-sm font-medium">Lớp dữ liệu phân vùng</label>
                   <p className="mb-1 text-xs text-muted">
                     Lớp polygon dùng để gom nhóm, ví dụ ấp/xã.
                   </p>

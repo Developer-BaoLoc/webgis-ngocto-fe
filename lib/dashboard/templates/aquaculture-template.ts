@@ -4,7 +4,7 @@ import { fieldPlaceholder as field, layerPlaceholder as layer } from "./placehol
 const sourcePlaceholders = [
   {
     key: "aquaculture_layer",
-    label: "Layer vùng nuôi thủy sản",
+    label: "Lớp dữ liệu vùng nuôi thủy sản",
     description: "Lớp vùng nuôi hoặc điểm/cơ sở nuôi thủy sản.",
     kind: "layer" as const,
     required: true,
@@ -13,7 +13,7 @@ const sourcePlaceholders = [
   },
   {
     key: "area_field",
-    label: "Field diện tích",
+    label: "Trường diện tích",
     kind: "metric_field" as const,
     required: true,
     fieldTypes: ["number", "integer", "decimal", "currency"],
@@ -21,7 +21,7 @@ const sourcePlaceholders = [
   },
   {
     key: "farming_type_field",
-    label: "Field loại hình nuôi",
+    label: "Trường loại hình nuôi",
     kind: "dimension_field" as const,
     required: true,
     fieldTypes: ["text", "string", "select", "enum", "category"],
@@ -29,7 +29,7 @@ const sourcePlaceholders = [
   },
   {
     key: "profit_field",
-    label: "Field lợi nhuận hoặc sản lượng",
+    label: "Trường lợi nhuận hoặc sản lượng",
     kind: "metric_field" as const,
     required: true,
     fieldTypes: ["number", "integer", "decimal", "currency"],
@@ -37,7 +37,7 @@ const sourcePlaceholders = [
   },
   {
     key: "name_field",
-    label: "Field tên vùng/cơ sở",
+    label: "Trường tên vùng/cơ sở",
     kind: "field" as const,
     required: true,
     fieldTypes: ["text", "string", "select", "category"],
@@ -45,7 +45,7 @@ const sourcePlaceholders = [
   },
   {
     key: "zone_layer",
-    label: "Layer ấp/xã",
+    label: "Lớp dữ liệu ấp/xã",
     kind: "zone_layer" as const,
     required: true,
     geometryType: "polygon" as const,
@@ -53,7 +53,7 @@ const sourcePlaceholders = [
   },
   {
     key: "zone_label_field",
-    label: "Field tên ấp/xã",
+    label: "Trường tên ấp/xã",
     kind: "zone_label_field" as const,
     required: true,
     fieldTypes: ["text", "string", "select", "category"],
@@ -65,7 +65,7 @@ export const aquacultureTemplate: DashboardTemplate = {
   id: "template-aquaculture",
   code: "aquaculture",
   name: "Nuôi thủy sản",
-  description: "Dashboard nhanh cho vùng nuôi, diện tích, cơ cấu và cảnh báo thủy sản.",
+  description: "Bảng điều khiển nhanh cho vùng nuôi, diện tích, cơ cấu và cảnh báo thủy sản.",
   category: "aquaculture",
   icon: "waves",
   tags: ["thủy sản", "vùng nuôi", "diện tích"],
@@ -139,7 +139,7 @@ export const aquacultureTemplate: DashboardTemplate = {
       placeholders: [
         {
           key: "alert_layer",
-          label: "Layer cảnh báo thủy sản",
+          label: "Lớp dữ liệu cảnh báo thủy sản",
           kind: "layer",
           required: true,
           geometryType: "any",
@@ -147,7 +147,7 @@ export const aquacultureTemplate: DashboardTemplate = {
         },
         {
           key: "alert_title_field",
-          label: "Field tiêu đề cảnh báo",
+          label: "Trường tiêu đề cảnh báo",
           kind: "field",
           required: true,
           fieldTypes: ["text", "string", "textarea"],
@@ -155,7 +155,7 @@ export const aquacultureTemplate: DashboardTemplate = {
         },
         {
           key: "alert_severity_field",
-          label: "Field mức độ",
+          label: "Trường mức độ",
           kind: "field",
           required: true,
           fieldTypes: ["select", "enum", "category", "text"],
@@ -163,7 +163,7 @@ export const aquacultureTemplate: DashboardTemplate = {
         },
         {
           key: "alert_area_field",
-          label: "Field khu vực",
+          label: "Trường khu vực",
           kind: "field",
           required: false,
           fieldTypes: ["select", "enum", "category", "text"],
@@ -171,7 +171,7 @@ export const aquacultureTemplate: DashboardTemplate = {
         },
         {
           key: "alert_date_field",
-          label: "Field thời gian",
+          label: "Trường thời gian",
           kind: "date_field",
           required: false,
           fieldTypes: ["date", "datetime", "timestamp"],
@@ -179,7 +179,7 @@ export const aquacultureTemplate: DashboardTemplate = {
         },
         {
           key: "alert_status_field",
-          label: "Field trạng thái",
+          label: "Trường trạng thái",
           kind: "field",
           required: false,
           fieldTypes: ["select", "enum", "category", "text"],

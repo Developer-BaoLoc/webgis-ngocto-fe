@@ -98,7 +98,11 @@ function getPopup(): maplibregl.Popup {
 }
 
 function isIconHoverLayer(layerId: string): boolean {
-  return layerId.endsWith("-hit");
+  return (
+    layerId.endsWith("-hit") ||
+    layerId.endsWith("-center-symbol") ||
+    layerId.endsWith("-center-circle")
+  );
 }
 
 function isShapeClickLayer(layerId: string): boolean {
@@ -139,6 +143,8 @@ function setPopupCloseButtonVisible(popup: maplibregl.Popup, visible: boolean) {
     ?.querySelector(".maplibregl-popup-close-button") as HTMLElement | null;
   if (closeButton) {
     closeButton.style.display = visible ? "" : "none";
+    closeButton.setAttribute("aria-label", "Đóng popup");
+    closeButton.setAttribute("title", "Đóng popup");
   }
 }
 
@@ -211,6 +217,22 @@ function attachDirectionsButtonListener(
   button.addEventListener("click", directionsButtonHandler);
 }
 
+function attachPopupIconFallback(root: ParentNode) {
+  const icons = root.querySelectorAll<HTMLImageElement>(
+    ".map-popup-layer-mark--image img",
+  );
+  icons.forEach((icon) => {
+    icon.addEventListener(
+      "error",
+      () => {
+        icon.parentElement?.classList.add("is-fallback");
+        icon.remove();
+      },
+      { once: true },
+    );
+  });
+}
+
 function showFeaturePopup(
   map: MapLibreMap,
   feature: GeoJSONFeature,
@@ -220,6 +242,7 @@ function showFeaturePopup(
   mode: PopupMode = "click",
 ) {
   const properties = { ...(feature.properties ?? {}) } as Record<string, unknown>;
+  delete properties.__onegisPolygonCenter;
   const { recordId, layerId } = extractRecordIds(properties);
   const destination = parseLngLatLike(lngLat);
 
@@ -231,6 +254,10 @@ function showFeaturePopup(
         layerName: entry.layer.name,
         layerCode: entry.layer.code,
         layerId: layerId ?? entry.layer.id,
+        layerColor: entry.layer.color,
+        layerRole: entry.layer.layerRole,
+        geometryKind: entry.layer.geometryKind ?? entry.layer.geometryType,
+        style: entry.layer.style,
         recordId:
           recordId ??
           (typeof feature.id === "string" ? feature.id : undefined),
@@ -246,6 +273,7 @@ function showFeaturePopup(
   const popupRoot = popup.getElement();
   if (popupRoot) {
     initMapPopupCarousel(popupRoot);
+    attachPopupIconFallback(popupRoot);
   }
 
   attachDirectionsButtonListener(popup, destination);

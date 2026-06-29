@@ -170,13 +170,13 @@ function sanitizeWidget(
   index: number,
   errors: string[],
 ): DashboardTemplateWidget | null {
-  const label = `Widget ${index + 1}`;
+  const label = `Tiện ích ${index + 1}`;
   if (!isRecord(value)) {
     errors.push(`${label} không hợp lệ.`);
     return null;
   }
   if (!nonEmptyString(value.templateWidgetId)) {
-    errors.push(`${label} thiếu templateWidgetId.`);
+    errors.push(`${label} thiếu ID trong mẫu.`);
   }
   if (!nonEmptyString(value.title)) errors.push(`${label} thiếu title.`);
   if (!nonEmptyString(value.widgetType)) {
@@ -325,19 +325,19 @@ export function validateDashboardAiTemplate(
     return { valid: false, errors: ["AI phải trả về một JSON object template."] };
   }
 
-  if (!nonEmptyString(value.id)) errors.push("Template thiếu id.");
-  if (!nonEmptyString(value.code)) errors.push("Template thiếu code.");
-  if (!nonEmptyString(value.name)) errors.push("Template thiếu name.");
+  if (!nonEmptyString(value.id)) errors.push("Mẫu thiếu ID.");
+  if (!nonEmptyString(value.code)) errors.push("Mẫu thiếu mã.");
+  if (!nonEmptyString(value.name)) errors.push("Mẫu thiếu tên.");
   if (!nonEmptyString(value.description)) {
-    errors.push("Template thiếu description.");
+    errors.push("Mẫu thiếu mô tả.");
   }
   if (!nonEmptyString(value.category)) {
-    errors.push("Template thiếu category.");
+    errors.push("Mẫu thiếu danh mục.");
   } else if (!dashboardAiCategorySet.has(value.category)) {
-    errors.push(`Template có category không hợp lệ: ${value.category}`);
+    errors.push(`Mẫu có danh mục không hợp lệ: ${value.category}`);
   }
   if (!Array.isArray(value.widgets) || value.widgets.length === 0) {
-    errors.push("Template phải có ít nhất một widget.");
+    errors.push("Mẫu phải có ít nhất một tiện ích.");
   }
 
   const widgets = Array.isArray(value.widgets)
@@ -349,7 +349,7 @@ export function validateDashboardAiTemplate(
   const widgetIds = new Set<string>();
   widgets.forEach((widget) => {
     if (widgetIds.has(widget.templateWidgetId)) {
-      errors.push(`Trùng templateWidgetId: ${widget.templateWidgetId}`);
+      errors.push(`Trùng ID tiện ích trong mẫu: ${widget.templateWidgetId}`);
     }
     widgetIds.add(widget.templateWidgetId);
   });

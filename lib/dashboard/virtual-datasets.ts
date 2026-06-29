@@ -106,7 +106,7 @@ export function virtualDatasetToDataset(dataset: VirtualDataset): VirtualDataset
     id: dataset.id,
     code: dataset.tempId,
     name: `${dataset.name} (Tạm)`,
-    description: dataset.reason ?? "Dataset tạm trong phiên Dashboard Builder.",
+    description: dataset.reason ?? "Bộ dữ liệu tạm trong phiên thiết kế bảng điều khiển.",
     isPublic: false,
     config: {
       fields: dataset.fields.map((field) => ({
@@ -144,7 +144,7 @@ export function virtualDatasetSnapshotToDataset(
     id: snapshot.id,
     code: snapshot.id.replace(/^virtual_/, ""),
     name: `${snapshot.name} (Tạm)`,
-    description: "Dataset tạm được embed trong widget dashboard.",
+    description: "Bộ dữ liệu tạm được nhúng trong tiện ích bảng điều khiển.",
     isPublic: false,
     config: {
       fields: snapshot.fields.map((field) => ({

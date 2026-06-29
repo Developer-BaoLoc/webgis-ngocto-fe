@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 
@@ -28,6 +28,7 @@ export function Modal({
   padding = true,
 }: ModalProps) {
   const [mounted, setMounted] = useState(false);
+  const titleId = useId();
 
   useEffect(() => {
     const timer = window.setTimeout(() => setMounted(true), 0);
@@ -42,6 +43,15 @@ export function Modal({
     return () => document.removeEventListener("keydown", closeOnEscape);
   }, [onClose]);
 
+  useEffect(() => {
+    if (!mounted) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [mounted]);
+
   if (!mounted) return null;
 
   return createPortal(
@@ -54,6 +64,10 @@ export function Modal({
       />
 
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={title ? titleId : undefined}
+        aria-label={title ? undefined : "Hộp thoại"}
         className={cn(
           "relative max-h-[90vh] w-full rounded-2xl border border-border bg-surface shadow-2xl",
           padding ? "overflow-y-auto p-6" : "overflow-hidden p-0",
@@ -67,11 +81,12 @@ export function Modal({
               padding ? "mb-4" : "hidden",
             )}
           >
-            <h2 className="text-lg font-semibold text-foreground">{title}</h2>
+            <h2 id={titleId} className="text-lg font-semibold text-foreground">{title}</h2>
             <button
               type="button"
               onClick={onClose}
-              className="text-muted hover:text-foreground"
+              className="rounded-md p-1 text-muted hover:bg-slate-100 hover:text-foreground"
+              aria-label="Đóng hộp thoại"
             >
               ✕
             </button>
