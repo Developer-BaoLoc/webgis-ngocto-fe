@@ -1,4 +1,5 @@
 import raw from "@/data/agri-dashboard.json";
+import { wardConfig } from "@/config/ward.config";
 import type {
   AgriAlert,
   AgriDashboardData,
@@ -138,7 +139,7 @@ export function getAgriAlerts(): AgriAlert[] {
 /** Phản ánh người dân — nội dung gắn với khu vực thật trong dữ liệu. */
 export function getCitizenFeedback(): CitizenFeedback[] {
   const areas = agriDashboardData.charts.areaDistribution.map((a) => a.name);
-  const pick = (i: number) => areas[i % areas.length] ?? "Ngọc Tố";
+  const pick = (i: number) => areas[i % areas.length] ?? wardConfig.name;
 
   return [
     {

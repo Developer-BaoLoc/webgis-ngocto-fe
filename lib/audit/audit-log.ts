@@ -1,3 +1,5 @@
+import { getStorageKey } from "@/lib/config/storage";
+
 export type AuditActionType =
   | "dashboard.create"
   | "dashboard.update"
@@ -22,7 +24,7 @@ export interface AuditLogEntry {
   metadata?: Record<string, string | number | boolean | null>;
 }
 
-const STORAGE_KEY = "gis_ngocto.audit_log.v1";
+const STORAGE_KEY = getStorageKey("audit_log.v1");
 const EVENT_NAME = "gis:audit-log-updated";
 const MAX_ENTRIES = 200;
 

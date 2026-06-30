@@ -8,6 +8,7 @@ import type {
   FinancialCompareRow,
   ForecastPoint,
 } from "@/types/agri-dashboard";
+import { wardConfig } from "@/config/ward.config";
 import { formatNumber } from "@/lib/dashboard/agri-data";
 
 const PALETTE = [
@@ -608,11 +609,16 @@ type TopRevenueItem = {
 };
 
 function shortenOrgName(name: string): string {
+  const wardSuffix = new RegExp(`\\s+${escapeRegExp(wardConfig.name)}$`, "i");
   return name
     .replace(/^HTX NN\s+/i, "")
     .replace(/^HTX\s+/i, "")
     .replace(/^THT\s+/i, "")
-    .replace(/\s+Ngọc Tố$/i, "");
+    .replace(wardSuffix, "");
+}
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 export function TopRevenueChart({

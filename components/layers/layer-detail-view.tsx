@@ -18,7 +18,7 @@ import {
 } from "@/lib/api/layers";
 import { getFieldTypes, getRelationshipSuggestions } from "@/lib/api/metadata";
 import { downloadLayerImportTemplate } from "@/lib/api/layer-imports";
-import { deleteRecord, getAllLayerRecords } from "@/lib/api/records";
+import { deleteRecord, getLayerRecords } from "@/lib/api/records";
 import { useMessage } from "@/providers/message-provider";
 import { getFieldTypesForLayerGeometry } from "@/lib/fields/field-types";
 import { enrichFieldTypes } from "@/lib/i18n/vi";
@@ -33,6 +33,8 @@ import { geometryKindLabels } from "@/types/layer.types";
 interface LayerDetailViewProps {
   code: string;
 }
+
+const INITIAL_RECORD_PAGE_SIZE = 500;
 
 export function LayerDetailView({ code }: LayerDetailViewProps) {
   const message = useMessage();
@@ -84,7 +86,9 @@ export function LayerDetailView({ code }: LayerDetailViewProps) {
 
       const [schemaData, recordsData, suggestionsData] = await Promise.all([
         getLayerSchema(layerData.id),
-        getAllLayerRecords(layerData.id, {
+        getLayerRecords(layerData.id, {
+          page: 1,
+          pageSize: INITIAL_RECORD_PAGE_SIZE,
           sortBy: "createdAt",
           sortOrder: "desc",
         }),
@@ -92,9 +96,9 @@ export function LayerDetailView({ code }: LayerDetailViewProps) {
       ]);
 
       setSchema(schemaData);
-      setRecords(recordsData);
+      setRecords(recordsData.records);
       setRelationshipSuggestions(suggestionsData);
-      setTotal(recordsData.length);
+      setTotal(recordsData.meta.total ?? recordsData.records.length);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Không tải được dữ liệu lớp");
       setRelationshipSuggestions([]);

@@ -1,13 +1,10 @@
 import { wardConfig } from "@/config/ward.config";
 
-/** Trung tâm Xã Ngọc Tố, Huyện Mỹ Xuyên, Cần Thơ */
+/** Trung tâm địa bàn mặc định; ưu tiên mapView từ backend khi có. */
 export const WARD_DEFAULT_CENTER = wardConfig.center;
 
-/** Giới hạn pan — ĐBSCL / Cần Thơ (tránh kéo ra nước ngoài) */
-export const CAN_THO_BOUNDS: [[number, number], [number, number]] = [
-  [105.45, 9.35],
-  [106.15, 10.45],
-];
+/** Giới hạn pan theo địa bàn/province hiện tại. */
+export const CAN_THO_BOUNDS = wardConfig.panBounds;
 
 export interface MapCenter {
   lat: number;
@@ -28,7 +25,7 @@ export function normalizeMapCenter(center: MapCenter): MapCenter {
     [lat, lng] = [lng, lat];
   }
 
-  // Ngoài phạm vi Việt Nam → fallback Ngọc Tố
+  // Ngoài phạm vi Việt Nam → fallback về trung tâm địa bàn cấu hình.
   if (lng < 102 || lng > 110 || lat < 8 || lat > 24) {
     return WARD_DEFAULT_CENTER;
   }

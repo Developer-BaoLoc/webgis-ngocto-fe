@@ -1,3 +1,5 @@
+import { wardConfig } from "@/config/ward.config";
+
 export interface FieldLabelMetadata {
   label?: unknown;
   name?: unknown;
@@ -214,8 +216,8 @@ const OPTION_LABELS: Record<string, Record<string, string>> = {
     can_kiem_tra: "Cần kiểm tra",
     tu_choi: "Từ chối",
   },
-  tp_tinh: { can_tho: "Cần Thơ" },
-  ten_xa: { ngoc_to: "Ngọc Tố" },
+  tp_tinh: { can_tho: wardConfig.city },
+  ten_xa: { ngoc_to: wardConfig.name },
   nguon_du_lieu: {
     khao_sat_thuc_dia: "Khảo sát thực địa",
     khao_sat_nhanh: "Khảo sát nhanh",
@@ -223,7 +225,7 @@ const OPTION_LABELS: Record<string, Record<string, string>> = {
     nguoi_dan_cung_cap: "Người dân cung cấp",
   },
   don_vi_quan_ly: {
-    ubnd_xa_ngoc_to: "UBND xã Ngọc Tố",
+    ubnd_xa_ngoc_to: `UBND ${wardConfig.locationLabel}`,
     phong_nn_mt: "Phòng NN&MT",
     ban_ap_hoa_my: "Ban ấp Hòa Mỹ",
     ban_ap_tay_kenh: "Ban ấp Tây Kênh",

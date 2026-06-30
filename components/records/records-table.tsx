@@ -238,6 +238,7 @@ function RecordViewDialog({
 export function RecordsTable({
   fields,
   records,
+  total,
   onEdit,
   onDelete,
   onRowClick,
@@ -295,6 +296,8 @@ export function RecordsTable({
   const [exportRequest, setExportRequest] = useState<{ format: ExportFormat; scope: ExportScope } | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [viewingRecord, setViewingRecord] = useState<RecordItem | null>(null);
+  const totalRecords = total ?? records.length;
+  const isPartialDataset = totalRecords > records.length;
 
   useEffect(() => {
     let cancelled = false;
@@ -592,7 +595,9 @@ export function RecordsTable({
   const exportSource = exportRequest ? recordsForScope(exportRequest.scope) : [];
   const exportScopeLabel =
     exportRequest?.scope === "all"
-      ? "Toàn bộ dữ liệu"
+      ? isPartialDataset
+        ? `Dữ liệu đã tải (${records.length}/${totalRecords})`
+        : "Toàn bộ dữ liệu"
       : exportRequest?.scope === "selected"
         ? `${exportSource.length} đối tượng đã chọn`
         : "Dữ liệu sau lọc";
@@ -629,7 +634,9 @@ export function RecordsTable({
             className="ioc-select w-auto min-w-[10rem]"
           >
             <option value="filtered">Dữ liệu sau lọc</option>
-            <option value="all">Toàn bộ</option>
+            <option value="all">
+              {isPartialDataset ? "Dữ liệu đã tải" : "Toàn bộ"}
+            </option>
             <option value="selected">Đối tượng đã chọn</option>
           </select>
           <button
@@ -649,9 +656,17 @@ export function RecordsTable({
         </div>
         <p className="mt-2 text-xs text-slate-500">
           Đang hiển thị {filtered.length.toLocaleString("vi-VN")} /{" "}
-          {records.length.toLocaleString("vi-VN")} đối tượng
+          {totalRecords.toLocaleString("vi-VN")} đối tượng
           {selected.length ? ` · Đã chọn ${selected.length}` : ""}
         </p>
+        {isPartialDataset ? (
+          <p className="mt-1 text-xs text-amber-700">
+            Để bảo vệ hiệu năng trình duyệt, bảng chỉ tải{" "}
+            {records.length.toLocaleString("vi-VN")} bản ghi mới nhất. Export
+            toàn bộ dữ liệu lớn nên thực hiện bằng API/server-side ở bản tiếp
+            theo.
+          </p>
+        ) : null}
       </div>
 
       <FloatingPanel

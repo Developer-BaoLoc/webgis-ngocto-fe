@@ -7,6 +7,8 @@ export interface RecordsListResult {
   meta: ApiMeta;
 }
 
+const DEFAULT_ALL_RECORDS_LIMIT = 1000;
+
 export async function getLayerRecords(
   layerId: string,
   query: RecordsQuery = {},
@@ -31,16 +33,20 @@ export async function getLayerRecords(
 export async function getAllLayerRecords(
   layerId: string,
   query: Omit<RecordsQuery, "page" | "pageSize"> = {},
+  options: { maxRecords?: number } = {},
 ): Promise<RecordItem[]> {
   const pageSize = 200;
+  const maxRecords = options.maxRecords ?? DEFAULT_ALL_RECORDS_LIMIT;
   const first = await getLayerRecords(layerId, { ...query, page: 1, pageSize });
-  const totalPages = first.meta.totalPages ?? Math.max(1, Math.ceil((first.meta.total ?? first.records.length) / pageSize));
+  const total = first.meta.total ?? first.records.length;
+  const totalPages = first.meta.totalPages ?? Math.max(1, Math.ceil(total / pageSize));
+  const safePages = Math.min(totalPages, Math.ceil(maxRecords / pageSize));
   const records = [...first.records];
-  for (let page = 2; page <= totalPages; page += 1) {
+  for (let page = 2; page <= safePages; page += 1) {
     const next = await getLayerRecords(layerId, { ...query, page, pageSize });
     records.push(...next.records);
   }
-  return records;
+  return records.slice(0, maxRecords);
 }
 
 export async function getRecord(

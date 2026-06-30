@@ -1,7 +1,8 @@
 import type { DashboardWidget, WidgetType } from "@/types/api/dashboard";
+import { getStorageKey } from "@/lib/config/storage";
 import type { DashboardTemplate, DashboardTemplateWidget } from "./types";
 
-const CUSTOM_TEMPLATE_STORAGE_KEY = "gis_ngocto.dashboard.customTemplates.v1";
+const CUSTOM_TEMPLATE_STORAGE_KEY = getStorageKey("dashboard.customTemplates.v1");
 
 const WIDGET_TYPES = new Set<WidgetType>([
   "stat",

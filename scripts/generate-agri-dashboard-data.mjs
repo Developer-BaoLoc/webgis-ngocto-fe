@@ -2,7 +2,7 @@
 /**
  * Sinh data/agri-dashboard.json từ file Excel tổng hợp nông nghiệp (backend repo).
  *
- * Usage (từ gis_ngocto_web):
+ * Usage:
  *   node scripts/generate-agri-dashboard-data.mjs
  *
  * Hoặc chỉ định đường dẫn Excel:
@@ -22,6 +22,11 @@ const defaultExcel = path.resolve(
   "../../gis_be/BẢNG TỔNG HỢP SỐ LIỆU NÔNG NGHIỆPBảng tính không có tiêu đề.xlsx",
 );
 const excelPath = process.argv[2] ? path.resolve(process.argv[2]) : defaultExcel;
+const wardMeta = {
+  ward: process.env.NEXT_PUBLIC_DEFAULT_WARD_NAME ?? "Ngọc Tố",
+  district: process.env.NEXT_PUBLIC_DEFAULT_DISTRICT_NAME ?? "Huyện Mỹ Xuyên",
+  city: process.env.NEXT_PUBLIC_DEFAULT_PROVINCE_NAME ?? "Thành phố Cần Thơ",
+};
 const outPath = path.resolve(__dirname, "../data/agri-dashboard.json");
 
 if (!fs.existsSync(excelPath)) {
@@ -227,9 +232,9 @@ for (const m of effectiveModels) {
 const data = {
   meta: {
     title: "Trung tâm điều hành Nông nghiệp",
-    ward: "Ngọc Tố",
-    district: "Huyện Mỹ Xuyên",
-    city: "Thành phố Cần Thơ",
+    ward: wardMeta.ward,
+    district: wardMeta.district,
+    city: wardMeta.city,
     source: "BẢNG TỔNG HỢP SỐ LIỆU NÔNG NGHIỆP",
   },
   kpis: {

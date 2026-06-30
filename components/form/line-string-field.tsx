@@ -8,6 +8,7 @@ import {
   isLineGeometryValue,
   parseLineInput,
 } from "@/lib/fields/line";
+import { getCoordinatePlaceholders } from "@/lib/map/coordinate-placeholders";
 import { inputClass } from "./field-wrapper";
 
 interface LineStringFieldProps {
@@ -27,6 +28,7 @@ export function LineStringField({
     parseLineInput(value),
   );
   const [pickerOpen, setPickerOpen] = useState(false);
+  const coordinatePlaceholders = getCoordinatePlaceholders();
 
   useEffect(() => {
     setPoints(parseLineInput(value));
@@ -122,7 +124,7 @@ export function LineStringField({
                 className={inputClass}
                 value={point.lat}
                 required={required}
-                placeholder="9.4466"
+                placeholder={coordinatePlaceholders.lat}
                 onChange={(e) => updatePoint(index, "lat", e.target.value)}
               />
             </div>
@@ -138,7 +140,7 @@ export function LineStringField({
                 className={inputClass}
                 value={point.lng}
                 required={required}
-                placeholder="105.9342"
+                placeholder={coordinatePlaceholders.lng}
                 onChange={(e) => updatePoint(index, "lng", e.target.value)}
               />
             </div>

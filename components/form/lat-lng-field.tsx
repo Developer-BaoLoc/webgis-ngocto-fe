@@ -6,6 +6,7 @@ import {
   buildLatLngValue,
   parseLatLngInput,
 } from "@/lib/fields/lat-lng";
+import { getCoordinatePlaceholders } from "@/lib/map/coordinate-placeholders";
 import { inputClass } from "./field-wrapper";
 
 interface LatLngFieldProps {
@@ -18,6 +19,7 @@ export function LatLngField({ value, onChange, required }: LatLngFieldProps) {
   const [lat, setLat] = useState(() => parseLatLngInput(value).lat);
   const [lng, setLng] = useState(() => parseLatLngInput(value).lng);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const coordinatePlaceholders = getCoordinatePlaceholders();
 
   useEffect(() => {
     const parsed = parseLatLngInput(value);
@@ -74,7 +76,7 @@ export function LatLngField({ value, onChange, required }: LatLngFieldProps) {
             className={inputClass}
             value={lat}
             required={required}
-            placeholder="9.4466"
+            placeholder={coordinatePlaceholders.lat}
             onChange={(e) => {
               setLat(e.target.value);
               emit(e.target.value, lng);
@@ -93,7 +95,7 @@ export function LatLngField({ value, onChange, required }: LatLngFieldProps) {
             className={inputClass}
             value={lng}
             required={required}
-            placeholder="105.9342"
+            placeholder={coordinatePlaceholders.lng}
             onChange={(e) => {
               setLng(e.target.value);
               emit(lat, e.target.value);

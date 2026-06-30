@@ -16,6 +16,7 @@ import {
   getAuditLog,
   type AuditLogEntry,
 } from "@/lib/audit/audit-log";
+import { getStorageKey } from "@/lib/config/storage";
 import { useAuth } from "@/providers/auth-provider";
 
 export type MessageType = "success" | "error" | "warning" | "info";
@@ -64,7 +65,7 @@ const fallbackApi: MessageApi = {
 };
 
 const MessageContext = createContext<MessageApi>(fallbackApi);
-const STORAGE_KEY = "gis_ngocto.message_history.v1";
+const STORAGE_KEY = getStorageKey("message_history.v1");
 const MAX_HISTORY = 50;
 
 function defaultTitle(type: MessageType) {

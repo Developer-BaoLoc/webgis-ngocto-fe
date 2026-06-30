@@ -8,6 +8,7 @@ import {
   buildAreaPolygonValue,
   parseAreaPolygonInput,
 } from "@/lib/fields/area-polygon";
+import { getCoordinatePlaceholders } from "@/lib/map/coordinate-placeholders";
 import { inputClass } from "./field-wrapper";
 
 interface AreaPolygonFieldProps {
@@ -27,6 +28,7 @@ export function AreaPolygonField({
     parseAreaPolygonInput(value),
   );
   const [pickerOpen, setPickerOpen] = useState(false);
+  const coordinatePlaceholders = getCoordinatePlaceholders();
 
   useEffect(() => {
     setPoints(parseAreaPolygonInput(value));
@@ -118,7 +120,7 @@ export function AreaPolygonField({
                 className={inputClass}
                 value={point.lat}
                 required={required}
-                placeholder="9.4466"
+                placeholder={coordinatePlaceholders.lat}
                 onChange={(e) => updatePoint(index, "lat", e.target.value)}
               />
             </div>
@@ -134,7 +136,7 @@ export function AreaPolygonField({
                 className={inputClass}
                 value={point.lng}
                 required={required}
-                placeholder="105.9342"
+                placeholder={coordinatePlaceholders.lng}
                 onChange={(e) => updatePoint(index, "lng", e.target.value)}
               />
             </div>

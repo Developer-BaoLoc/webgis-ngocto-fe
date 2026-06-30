@@ -1,5 +1,6 @@
 "use client";
 
+import { wardConfig } from "@/config/ward.config";
 import type { AuthUser } from "@/types/api/auth";
 
 function getInitials(name: string): string {
@@ -11,7 +12,7 @@ function getInitials(name: string): string {
 }
 
 function getDisplayName(fullName: string): string {
-  const suffix = " Ngọc Tố";
+  const suffix = ` ${wardConfig.name}`;
   if (fullName.endsWith(suffix)) {
     return fullName.slice(0, -suffix.length);
   }

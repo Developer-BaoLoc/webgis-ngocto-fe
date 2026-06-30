@@ -1,3 +1,5 @@
+import { getStorageKey } from "@/lib/config/storage";
+
 export interface TablePreferences {
   visibleColumns: string[];
   columnWidths: Record<string, number>;
@@ -17,7 +19,9 @@ export function tablePreferencesKey(input: {
   layerId: string;
   tableId?: string;
 }) {
-  return `gis_ngocto.table_preferences.${safeSegment(input.userId)}.${safeSegment(input.layerId)}.${safeSegment(input.tableId ?? "records")}`;
+  return getStorageKey(
+    `table_preferences.${safeSegment(input.userId)}.${safeSegment(input.layerId)}.${safeSegment(input.tableId ?? "records")}`,
+  );
 }
 
 export function loadTablePreferences(key: string): TablePreferences | null {
